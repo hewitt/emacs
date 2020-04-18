@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: bs
+# key: bs
+# --
+\begin{subequations}
+$0
+\end{subequations}

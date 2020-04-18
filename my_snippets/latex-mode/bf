@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# name: bf
+# key: bf
+# --
+\begin{figure*}[t]
+  \begin{center}
+    \setlength{\unitlength}{1cm}
+    \begin{picture}(14,9)(0,0)
+      % include figures
+      \put(0,0){\includegraphics[width=13cm]{./FIGS/${1:filename}.eps}}
+      %\put(1,1){\rotatebox{90}{$label$}}
+      %\put(1,1){\colorbox{white}{(a)}}
+      $0
+      \grid{14}{9}
+    \end{picture}
+  \end{center}
+  \caption{caption}
+  \label{$1}
+\end{figure*}

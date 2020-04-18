@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: bg
+# key: bg
+# --
+\begin{gather}
+$0
+\end{gather}
