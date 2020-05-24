@@ -3,6 +3,7 @@
   :ensure t
   :delight (eglot "Eglot.")
   :init
+  (message "Use-package: Eglot")
   (add-hook 'c++-mode-hook 'eglot-ensure)
   )
 
@@ -18,12 +19,14 @@
   :ensure t
   :delight (company-mode "Co.")
   :bind ("M-/" . company-complete)
-  :init (add-hook 'after-init-hook 'global-company-mode)
+  :init
+  (progn
+    (message "Use-package: Company")
+    (add-hook 'after-init-hook 'global-company-mode))
   :config
   (require 'yasnippet)
   ;(setq company-idle-delay 1)
   (setq company-minimum-prefix-length 3)
-  (setq company-minimum-prefix-length 1)
   (setq company-idle-delay 0)
   (setq company-selection-wrap-around t)
   (setq company-tooltip-align-annotations t)

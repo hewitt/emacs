@@ -2,17 +2,12 @@
 (use-package git-gutter
   :ensure t
   :defer t
-  :delight (git-gutter-mode " GG")
-  :init (message "Use-package: git-gutter")
-  :hook
-  ;; always run git gutter
-  (c++-mode-hook . git-gutter-mode)
-  (python-mode-hook . git-gutter-mode)
-  (lisp-mode-hook . git-gutter-mode)
-  )
-;  (add-hook 'c++-mode-hook 'git-gutter-mode)
-;  (add-hook 'python-mode-hook 'git-gutter-mode)
-;  (add-hook 'lisp-mode-hook 'git-gutter-mode)
+  :delight (git-gutter-mode "GG.")
+  :init (message "Use-package: Git-Gutter")
+)
+(add-hook 'c++-mode-hook 'git-gutter-mode)
+(add-hook 'python-mode-hook 'git-gutter-mode)
+(add-hook 'emacs-lisp-mode-hook 'git-gutter-mode)
 
 
 ;;;; MAGIT
@@ -22,6 +17,6 @@
   :bind
   ("C-x g" . magit-status)
   :init
-  (message "Use-package: magit installed")
+  (message "Use-package: Magit installed")
   ;(setq magit-completing-read-function 'ivy-completing-read)
   )

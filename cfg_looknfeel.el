@@ -47,6 +47,8 @@
   :ensure t
   ; don't show whick-key-mode in modeline
   :delight which-key-mode 
+  :init
+  (message "Use-package: Which-key" )
   :config
   (which-key-mode)
   )
@@ -55,6 +57,8 @@
 (use-package dashboard
     :ensure t
     :diminish dashboard-mode
+    :init
+    (message "Use-package: Dashboard")
     :config
     (setq dashboard-banner-logo-title "Quickstart!")
     (setq dashboard-startup-banner "/home/hewitt/CURRENT/dot.local/share/icons/hicolor/128x128/apps/emacs.png")
@@ -72,7 +76,7 @@
 (use-package delight
   :ensure t
   :no-require t
-  :init (message "Use-package: delight")
+  :init (message "Use-package: Delight")
   )
 (delight 'eldoc-mode "Eld." 'eldoc)
 (delight 'undo-tree-mode "Ut." 'undo-tree)
@@ -110,7 +114,7 @@
 ;;;;
 (use-package doom-modeline
   :ensure t
-  :init (message "Use-package: doom-modeline")
+  :init (message "Use-package: Doom-modeline")
   :hook (after-init . doom-modeline-mode)
   :config
   ;; Whether display icons or not (if nil nothing will be showed).
@@ -144,7 +148,7 @@
 (use-package rainbow-delimiters
   :ensure t
   :init
-  (message "Use-package: rainbow delimiters")
+  (message "Use-package: Rainbow delimiters")
   :config
   (rainbow-delimiters-mode)
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
@@ -184,6 +188,7 @@
   :ensure t
   :init
   (progn
+    (message "Use-package: Key-chord" )
     ;; Max time delay between two key presses to be considered a key chord
     (setq key-chord-two-keys-delay 0.1) ; default 0.1
     ;; Max time delay between two presses of the same key to be considered a key chord.
@@ -209,7 +214,7 @@
   :ensure t
   :defer t
   :init
-  (message "Use-package: avy")
+  (message "Use-package: Avy")
   :config
   (setq avy-background t)
   )
@@ -219,7 +224,7 @@
   :ensure t
   :defer t
   :init
-  (message "Use-package: undo-tree")
+  (message "Use-package: Undo-tree")
   (global-undo-tree-mode)
   )
 
@@ -235,14 +240,14 @@
 (global-auto-revert-mode 1)
 
 ;;;; location of my snippets -- has to go before yas-reload-all
-(setq-default yas-snippet-dirs '("/home/hewitt/.emacs.d/my_snippets"))
+(setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.emacs.d/my_snippets"))
 ;;;; include yansippet and snippets
 (use-package yasnippet
-  :delight (yas-minor-mode " YaS.")
+  :delight (yas-minor-mode "YaS.")
   :ensure t
-  :defer t
+  ;:defer t
   :init
-  (message "Use-package: yasnippet")
+  (message "Use-package: YASnippet")
   :config
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;; hooks for YASnippet in Latex and C++;;
@@ -289,9 +294,10 @@
   :defer t
   :delight (editorconfig-mode "EC.")
   :init
-  (message "Use-package: editorconfig")
+  (message "Use-package: EditorConfig")
   :config
-  (editorconfig-mode 1))
+  (editorconfig-mode 1)
+  )
 
 ;;;;
 ;;;; HELM MODE
@@ -302,7 +308,7 @@
   :delight ; dont show in the modeline
   :defer t
   :init
-  (message "Use-package: helm")
+  (message "Use-package: Helm")
   (progn ; evaluate each of these in sequence
     (require 'helm-config)
     (setq helm-candidate-number-limit 12)

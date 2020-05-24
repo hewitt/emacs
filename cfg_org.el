@@ -4,7 +4,7 @@
 (use-package org
   :ensure t
   :init
-  (message "Use-package: org")
+  (message "Use-package: Org")
   )
 
 ;; org wiki hot key
@@ -15,7 +15,7 @@
   :ensure t
   :init
   (add-hook 'org-mode-hook 'org-bullets-mode)
-  (message "Use-package: org-bullets")
+  (message "Use-package: Org-bullets")
   )
 
 ;; ORG link to mu4e -- see mu from https://github.com/djcb/mu
@@ -50,6 +50,9 @@
 
 ;; Ask and store note if rescheduling
 (setq org-log-reschedule (quote note))
+
+;; syntax highlight latex in org files
+(setq org-highlight-latex-and-related '(latex script entities))
 
 ;; highlight the current line in the agenda
 (add-hook 'org-agenda-mode-hook

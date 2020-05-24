@@ -4,7 +4,7 @@
   :delight '(:eval (concat "P:" (substring (projectile-project-name) 0 4 ) "." ))
   ;:defer t
   :init
-  (message "Use-package: projectile")
+  (message "Use-package: Projectile")
   :config
   ;(setq projectile-project-search-path '("~/CURRENT/Projects/CppNoddy"
 ;	 "~/Sync/Org"
@@ -28,8 +28,6 @@
   (define-key projectile-mode-map (kbd "C-x p") 'projectile-command-map)
   (projectile-mode +1)
   )
-
-
 
 ;(use-package helm-projectile
 ;  :ensure t

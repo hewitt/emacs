@@ -14,7 +14,7 @@
   :ensure t
   :defer t
   :init
-  (message "Use-package: smtpmail")
+  (message "Use-package: SMTPmail")
   (setq message-send-mail-function 'smtpmail-send-it
 	user-mail-address "richard.hewitt@manchester.ac.uk"
 	smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
