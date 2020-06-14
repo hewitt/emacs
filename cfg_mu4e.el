@@ -4,7 +4,8 @@
 
 ;; mu4e is part of the "mu" package and sometimes doesn't get
 ;; found auto-magically. So this points directly to it.
-(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+(add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
+
 ;; defines mu4e exists, but holds off until needed
 (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 

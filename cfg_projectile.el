@@ -1,7 +1,7 @@
 (use-package projectile
   :ensure t
   ; shorten project names in the modeline
-  :delight '(:eval (concat "P:" (substring (projectile-project-name) 0 4 ) "." ))
+  ;:delight '(:eval (concat "P:" (substring (projectile-project-name) 0 4 ) "." ))
   ;:defer t
   :init
   (message "Use-package: Projectile")

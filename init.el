@@ -133,7 +133,7 @@
  '(jdee-db-spec-breakpoint-face-colors (cons "#1E2029" "#565761"))
  '(objed-cursor-color "#ff5555")
  '(package-selected-packages
-   '(git-gutter-fringe color-theme-sanityinc-solarized chocolate-theme company-posframe dracula-theme org-superstar mu4e-conversation all-the-icons which-key helm-projectile projectile treemacs helm-posframe dashboard doom-themes use-package))
+   '(pdf-tools git-gutter-fringe color-theme-sanityinc-solarized chocolate-theme company-posframe dracula-theme org-superstar mu4e-conversation all-the-icons which-key helm-projectile projectile treemacs helm-posframe dashboard doom-themes use-package))
  '(pdf-view-midnight-colors (cons "#f8f8f2" "#282a36"))
  '(rustic-ansi-faces
    ["#282a36" "#ff5555" "#50fa7b" "#f1fa8c" "#61bfff" "#ff79c6" "#8be9fd" "#f8f8f2"])

@@ -109,6 +109,18 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 ;; this makes repeated scheduled tasks NOT show after the deadline is passed
 (setq org-agenda-skip-scheduled-if-deadline-is-shown 'repeated-after-deadline)
 
+
+;; pdf tools for organising and annotating PDF
+(use-package pdf-tools
+  :ensure t
+  :config
+  (pdf-tools-install)
+  )
+;; link pdf tools to org mode
+(use-package org-pdftools
+  :ensure t
+  )
+
 ;; my own function to export to .ics
 (defun reh/export-to-ics ()
   "Routine that dumps Todo.org to Todo.ics in dropbox"
@@ -137,4 +149,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
     ( progn (message "Machine is Blasius" )
 	    (message "Not running the .ics generator" ) )
   )
+
+
 

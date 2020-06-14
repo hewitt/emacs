@@ -7,11 +7,8 @@
   (add-hook 'c++-mode-hook 'eglot-ensure)
   )
 
-;;;; Blasius has a newer O/S with later version of clangd
-;(if (system-is-Blasius)
-;    (add-to-list 'eglot-server-programs '(c++-mode . ("clangd-9")))
-;  (add-to-list 'eglot-server-programs '(c++-mode . ("clangd-8")))
-;  )
+(add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+
 
 ;;;; company gives the selection front end for code completion
 ;;;; but not the C++-aware backend
