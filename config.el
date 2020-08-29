@@ -12,12 +12,12 @@
 (unless (package-installed-p 'use-package)
  (package-refresh-contents)
  (package-install 'use-package)
-)
+ )
 
 ;; this is the standard use-package invocation if it is in ~/.emacs.d
 (eval-when-compile
  (require 'use-package)
-)
+ )
 
 ;; Keep custom settings in a separate file to not pollute this one
 (setq custom-file "~/.emacs.d/custom-settings.el")
@@ -37,8 +37,10 @@
 ;; have mouse input in the terminal
 ;; the disadvantage is you need to SHIFT+middle mouse to paste in the terminal
 (xterm-mouse-mode 1)
-;; Turn off the menu
+;; Turn off the menu/scroll/toolbar
 (menu-bar-mode -1)
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
 ;; this stops the cursor recentering on leaving the page
 ;; ie. stop scrolling by 0.5 page
 (setq scroll-conservatively 101 )
@@ -72,7 +74,6 @@
 (delight 'eldoc-mode "Eld." 'eldoc)
 (delight 'undo-tree-mode "Ut." 'undo-tree)
 (delight 'abbrev-mode "Ab." 'abbrev)
-;(delight 'helm-mode "Helm." 'helm)
 
 ;; dashboard runs at startup by default
 (use-package dashboard
@@ -93,45 +94,59 @@
     )
 
 (mapcar #'disable-theme custom-enabled-themes)
-(use-package doom-themes
+(use-package modus-vivendi-theme
   :ensure t
+  :init
+    ;;  customisations must be defined before the theme is loaded
+    ;; NOTE: Everything is disabled by default.
+    (setq modus-vivendi-theme-slanted-constructs t
+      modus-vivendi-theme-bold-constructs t    
+      modus-vivendi-theme-fringes 'subtle ; {nil,'subtle,'intense}
+      modus-vivendi-theme-3d-modeline t        
+      modus-vivendi-theme-faint-syntax t       
+      modus-vivendi-theme-intense-hl-line t    
+      modus-vivendi-theme-intense-paren-match t
+      modus-vivendi-theme-prompts 'subtle ; {nil,'subtle,'intense}
+      modus-vivendi-theme-completions 'moderate ; {nil,'moderate,'opinionated}
+      modus-vivendi-theme-diffs nil ; {nil,'desaturated,'fg-only}
+      modus-vivendi-theme-org-blocks 'greyscale ; {nil,'greyscale,'rainbow}
+      modus-vivendi-theme-variable-pitch-headings t
+      modus-vivendi-theme-rainbow-headings t
+      modus-vivendi-theme-section-headings 'nil
+      modus-vivendi-theme-scale-headings t
+      modus-vivendi-theme-scale-1 1.05
+      modus-vivendi-theme-scale-2 1.1
+      modus-vivendi-theme-scale-3 1.15
+      modus-vivendi-theme-scale-4 1.2
+      modus-vivendi-theme-scale-5 1.3)
+  :config
+    (load-theme 'modus-vivendi t)      
   )
-;; choose theme based on text terminal vs GUI
-(if (display-graphic-p)
-    ( progn (message "Window system determined.")
-	    (load-theme 'doom-dracula t)
-	    (scroll-bar-mode -1)
-	    (tool-bar-mode -1)
-	    ;; below are already defined via Alacritty for terminal mode
-	    (global-set-key (kbd "M-l") 'forward-char) 
-	    (global-set-key (kbd "M-i") 'previous-line) 
-	    (global-set-key (kbd "M-j") 'backward-char) 
-	    (global-set-key (kbd "M-k") 'next-line) )
-  ( progn (message "Terminal system determined.") ; else
-	  (load-theme 'doom-gruvbox t) )
-  )
-;; Reapply the theme on every new frame
-;; Check if any new frame is in a graphical environment
-;; Doing this on a per-frame basis allows it to deal with
-;; daemon mode, since otherwise the daemon always starts
-;; w/o a GUI.
-(defun new-frame-setup (frame)
-  (if (display-graphic-p frame)
-      (progn (message "Window system")
-	     (load-theme 'doom-dracula t)
-	     (scroll-bar-mode -1)
-	     (tool-bar-mode -1)
-	     ;; fall back cursor keys
-	     ;; below are already defined via Alacritty for terminal mode
-	     (global-set-key (kbd "M-l") 'forward-char) 
-	     (global-set-key (kbd "M-i") 'previous-line) 
-	     (global-set-key (kbd "M-j") 'backward-char) 
-	     (global-set-key (kbd "M-k") 'next-line)
-	     )
-    (progn(message "Not a window system")
-	  (load-theme 'doom-gruvbox t) )
-    )
-  )
+;; ;; Reapply the theme on every new frame
+;; ;; Check if any new frame is in a graphical environment
+;; ;; Doing this on a per-frame basis allows it to deal with
+;; ;; daemon mode, since otherwise the daemon always starts
+;; ;; w/o a GUI.
+;; (defun new-frame-setup (frame)
+;;   (if (display-graphic-p frame)
+;;       (progn (message "Window system")
+;;              ;(load-theme 'doom-dracula t)
+;;              (load-theme 'modus-vivendi t)
+;;              (scroll-bar-mode -1)
+;;              (tool-bar-mode -1)
+;;              ;; fall back cursor keys
+;;              ;; below are already defined via Alacritty for terminal mode
+;;              (global-set-key (kbd "M-l") 'forward-char) 
+;;              (global-set-key (kbd "M-i") 'previous-line) 
+;;              (global-set-key (kbd "M-j") 'backward-char) 
+;;              (global-set-key (kbd "M-k") 'next-line)
+;;              )
+;;     (progn(message "Not a window system")
+;;           (load-theme 'doom-gruvbox t) )
+;;     )
+;;   )
+;; ;;Run function defined below when a new frame is created
+;; (add-hook 'after-make-frame-functions 'new-frame-setup)
 
 ;; modeline
 (use-package doom-modeline
@@ -295,6 +310,8 @@
 (use-package ivy
   :ensure t
   :delight "Iv."
+  :init
+  (message "Use-package: Ivy")
   :config
   (setq ivy-use-virtual-buffers t
         ivy-count-format "%d/%d ")
@@ -310,9 +327,9 @@
 (use-package ivy-posframe
   :ensure t
   :after ivy
-  :delight "Pf."
-  :custom-face
-  (ivy-posframe-border ((t (:background "#ffffff"))))
+  :delight 
+  ;:custom-face
+  ;(ivy-posframe-border ((t (:background "#ffffff"))))
   :config
   (ivy-posframe-mode 1)
   (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-top-center)))
@@ -329,6 +346,7 @@
   :init
   (ivy-rich-mode 1)
   )
+
 ;; adds icons to buffer list
 (use-package all-the-icons-ivy-rich
   :ensure t
@@ -336,19 +354,57 @@
   (all-the-icons-ivy-rich-mode 1)
   )
 
-;; I've switched away from Helm in general, but org-wiki still makes use of it
-(use-package helm
-   :ensure t
-   :defer t
-)
-;; where the package is stored
-(add-to-list 'load-path "/home/hewitt/CURRENT/dot.emacs.d/manual_install_packages/org-wiki")
-(require 'org-wiki)
-;; where my wiki files are stored
-(setq org-wiki-location "/home/hewitt/Sync/Org/Wiki")
-;; org-wiki-search requires rgrep
-(eval-after-load "grep"
-  '(grep-compute-defaults))
+;; eglot is a simpler alternative to LSP-mode
+(use-package eglot
+  :ensure t
+  :delight (eglot "Eglot.")
+  :init
+  (message "Use-package: Eglot")
+  (add-hook 'c++-mode-hook 'eglot-ensure)
+  )
+(add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+;; company gives the selection front end for code completion
+;; but not the C++-aware backend
+(use-package company
+  :ensure t
+  :delight (company-mode "Co.")
+  :bind ("M-/" . company-complete)
+  :init
+  (progn
+    (message "Use-package: Company")
+    (add-hook 'after-init-hook 'global-company-mode))
+  :config
+  (require 'yasnippet)
+  ;(setq company-idle-delay 1)
+  (setq company-minimum-prefix-length 3)
+  (setq company-idle-delay 0)
+  (setq company-selection-wrap-around t)
+  (setq company-tooltip-align-annotations t)
+  (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
+			    company-echo-metadata-frontend))
+  )
+
+;; F8 : mu4e
+(global-set-key (kbd "<f8>") 'mu4e)
+;; F9 : org wiki hot key
+(global-set-key (kbd "<f9>") 'org-roam)
+;; F10 : ORG AGENDA keybinding
+(global-set-key (kbd "<f10>") 'org-agenda)
+;; F11 is full screen in the Sway WM
+;; F12 : turn on the menu bar
+(global-set-key (kbd "<f12>") 'menu-bar-mode)
+;; C-c e : edit the init.el configuration file
+(defun config-visit ()
+  (interactive)
+  (find-file "~/CURRENT/dot.emacs.d/config.org")
+  )
+(global-set-key (kbd "C-c e") 'config-visit)
+;; C-c r : reload the configuration file
+(defun config-reload ()
+  (interactive)
+  (load-file (expand-file-name "~/.emacs.d/init.el"))
+  )
+(global-set-key (kbd "C-c r") 'config-reload)
 
 ;; mu4e is part of the "mu" package and sometimes doesn't get
 ;; found auto-magically. So this points directly to it.
@@ -393,7 +449,7 @@
       )
 ;; the headers to show in the headers list -- a pair of a field
 ;; and its width, with `nil' meaning 'unlimited'
-;;; (better only use that for the last field.
+;; better only use that for the last field.
 ;; These are the defaults:
 (setq mu4e-headers-fields
     '( (:human-date    .  15)    ;; alternatively, use :date
@@ -453,105 +509,219 @@
   (apply operation args))))
 (add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
 
-;; eglot is a simpler alternative to LSP-mode
-(use-package eglot
+(use-package org
   :ensure t
-  :delight (eglot "Eglot.")
   :init
-  (message "Use-package: Eglot")
-  (add-hook 'c++-mode-hook 'eglot-ensure)
+  (message "Use-package: Org")
   )
-(add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
-;; company gives the selection front end for code completion
-;; but not the C++-aware backend
-(use-package company
+;; fancy replace of *** etc
+(use-package org-bullets
   :ensure t
-  :delight (company-mode "Co.")
-  :bind ("M-/" . company-complete)
   :init
-  (progn
-    (message "Use-package: Company")
-    (add-hook 'after-init-hook 'global-company-mode))
-  :config
-  (require 'yasnippet)
-  ;(setq company-idle-delay 1)
-  (setq company-minimum-prefix-length 3)
-  (setq company-idle-delay 0)
-  (setq company-selection-wrap-around t)
-  (setq company-tooltip-align-annotations t)
-  (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-			    company-echo-metadata-frontend))
+  (add-hook 'org-mode-hook 'org-bullets-mode)
+  (message "Use-package: Org-bullets")
   )
 
-(use-package projectile
-  :ensure t
-  ; shorten project names in the modeline
-  :delight '(:eval (concat "P:" (substring (projectile-project-name) 0 4 ) "." ))
-  :defer t
-  :init
-  (message "Use-package: Projectile")
-  :config
-  ;(setq projectile-project-search-path '("~/CURRENT/Projects/CppNoddy"
-;	 "~/Sync/Org"
-;	 "~/CURRENT/dot.emacs.d"
-;	 "~/CURRENT/Projects/Research/2020/Big_VWI")
-;	)
-  (setq projectile-global-mode       t
-        projectile-enable-caching    t )
-  projectile-globally-ignored-directories
-  (append '("build"
-	    ".git"
-	    ".OLD"
-	    "DATA" )
-	  projectile-globally-ignored-directories )
-  projectile-globally-ignored-files
-  (append '(".cpp~"
-            ".h~"
-            "~")
-          projectile-globally-ignored-files)
-  (define-key projectile-mode-map (kbd "C-x p") 'projectile-command-map)
-  (projectile-mode +1)
+;; ORG link to mu4e -- see mu from https://github.com/djcb/mu
+(require 'org-mu4e)
+(setq org-mu4e-link-query-in-headers-mode nil)
+
+;; custom capture
+(require 'org-capture)
+(define-key global-map "\C-cc" 'org-capture)
+(setq org-capture-templates
+      '(
+        ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+         "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n"))
+      )
+
+;; Agenda is constructed from org files in ONE directory
+(setq org-agenda-files '("~/Sync/Org"))
+
+;; refile to targets defined by the org-agenda-files list above
+(setq org-refile-targets '((nil :maxlevel . 3)
+                           (org-agenda-files :maxlevel . 3)))
+(setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+(setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+
+;; store DONE time in the drawer
+(setq org-log-done (quote time))
+(setq org-log-into-drawer t)
+
+;; Ask and store note if rescheduling
+(setq org-log-reschedule (quote note))
+
+;; syntax highlight latex in org files
+(setq org-highlight-latex-and-related '(latex script entities))
+
+;; highlight the current line in the agenda
+(add-hook 'org-agenda-mode-hook
+          '(lambda () (hl-line-mode 1))
+          'append)
+
+;; define the number of days to show in the agenda
+(setq org-agenda-span 14
+      org-agenda-start-on-weekday nil
+      org-agenda-start-day "-3d")
+
+;; default duration of events
+(setq org-agenda-default-appointment-duration 60)
+
+;; function for below
+(defun air-org-skip-subtree-if-priority (priority)
+  "Skip an agenda subtree if it has a priority of PRIORITY.
+
+PRIORITY may be one of the characters ?A, ?B, or ?C."
+  (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+        (pri-value (* 1000 (- org-lowest-priority priority)))
+        (pri-current (org-get-priority (thing-at-point 'line t))))
+    (if (= pri-value pri-current)
+        subtree-end
+      nil))
   )
 
-;; GIT-GUTTER: SHOW changes relative to git repo
-(use-package git-gutter
+;; custom agenda view
+(setq org-agenda-custom-commands
+      '(("c" "Simple agenda view"
+         ((tags "PRIORITY=\"A\""
+                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                 (org-agenda-overriding-header "High-priority unfinished tasks:")))
+          (agenda "")
+          (alltodo ""
+                   ((org-agenda-skip-function
+                     '(or (air-org-skip-subtree-if-priority ?A)
+                          (org-agenda-skip-if nil '(scheduled deadline))))))))))
+
+;; calendar export
+(setq org-icalendar-alarm-time 45)
+;; This makes sure to-do items as a category can show up on the calendar
+(setq org-icalendar-include-todo nil)
+;; dont include the body
+(setq org-icalendar-include-body nil)
+;; This ensures all org "deadlines" show up, and show up as due dates
+;; (setq org-icalendar-use-deadline '(event-if-todo event-if-not-todo todo-due))
+;; This ensures "scheduled" org items show up, and show up as start times
+(setq org-icalendar-use-scheduled '(todo-start event-if-todo event-if-not-todo))
+(setq org-icalendar-categories '(all-tags))
+;; this makes repeated scheduled tasks NOT show after the deadline is passed
+(setq org-agenda-skip-scheduled-if-deadline-is-shown 'repeated-after-deadline)
+
+;; my own function to export to .ics
+(defun reh/export-to-ics ()
+  "Routine that dumps Todo.org to Todo.ics in Syncthing"
+  (interactive)
+  ;(shell-command "rm /home/hewitt/Sync/Org/Todo.ics")
+  (with-current-buffer (find-file-noselect "/home/hewitt/Sync/Org/Todo.org")
+    (rename-file (org-icalendar-export-to-ics)
+		 "/home/hewitt/Sync/Org/Todo.ics" t)
+    (message "Exported Todo.org to Todo.ics"))
+  )
+
+;; Annoying output littered with S
+(defun reh/replaceS ()
+  (interactive)
+  (shell-command "sed -i -e \'s/SUMMARY:S:/SUMMARY:/g\' /home/hewitt/Sync/Org/Todo.ics")
+  )
+
+(if (system-is-Orthanc)
+;; ONLY RUN THIS ON THE OFFICE MACHINE -- to avoid conflicted copies of .ics file
+    ( progn (message "Machine is Orthanc" )
+	    (message "Writing Org calendar to ics every 30 minutes" )
+	    (run-with-timer 60 1800 'reh/export-to-ics)
+	    (run-with-timer 90 1800 'reh/replaceS) )
+  )
+(if (system-is-Blasius)
+    ( progn (message "Machine is Blasius" )
+	    (message "Not running the .ics generator" ) )
+  )
+
+(use-package org-roam
   :ensure t
-  :defer t
-  :delight (git-gutter-mode "Gg.")
-  :init (message "Use-package: Git-Gutter")
+  :delight "Or."
+  :after org
+  :init
+  (message "Use-package: Org-roam")
+  :config
+  (setq org-roam-directory "~/Sync/Org/Roam")
+  (setq org-roam-graph-viewer "/usr/bin/eog")
+  (setq org-ellipsis "▾")
+  (setq org-roam-ref-capture-templates
+    '(
+      ("d" "default" plain (function org-roam--capture-get-point)
+      "%?"
+      :file-name "${slug}"
+      :head "#+title: ${title}\n"
+      :unnarrowed t) )
+      )
+  )
+
+(use-package company-org-roam
+  :ensure t
+  :after org-roam
+  ;; You may want to pin in case the version from stable.melpa.org is not working 
+  ; :pin melpa
+  :config
+  (push 'company-org-roam company-backends)
+  )
+
+(use-package deft
+  :ensure t
+  :after org
+  :init
+  (message "Use-package: Deft")
+  :config
+  (setq deft-recursive t)
+  (setq deft-default-extension "org")
+  (setq deft-directory "~/Sync/Org")
+  )
+
+(use-package org-roam-server
+  :ensure t
+  :init
+  (message "Use-package: Org-roam-server")
+  :config
+  (setq org-roam-server-host "127.0.0.1"
+        org-roam-server-port 8080
+        org-roam-server-authenticate nil
+        org-roam-server-export-inline-images t
+        org-roam-server-serve-files nil
+        org-roam-server-served-file-extensions '("pdf" "doc" "docx" "mp4")
+        org-roam-server-network-poll t
+        org-roam-server-network-arrows nil
+        org-roam-server-network-label-truncate t
+        org-roam-server-network-label-truncate-length 60
+        org-roam-server-network-label-wrap-length 20)
 )
-(add-hook 'c++-mode-hook 'git-gutter-mode)
-(add-hook 'python-mode-hook 'git-gutter-mode)
-(add-hook 'emacs-lisp-mode-hook 'git-gutter-mode)
-;; MAGIT
-(use-package magit
+
+(use-package org-journal
   :ensure t
   :defer t
-  :bind
-  ("C-x g" . magit-status)
   :init
-  (message "Use-package: Magit installed")
-  ;(setq magit-completing-read-function 'ivy-completing-read)
+  (message "Use-package: Org-journal")
+  ;; Change default prefix key; needs to be set before loading org-journal
+  (setq org-journal-prefix-key "C-c j")
+  :config
+  (setq org-journal-dir "~/Sync/Org/Roam/Journal/"
+        org-journal-date-format "%A, %d %B %Y"
+        org-journal-file-format "%Y_%m_%d"
+        org-journal-file-type 'monthly)
   )
 
-;; F8 : mu4e
-(global-set-key (kbd "<f8>") 'mu4e)
-;; F9 : org wiki hot key
-(global-set-key (kbd "<f9>") 'org-wiki-index)
-;; F10 : ORG AGENDA keybinding
-(global-set-key (kbd "<f10>") 'org-agenda)
-;; F11 is full screen in the Sway WM
-;; F12 : turn on the menu bar
-(global-set-key (kbd "<f12>") 'menu-bar-mode)
-;; C-c e : edit the init.el configuration file
-(defun config-visit ()
-  (interactive)
-  (find-file "~/.emacs.d/init.el")
+;;;;
+;;;; custom faces/colours are in custom-setting.el
+;;;;
+;(add-hook 'org-mode-hook 'variable-pitch-mode)
+(add-hook 'org-mode-hook 'visual-line-mode)
+(add-hook 'after-init-hook 'org-roam-mode)
+
+;; pdf tools for organising and annotating PDF
+(use-package pdf-tools
+  :ensure t
+  :config
+  (pdf-tools-install)
   )
-(global-set-key (kbd "C-c e") 'config-visit)
-;; C-c r : reload the configuration file
-(defun config-reload ()
-  (interactive)
-  (load-file (expand-file-name "~/.emacs.d/init.el"))
+;; link pdf tools to org mode
+(use-package org-pdftools
+  :ensure t
+  :after pdf-tools
   )
-(global-set-key (kbd "C-c r") 'config-reload)
