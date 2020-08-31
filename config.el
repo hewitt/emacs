@@ -122,31 +122,6 @@
   :config
     (load-theme 'modus-vivendi t)      
   )
-;; ;; Reapply the theme on every new frame
-;; ;; Check if any new frame is in a graphical environment
-;; ;; Doing this on a per-frame basis allows it to deal with
-;; ;; daemon mode, since otherwise the daemon always starts
-;; ;; w/o a GUI.
-;; (defun new-frame-setup (frame)
-;;   (if (display-graphic-p frame)
-;;       (progn (message "Window system")
-;;              ;(load-theme 'doom-dracula t)
-;;              (load-theme 'modus-vivendi t)
-;;              (scroll-bar-mode -1)
-;;              (tool-bar-mode -1)
-;;              ;; fall back cursor keys
-;;              ;; below are already defined via Alacritty for terminal mode
-;;              (global-set-key (kbd "M-l") 'forward-char) 
-;;              (global-set-key (kbd "M-i") 'previous-line) 
-;;              (global-set-key (kbd "M-j") 'backward-char) 
-;;              (global-set-key (kbd "M-k") 'next-line)
-;;              )
-;;     (progn(message "Not a window system")
-;;           (load-theme 'doom-gruvbox t) )
-;;     )
-;;   )
-;; ;;Run function defined below when a new frame is created
-;; (add-hook 'after-make-frame-functions 'new-frame-setup)
 
 ;; modeline
 (use-package doom-modeline
@@ -216,16 +191,17 @@
    ;; Should normally be a little longer than `key-chord-two-keys-delay'.
    (setq key-chord-one-key-delay 0.2) ; default 0.2    
    (key-chord-mode 1)
-   ;; k can be bound too
    ;(key-chord-define-global "uu"     'undo-tree-undo)
    ;(key-chord-define-global "kk"     'kill-whole-line)
-   (key-chord-define-global "jj"     'avy-goto-word-1)
-   (key-chord-define-global "jl"     'avy-goto-line)
+   (key-chord-define-global "qw"     'avy-goto-word-1)
+   (key-chord-define-global "qs"     'deft)
+   (key-chord-define-global "qt"     'org-babel-tangle)
    (key-chord-define-global "qq"     'counsel-switch-buffer)
    (key-chord-define-global "qc"     'counsel-org-capture)
    (key-chord-define-global "qb"     'bookmark-set)
    (key-chord-define-global "qj"     'bookmark-jump)
    (key-chord-define-global "qo"     'other-window)
+   (key-chord-define-global "qd"     'org-journal-new-entry)
    ;(key-chord-define-global "hh"     'previous-buffer)
    ;(key-chord-define-global "HH"     'next-buffer)
    )
@@ -363,6 +339,7 @@
   (add-hook 'c++-mode-hook 'eglot-ensure)
   )
 (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+
 ;; company gives the selection front end for code completion
 ;; but not the C++-aware backend
 (use-package company
@@ -514,6 +491,7 @@
   :init
   (message "Use-package: Org")
   )
+
 ;; fancy replace of *** etc
 (use-package org-bullets
   :ensure t
@@ -664,17 +642,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (push 'company-org-roam company-backends)
   )
 
-(use-package deft
-  :ensure t
-  :after org
-  :init
-  (message "Use-package: Deft")
-  :config
-  (setq deft-recursive t)
-  (setq deft-default-extension "org")
-  (setq deft-directory "~/Sync/Org")
-  )
-
 (use-package org-roam-server
   :ensure t
   :init
@@ -690,29 +657,41 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
         org-roam-server-network-arrows nil
         org-roam-server-network-label-truncate t
         org-roam-server-network-label-truncate-length 60
-        org-roam-server-network-label-wrap-length 20)
-)
+        org-roam-server-network-label-wrap-length 20
+        org-roam-server-mode nil) ; default to off
+  )
 
 (use-package org-journal
   :ensure t
   :defer t
   :init
   (message "Use-package: Org-journal")
-  ;; Change default prefix key; needs to be set before loading org-journal
-  (setq org-journal-prefix-key "C-c j")
   :config
   (setq org-journal-dir "~/Sync/Org/Roam/Journal/"
         org-journal-date-format "%A, %d %B %Y"
         org-journal-file-format "%Y_%m_%d"
+        org-journal-time-prefix "  - "
+        org-journal-time-format nil
         org-journal-file-type 'monthly)
   )
 
-;;;;
-;;;; custom faces/colours are in custom-setting.el
-;;;;
+;;
+;; custom faces/colours are in custom-setting.el
+;;
 ;(add-hook 'org-mode-hook 'variable-pitch-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 (add-hook 'after-init-hook 'org-roam-mode)
+
+(use-package deft
+   :ensure t
+   :after org
+   :init
+   (message "Use-package: Deft")
+   :config
+   (setq deft-recursive t)
+   (setq deft-default-extension "org")
+   (setq deft-directory "~/Sync/Org/Roam")
+   )
 
 ;; pdf tools for organising and annotating PDF
 (use-package pdf-tools

@@ -9,7 +9,7 @@
  '(modus-vivendi-theme-variable-pitch-headings t)
  '(org-roam-server-mode t)
  '(package-selected-packages
-   '(modus-vivendi org-journal company-org-roam org-roam-server deft org-roam modus-vivendi-theme yasnippet which-key use-package undo-tree rainbow-delimiters projectile org-pdftools org-bullets magit key-chord ivy-posframe helm gnuplot git-gutter eglot editorconfig doom-themes doom-modeline delight dashboard counsel company avy all-the-icons-ivy-rich))
+   '(xt modus-vivendi org-journal company-org-roam org-roam-server deft org-roam modus-vivendi-theme yasnippet which-key use-package undo-tree rainbow-delimiters projectile org-pdftools org-bullets magit key-chord ivy-posframe gnuplot git-gutter eglot editorconfig doom-themes doom-modeline delight dashboard counsel company avy all-the-icons-ivy-rich))
  '(tool-bar-mode nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

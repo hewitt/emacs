@@ -6,7 +6,7 @@
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
-* Basic configuration
+* Basic
 ** Here we setup melpa package archives and use-package.
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;;;;
@@ -90,7 +90,7 @@ This is based on the "system-name" variable.
 #+END_SRC
 
 
-* Appearance configuration
+* Appearance
 ** Delight
    Delight declutters the modeline by reducing the amount of mode information.
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -210,7 +210,7 @@ Colorised brackets to make matching easier.
 #+END_SRC
 
 
-* Interaction configuration
+* Interaction 
 ** Cut and paste
 I run on Wayland, and this interacts with wl-copy.
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -245,23 +245,24 @@ I run on Wayland, and this interacts with wl-copy.
     ;; Should normally be a little longer than `key-chord-two-keys-delay'.
     (setq key-chord-one-key-delay 0.2) ; default 0.2    
     (key-chord-mode 1)
-    ;; k can be bound too
     ;(key-chord-define-global "uu"     'undo-tree-undo)
     ;(key-chord-define-global "kk"     'kill-whole-line)
-    (key-chord-define-global "jj"     'avy-goto-word-1)
-    (key-chord-define-global "jl"     'avy-goto-line)
+    (key-chord-define-global "qw"     'avy-goto-word-1)
+    (key-chord-define-global "qs"     'deft)
+    (key-chord-define-global "qt"     'org-babel-tangle)
     (key-chord-define-global "qq"     'counsel-switch-buffer)
     (key-chord-define-global "qc"     'counsel-org-capture)
     (key-chord-define-global "qb"     'bookmark-set)
     (key-chord-define-global "qj"     'bookmark-jump)
     (key-chord-define-global "qo"     'other-window)
+    (key-chord-define-global "qd"     'org-journal-new-entry)
     ;(key-chord-define-global "hh"     'previous-buffer)
     ;(key-chord-define-global "HH"     'next-buffer)
     )
   )
 #+END_SRC
 
-** Avy 
+** Avy
    Searching for text in the current view.
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; AVY is used to jump around within a buffer see key-chords
@@ -408,7 +409,7 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 
-* Coding configuration
+* Coding with Company and Eglot
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
@@ -419,6 +420,7 @@ I run on Wayland, and this interacts with wl-copy.
   (add-hook 'c++-mode-hook 'eglot-ensure)
   )
 (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+
 ;; company gives the selection front end for code completion
 ;; but not the C++-aware backend
 (use-package company
@@ -442,7 +444,7 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 
-* Projectile configuration
+* Projectile
 #+BEGIN_SRC emacs-lisp :tangle no
 (use-package projectile
   :ensure t
@@ -453,10 +455,10 @@ I run on Wayland, and this interacts with wl-copy.
   (message "Use-package: Projectile")
   :config
   ;(setq projectile-project-search-path '("~/CURRENT/Projects/CppNoddy"
-;	 "~/Sync/Org"
-;	 "~/CURRENT/dot.emacs.d"
-;	 "~/CURRENT/Projects/Research/2020/Big_VWI")
-;	)
+  ;	 "~/Sync/Org" 
+  ;	 "~/CURRENT/dot.emacs.d"
+  ;	 "~/CURRENT/Projects/Research/2020/Big_VWI")
+  ;	)
   (setq projectile-global-mode       t
         projectile-enable-caching    t )
   projectile-globally-ignored-directories
@@ -476,7 +478,7 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 
-* Magit configuration
+* Magit
 #+BEGIN_SRC emacs-lisp :tangle no
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
@@ -503,7 +505,6 @@ I run on Wayland, and this interacts with wl-copy.
 
 
 * Fn-key shortcuts
-
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; F8 : mu4e
 (global-set-key (kbd "<f8>") 'mu4e)
@@ -529,8 +530,8 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 
-* Mu4e email configuration
-  You need the "mu" package and also "mbsync" (also called "isync").
+* Mu4e email
+You need the "mu" package and also "mbsync" (also called "isync").
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; mu4e is part of the "mu" package and sometimes doesn't get
 ;; found auto-magically. So this points directly to it.
@@ -638,13 +639,15 @@ I run on Wayland, and this interacts with wl-copy.
 
 
 
-* Org configuration
+* Org mode
+** Basics of Org mode
 #+BEGIN_SRC  emacs-lisp :tangle yes
 (use-package org
   :ensure t
   :init
   (message "Use-package: Org")
   )
+
 ;; fancy replace of *** etc
 (use-package org-bullets
   :ensure t
@@ -767,28 +770,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   )
 #+END_SRC
 
-
-* Org-Wiki configuration : manual package installed              :deprecated:
-  This is org-wiki, which hasn't been updated for 3 years or so.
-  Switched to org-roam below.
-#+BEGIN_SRC emacs-lisp :tangle no
-;; I've switched away from Helm in general, but org-wiki still makes use of it
-(use-package helm
-   :ensure t
-   :defer t
-)
-;; where the package is stored
-(add-to-list 'load-path "/home/hewitt/CURRENT/dot.emacs.d/manual_install_packages/org-wiki")
-(require 'org-wiki)
-;; where my wiki files are stored
-(setq org-wiki-location "/home/hewitt/Sync/Org/Wiki")
-;; org-wiki-search requires rgrep
-(eval-after-load "grep"
-  '(grep-compute-defaults))
-#+END_SRC
-
-
-* Org-Roam configuration
+** Org-Roam
 Sets up org-roam as a personal wiki using Deft as an Org search tool.
 Org-journal is installed together with org-roam-server at localhost:8080.
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -821,17 +803,6 @@ Org-journal is installed together with org-roam-server at localhost:8080.
     (push 'company-org-roam company-backends)
     )
 
-  (use-package deft
-    :ensure t
-    :after org
-    :init
-    (message "Use-package: Deft")
-    :config
-    (setq deft-recursive t)
-    (setq deft-default-extension "org")
-    (setq deft-directory "~/Sync/Org")
-    )
-
   (use-package org-roam-server
     :ensure t
     :init
@@ -847,34 +818,67 @@ Org-journal is installed together with org-roam-server at localhost:8080.
           org-roam-server-network-arrows nil
           org-roam-server-network-label-truncate t
           org-roam-server-network-label-truncate-length 60
-          org-roam-server-network-label-wrap-length 20)
-  )
+          org-roam-server-network-label-wrap-length 20
+          org-roam-server-mode nil) ; default to off
+    )
 
   (use-package org-journal
     :ensure t
     :defer t
     :init
     (message "Use-package: Org-journal")
-    ;; Change default prefix key; needs to be set before loading org-journal
-    (setq org-journal-prefix-key "C-c j")
     :config
     (setq org-journal-dir "~/Sync/Org/Roam/Journal/"
           org-journal-date-format "%A, %d %B %Y"
           org-journal-file-format "%Y_%m_%d"
+          org-journal-time-prefix "  - "
+          org-journal-time-format nil
           org-journal-file-type 'monthly)
     )
 
-  ;;;;
-  ;;;; custom faces/colours are in custom-setting.el
-  ;;;;
+  ;;
+  ;; custom faces/colours are in custom-setting.el
+  ;;
   ;(add-hook 'org-mode-hook 'variable-pitch-mode)
   (add-hook 'org-mode-hook 'visual-line-mode)
   (add-hook 'after-init-hook 'org-roam-mode)
+#+END_SRC
 
+** Search for Org directory via Deft
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package deft
+   :ensure t
+   :after org
+   :init
+   (message "Use-package: Deft")
+   :config
+   (setq deft-recursive t)
+   (setq deft-default-extension "org")
+   (setq deft-directory "~/Sync/Org/Roam")
+   )
+#+END_SRC
+
+** Org-Wiki  : manual package installed            :deprecated:
+This is org-wiki, which hasn't been updated for 3 years or so.
+Switched to org-roam below.
+#+BEGIN_SRC emacs-lisp :tangle no
+;; I've switched away from Helm in general, but org-wiki still makes use of it
+(use-package helm
+   :ensure t
+   :defer t
+)
+;; where the package is stored
+(add-to-list 'load-path "/home/hewitt/CURRENT/dot.emacs.d/manual_install_packages/org-wiki")
+(require 'org-wiki)
+;; where my wiki files are stored
+(setq org-wiki-location "/home/hewitt/Sync/Org/Wiki")
+;; org-wiki-search requires rgrep
+(eval-after-load "grep"
+  '(grep-compute-defaults))
 #+END_SRC
 
 
-* PDF tools configuration
+* PDF tools
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; pdf tools for organising and annotating PDF
 (use-package pdf-tools
@@ -888,6 +892,8 @@ Org-journal is installed together with org-roam-server at localhost:8080.
   :after pdf-tools
   )
 #+END_SRC
+
+
 
 
 
