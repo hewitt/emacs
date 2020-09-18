@@ -92,16 +92,16 @@ This is based on the "system-name" variable.
 
 * Appearance
 ** Delight
-   Delight declutters the modeline by reducing the amount of mode information.
+Delight declutters the modeline by reducing the amount of mode information.
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package delight
   :ensure t
   ;:no-require t
   :init (message "Use-package: Delight")
   )
-(delight 'eldoc-mode "Eld." 'eldoc)
-(delight 'undo-tree-mode "Ut." 'undo-tree)
-(delight 'abbrev-mode "Ab." 'abbrev)
+(delight 'eldoc-mode "Eld" 'eldoc)
+(delight 'undo-tree-mode "Ut" 'undo-tree)
+(delight 'abbrev-mode "Ab" 'abbrev)
 #+END_SRC
 
 ** Dashboard
@@ -209,6 +209,19 @@ Colorised brackets to make matching easier.
   )
 #+END_SRC
 
+** Which-key
+Popup key combinations
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package which-key
+  :ensure t
+  :delight
+  :init 
+  (message "Use-package: Which-key mode")
+  :config
+  (which-key-mode)
+)
+#+END_SRC
+
 
 * Interaction 
 ** Cut and paste
@@ -263,7 +276,7 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 ** Avy
-   Searching for text in the current view.
+Searching for text in the current view.
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; AVY is used to jump around within a buffer see key-chords
 (use-package avy
@@ -277,7 +290,7 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 ** Undo-tree
-   Improved undo.
+Improved undo.
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; Better undo
 (use-package undo-tree
@@ -307,14 +320,14 @@ I run on Wayland, and this interacts with wl-copy.
 (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 #+END_SRC
 
-** Editoconfig
-   Set configuration on a per directory basis via .editorconfig
+** Editorconfig
+Set configuration on a per directory basis via .editorconfig
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; editorconfig allows specification of tab/space/indent
 (use-package editorconfig
   :ensure t
   :defer t
-  :delight (editorconfig-mode "EC.")
+  :delight (editorconfig-mode "Ec")
   :init
   (message "Use-package: EditorConfig")
   :config
@@ -323,13 +336,13 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 ** Yasnippet
-   Expand roots to standard text snippets with M-]
+Expand roots to standard text snippets with M-]
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; location of my snippets -- has to go before yas-reload-all
 (setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.emacs.d/my_snippets"))
 ;; include yansippet and snippets
 (use-package yasnippet
-  :delight (yas-minor-mode "YaS.")
+  :delight (yas-minor-mode "YaS")
   :ensure t
   ;:defer t
   :init
@@ -340,6 +353,7 @@ I run on Wayland, and this interacts with wl-copy.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (add-hook 'c++-mode-hook 'yas-minor-mode)
   (add-hook 'latex-mode-hook 'yas-minor-mode)
+  (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
   ;;;; remove default keybinding
   (define-key yas-minor-mode-map (kbd "<tab>") nil)
   (define-key yas-minor-mode-map (kbd "TAB") nil)
@@ -358,22 +372,26 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 ** Ivy
-   A completion engine, that comes with Counsel.
+A completion engine, that comes with Counsel.
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package ivy
   :ensure t
-  :delight "Iv."
+  :delight "Iv"
   :init
   (message "Use-package: Ivy")
   :config
   (setq ivy-use-virtual-buffers t
         ivy-count-format "%d/%d ")
   (ivy-mode 1)
-  :bind (("C-S-s" . isearch-forward)  ;; Keep isearch-forward on Shift-Ctrl-s
-         ("C-s" . swiper)             ;; Use swiper for search and reverse search
-         ("C-S-r" . isearch-backward) ;; Keep isearch-backward on Shift-Ctrl-r
-         ("C-r" . swiper)
-	 ("C-y" . counsel-yank-pop)
+  :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
+         ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
+         ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
+         ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
+	     ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
+         ("M-x" . counsel-M-x)        ;; More descriptive M-x
+         ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
+         ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
+         ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
 	 )
   )
 ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
@@ -381,17 +399,15 @@ I run on Wayland, and this interacts with wl-copy.
   :ensure t
   :after ivy
   :delight 
-  ;:custom-face
-  ;(ivy-posframe-border ((t (:background "#ffffff"))))
   :config
   (ivy-posframe-mode 1)
   (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-top-center)))
   (setq ivy-posframe-height-alist '((t . 10))
         ivy-posframe-parameters '((internal-border-width . 10)))
   (setq ivy-posframe-parameters
-      '((left-fringe . 10)
-        (right-fringe . 10)))
-  (setq ivy-posframe-parameters '((alpha . 0.95)))
+      '((left-fringe . 5)
+        (right-fringe . 5)))
+  (setq ivy-posframe-parameters '((alpha . 0.90)))
   )
 ;; ivy enhancements to add more information to buffer list
 (use-package ivy-rich
@@ -399,7 +415,6 @@ I run on Wayland, and this interacts with wl-copy.
   :init
   (ivy-rich-mode 1)
   )
-
 ;; adds icons to buffer list
 (use-package all-the-icons-ivy-rich
   :ensure t
@@ -408,13 +423,24 @@ I run on Wayland, and this interacts with wl-copy.
   )
 #+END_SRC
 
+** AMX
+Replaces M-x to keep track of popular commands and offer them by default
+#+BEGIN_SRC emacs-lisp 
+(use-package amx
+  :init
+  (message "Use-package: Amx")
+  :config
+  (setq amx-mode t)
+) 
+#+END_SRC
 
-* Coding with Company and Eglot
+
+* Coding environment
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
   :ensure t
-  :delight (eglot "Eglot.")
+  :delight (eglot "Eglot")
   :init
   (message "Use-package: Eglot")
   (add-hook 'c++-mode-hook 'eglot-ensure)
@@ -425,7 +451,7 @@ I run on Wayland, and this interacts with wl-copy.
 ;; but not the C++-aware backend
 (use-package company
   :ensure t
-  :delight (company-mode "Co.")
+  :delight (company-mode "Co")
   :bind ("M-/" . company-complete)
   :init
   (progn
@@ -439,12 +465,13 @@ I run on Wayland, and this interacts with wl-copy.
   (setq company-selection-wrap-around t)
   (setq company-tooltip-align-annotations t)
   (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-			    company-echo-metadata-frontend))
+        company-echo-metadata-frontend)
+        )
   )
 #+END_SRC
 
 
-* Projectile
+* Projectile                                                      :untangled:
 #+BEGIN_SRC emacs-lisp :tangle no
 (use-package projectile
   :ensure t
@@ -478,7 +505,7 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 
-* Magit
+* Magit                                                           :untangled:
 #+BEGIN_SRC emacs-lisp :tangle no
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
@@ -501,140 +528,6 @@ I run on Wayland, and this interacts with wl-copy.
   ;(setq magit-completing-read-function 'ivy-completing-read)
   )
 
-#+END_SRC
-
-
-* Fn-key shortcuts
-#+BEGIN_SRC emacs-lisp :tangle yes
-;; F8 : mu4e
-(global-set-key (kbd "<f8>") 'mu4e)
-;; F9 : org wiki hot key
-(global-set-key (kbd "<f9>") 'org-roam)
-;; F10 : ORG AGENDA keybinding
-(global-set-key (kbd "<f10>") 'org-agenda)
-;; F11 is full screen in the Sway WM
-;; F12 : turn on the menu bar
-(global-set-key (kbd "<f12>") 'menu-bar-mode)
-;; C-c e : edit the init.el configuration file
-(defun config-visit ()
-  (interactive)
-  (find-file "~/CURRENT/dot.emacs.d/config.org")
-  )
-(global-set-key (kbd "C-c e") 'config-visit)
-;; C-c r : reload the configuration file
-(defun config-reload ()
-  (interactive)
-  (load-file (expand-file-name "~/.emacs.d/init.el"))
-  )
-(global-set-key (kbd "C-c r") 'config-reload)
-#+END_SRC
-
-
-* Mu4e email
-You need the "mu" package and also "mbsync" (also called "isync").
-#+BEGIN_SRC emacs-lisp :tangle yes
-;; mu4e is part of the "mu" package and sometimes doesn't get
-;; found auto-magically. So this points directly to it.
-(add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
-;; defines mu4e exists, but holds off until needed
-(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
-;; used for outgoing mail send
-(use-package smtpmail
-  :ensure t
-  :defer t
-  :init
-  (message "Use-package: SMTPmail")
-  (setq message-send-mail-function 'smtpmail-send-it
-	user-mail-address "richard.hewitt@manchester.ac.uk"
-	smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
-	smtpmail-local-domain "manchester.ac.uk"
-	smtpmail-smtp-server "outgoing.manchester.ac.uk"
-	smtpmail-stream-type 'ssl
-	smtpmail-smtp-service 465)
-  )
-;; this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
-(setq mu4e-change-filenames-when-moving t)
-;; general mu4e config
-(setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
-(setq mu4e-drafts-folder "/Drafts")
-(setq mu4e-sent-folder   "/Sent Items")
-(setq mu4e-trash-folder  "/Trash")
-(setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
-(setq mu4e-headers-show-thread nil)
-(setq mu4e-headers-include-related nil)
-(setq mu4e-headers-results-limit 100)
-(setq mu4e-mu-binary "/home/hewitt/local/bin/mu")
-;; stop mail draft/sent appearing in the recent files list of the dashboard
-(add-to-list 'recentf-exclude "\\mbsyncmail\\")
-;; how to get mail
-(setq mu4e-get-mail-command "mbsync Work"
-      ;mu4e-html2text-command "w3m -T text/html"
-      mu4e-html2text-command "html2markdown --body-width=70" 
-      mu4e-update-interval 300
-      mu4e-headers-auto-update t
-      ;mu4e-compose-signature-auto-include nil
-      )
-;; the headers to show in the headers list -- a pair of a field
-;; and its width, with `nil' meaning 'unlimited'
-;; better only use that for the last field.
-;; These are the defaults:
-(setq mu4e-headers-fields
-    '( (:human-date    .  15)    ;; alternatively, use :date
-       (:flags         .   6)
-       (:from          .  22)
-       (:subject       .  nil))  ;; alternatively, use :thread-subject
-    )
-(setq mu4e-maildir-shortcuts
-      '( ("/INBOX"          . ?i)
-         ("/Sent Items"     . ?s)
-         ("/Deleted Items"  . ?t)
-         ("/Drafts"         . ?d))
-      )
-;; REMOVE BELOW FOR TERMINUAL EMACS
-;; show images
-(setq mu4e-show-images t)
-;; use imagemagick, if available
-(when (fboundp 'imagemagick-register-types)
-  (imagemagick-register-types)
-  )
-;; don't keep message buffers around
-(setq message-kill-buffer-on-exit t)
-;; general emacs mail settings; used when composing e-mail
-;; the non-mu4e-* stuff is inherited from emacs/message-mode
-(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
-    user-mail-address "richard.hewitt@manchester.ac.uk"
-    user-full-name  "Rich Hewitt")
-;;;; don't save message to Sent Messages, IMAP takes care of this
-;; 2019: emails are vanishing with below!
-;; (setq mu4e-sent-messages-behavior 'delete)
-
-;; spell check
-(add-hook 'mu4e-compose-mode-hook
-          (defun my-do-compose-stuff ()
-            "My settings for message composition."
-            (set-fill-column 72)
-            (flyspell-mode) )
-	  )
-;;;; https://emacs.stackexchange.com/questions/21723/how-can-i-delete-mu4e-drafts-on-successfully-sending-the-mail
-;;;; "As I'm composing mail, mu4e automatically saves drafts to the mu4e-drafts-folder.
-;;;; When I send the mail, these drafts persist. I expected mu4e to delete from the folder."
-;;;; "If you use offlineimap (like I do) then your drafts likely accumulate because offlineimap syncs
-;;;; emacs' #autosave# files (kept in Drafts/cur folder). As offlineimap can only ignore files starting
-;;;; with '.' (and it's not configurable) the solution is to change the way draft autosaves are named:
-(defun draft-auto-save-buffer-name-handler (operation &rest args)
-"for `make-auto-save-file-name' set '.' in front of the file name; do nothing for other operations"
-(if
-  (and buffer-file-name (eq operation 'make-auto-save-file-name))
-  (concat (file-name-directory buffer-file-name)
-            "."
-            (file-name-nondirectory buffer-file-name))
- (let ((inhibit-file-name-handlers
-       (cons 'draft-auto-save-buffer-name-handler
-             (and (eq inhibit-file-name-operation operation)
-                  inhibit-file-name-handlers)))
-      (inhibit-file-name-operation operation))
-  (apply operation args))))
-(add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
 #+END_SRC
 
 
@@ -770,13 +663,29 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   )
 #+END_SRC
 
+** Org-babel
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package gnuplot
+  :ensure t
+  :defer t
+  :init
+  (message "Use-package: gnuplot for babel installed")
+  )
+  ;; languages I work in via babel
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
+  ;; stop it asking if I'm sure about evaluation
+  (setq org-confirm-babel-evaluate nil)
+#+END_SRC
+
 ** Org-Roam
 Sets up org-roam as a personal wiki using Deft as an Org search tool.
 Org-journal is installed together with org-roam-server at localhost:8080.
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package org-roam
     :ensure t
-    :delight "Or."
+    :delight "Or"
     :after org
     :init
     (message "Use-package: Org-roam")
@@ -858,23 +767,45 @@ Org-journal is installed together with org-roam-server at localhost:8080.
    )
 #+END_SRC
 
-** Org-Wiki  : manual package installed            :deprecated:
-This is org-wiki, which hasn't been updated for 3 years or so.
-Switched to org-roam below.
-#+BEGIN_SRC emacs-lisp :tangle no
-;; I've switched away from Helm in general, but org-wiki still makes use of it
-(use-package helm
-   :ensure t
-   :defer t
+
+* Elfeed
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package elfeed
+  :ensure t
+  :config
+  (setq elfeed-use-curl t)
+  (setq elfeed-curl-max-connections 10)
+  (setq elfeed-db-directory "~/CURRENT/dot.emacs.d/elfeed/")
+  (setq elfeed-enclosure-default-dir "~/Downloads/")
+  (setq elfeed-search-filter "@4-months-ago +unread")
+  (setq elfeed-sort-order 'descending)
+  (setq elfeed-search-clipboard-type 'CLIPBOARD)
+  (setq elfeed-search-title-max-width 100)
+  (setq elfeed-search-title-min-width 30)
+  (setq elfeed-search-trailing-width 25)
+  (setq elfeed-show-truncate-long-urls t)
+  (setq elfeed-show-unique-buffers t)
+
+  ; see https://protesilaos.com/dotemacs/
+  (defun prot/elfeed-show-eww (&optional link)
+    "Browse current `elfeed' entry link in `eww'.
+Only show the readable part once the website loads.  This can
+fail on poorly-designed websites."
+    (interactive)
+    (let* ((entry (if (eq major-mode 'elfeed-show-mode)
+                      elfeed-show-entry
+                    (elfeed-search-selected :ignore-region)))
+           (link (if link link (elfeed-entry-link entry))))
+      (eww link)
+      (add-hook 'eww-after-render-hook 'eww-readable nil t))
+      ) ;close defun
+      
+  :bind
+  (("C-c f" . elfeed)
+         :map elfeed-search-mode-map
+        ("e" . prot/elfeed-show-eww)
+        )
 )
-;; where the package is stored
-(add-to-list 'load-path "/home/hewitt/CURRENT/dot.emacs.d/manual_install_packages/org-wiki")
-(require 'org-wiki)
-;; where my wiki files are stored
-(setq org-wiki-location "/home/hewitt/Sync/Org/Wiki")
-;; org-wiki-search requires rgrep
-(eval-after-load "grep"
-  '(grep-compute-defaults))
 #+END_SRC
 
 
@@ -886,14 +817,142 @@ Switched to org-roam below.
   :config
   (pdf-tools-install)
   )
-;; link pdf tools to org mode
-(use-package org-pdftools
+#+END_SRC
+
+
+* Email
+You need the "mu" package and also "mbsync" (also called "isync").
+#+BEGIN_SRC emacs-lisp :tangle yes
+;; mu4e is part of the "mu" package and sometimes doesn't get
+;; found auto-magically. So this points directly to it.
+(add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
+;; defines mu4e exists, but holds off until needed
+(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+;; used for outgoing mail send
+(use-package smtpmail
   :ensure t
-  :after pdf-tools
+  :defer t
+  :init
+  (message "Use-package: SMTPmail")
+  (setq message-send-mail-function 'smtpmail-send-it
+	user-mail-address "richard.hewitt@manchester.ac.uk"
+	smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+	smtpmail-local-domain "manchester.ac.uk"
+	smtpmail-smtp-server "outgoing.manchester.ac.uk"
+	smtpmail-stream-type 'ssl
+	smtpmail-smtp-service 465)
   )
+;; this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+(setq mu4e-change-filenames-when-moving t)
+;; general mu4e config
+(setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
+(setq mu4e-drafts-folder "/Drafts")
+(setq mu4e-sent-folder   "/Sent Items")
+(setq mu4e-trash-folder  "/Trash")
+(setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
+(setq mu4e-headers-show-thread nil)
+(setq mu4e-headers-include-related nil)
+(setq mu4e-headers-results-limit 100)
+(setq mu4e-mu-binary "/home/hewitt/local/bin/mu")
+;; stop mail draft/sent appearing in the recent files list of the dashboard
+(add-to-list 'recentf-exclude "\\mbsyncmail\\")
+;; how to get mail
+(setq mu4e-get-mail-command "mbsync Work"
+      ;mu4e-html2text-command "w3m -T text/html"
+      mu4e-html2text-command "html2markdown --body-width=70" 
+      mu4e-update-interval 300
+      mu4e-headers-auto-update t
+      ;mu4e-compose-signature-auto-include nil
+      )
+;; the headers to show in the headers list -- a pair of a field
+;; and its width, with `nil' meaning 'unlimited'
+;; better only use that for the last field.
+;; These are the defaults:
+(setq mu4e-headers-fields
+    '( (:human-date    .  15)    ;; alternatively, use :date
+       (:flags         .   6)
+       (:from          .  22)
+       (:subject       .  nil))  ;; alternatively, use :thread-subject
+    )
+(setq mu4e-maildir-shortcuts
+      '( ("/INBOX"          . ?i)
+         ("/Sent Items"     . ?s)
+         ("/Deleted Items"  . ?t)
+         ("/Drafts"         . ?d))
+      )
+;; REMOVE BELOW FOR TERMINUAL EMACS
+;; show images
+(setq mu4e-show-images t)
+;; use imagemagick, if available
+(when (fboundp 'imagemagick-register-types)
+  (imagemagick-register-types)
+  )
+;; don't keep message buffers around
+(setq message-kill-buffer-on-exit t)
+;; general emacs mail settings; used when composing e-mail
+;; the non-mu4e-* stuff is inherited from emacs/message-mode
+(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
+    user-mail-address "richard.hewitt@manchester.ac.uk"
+    user-full-name  "Rich Hewitt")
+;;;; don't save message to Sent Messages, IMAP takes care of this
+;; 2019: emails are vanishing with below!
+;; (setq mu4e-sent-messages-behavior 'delete)
+
+;; spell check
+(add-hook 'mu4e-compose-mode-hook
+          (defun my-do-compose-stuff ()
+            "My settings for message composition."
+            (set-fill-column 72)
+            (flyspell-mode) )
+	  )
+;;;; https://emacs.stackexchange.com/questions/21723/how-can-i-delete-mu4e-drafts-on-successfully-sending-the-mail
+;;;; "As I'm composing mail, mu4e automatically saves drafts to the mu4e-drafts-folder.
+;;;; When I send the mail, these drafts persist. I expected mu4e to delete from the folder."
+;;;; "If you use offlineimap (like I do) then your drafts likely accumulate because offlineimap syncs
+;;;; emacs' #autosave# files (kept in Drafts/cur folder). As offlineimap can only ignore files starting
+;;;; with '.' (and it's not configurable) the solution is to change the way draft autosaves are named:
+(defun draft-auto-save-buffer-name-handler (operation &rest args)
+"for `make-auto-save-file-name' set '.' in front of the file name; do nothing for other operations"
+(if
+  (and buffer-file-name (eq operation 'make-auto-save-file-name))
+  (concat (file-name-directory buffer-file-name)
+            "."
+            (file-name-nondirectory buffer-file-name))
+ (let ((inhibit-file-name-handlers
+       (cons 'draft-auto-save-buffer-name-handler
+             (and (eq inhibit-file-name-operation operation)
+                  inhibit-file-name-handlers)))
+      (inhibit-file-name-operation operation))
+  (apply operation args))))
+(add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
 #+END_SRC
 
 
 
 
-
+* Fn-key shortcuts
+#+BEGIN_SRC emacs-lisp :tangle yes
+;; F7 : elfeed
+(global-set-key (kbd "<f7>") 'elfeed)
+;; F8 : mu4e
+(global-set-key (kbd "<f8>") 'mu4e)
+;; F9 : org wiki hot key
+(global-set-key (kbd "<f9>") 'org-roam)
+;; F10 : ORG AGENDA keybinding
+(global-set-key (kbd "<f10>") 'org-agenda)
+;; F11 is full screen in the Sway WM
+;; F12 : turn on the menu bar
+(global-set-key (kbd "<f12>") 'menu-bar-mode)
+;; C-c e : edit the init.el configuration file
+(defun config-visit ()
+  (interactive)
+  (find-file "~/CURRENT/dot.emacs.d/config.org")
+  )
+(global-set-key (kbd "C-c e") 'config-visit)
+;; C-c r : reload the configuration file
+(defun config-reload ()
+  (interactive)
+  (load-file (expand-file-name "~/.emacs.d/init.el"))
+  )
+(global-set-key (kbd "C-c r") 'config-reload)
+#+END_SRC
