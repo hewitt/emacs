@@ -1,9 +1,356 @@
-(use-package amx
+;;;;
+;;;; CONFIGURE MELPA AND GNU ARCHIVES
+;;;;
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
+(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
+(package-initialize)
+
+;;;;
+;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
+;;;;
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package)
+  )
+
+;; this is the standard use-package invocation if it is in ~/.emacs.d
+(eval-when-compile
+  (require 'use-package)
+  )
+
+;; Keep custom settings in a separate file to not pollute this one
+(setq custom-file "~/.emacs.d/custom-settings.el")
+(load custom-file t)
+
+(defun system-is-Blasius ()
+  (interactive)
+  "True for Blasius laptop"
+  (string-equal system-name "Blasius"))
+(defun system-is-Orthanc ()
+  (interactive)
+  "True for Orthanc desktop"
+  (string-equal system-name "Orthanc"))
+
+;; move backups to stop *~ proliferation
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+;; have mouse input in the terminal
+;; the disadvantage is you need to SHIFT+middle mouse to paste in the terminal
+(xterm-mouse-mode 1)
+;; Turn off the menu/scroll/toolbar
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
+;; this stops the cursor recentering on leaving the page
+;; ie. stop scrolling by 0.5 page
+(setq scroll-conservatively 101 )
+;; replace annoying yes/no
+(fset 'yes-or-no-p 'y-or-n-p)
+;; don't end sentences with a single space
+(setq sentence-end-double-space nil)
+;; From Prelude: reduce the frequency of garbage collection by making it happen on
+;; each 5MB of allocated data (the default is on every 0.76MB)
+(setq gc-cons-threshold 5000000)
+;; warn when opening files bigger than 50MB
+(setq large-file-warning-threshold 50000000)
+;; set this to avoid having to reply y/n every time you open a symbolic link in a git repo
+(setq vc-follow-symlinks nil)
+
+;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
+;; This COMMAND will load a buffer if it changes on disk, which is
+;; super handy if editing from multiple machines over long periods.
+(defun revert-buffer-no-confirm ()
+    "Revert buffer without confirmation."
+    (interactive)
+    (revert-buffer :ignore-auto :noconfirm)
+    )
+(global-auto-revert-mode 1)
+
+;; setup files ending in “.m4” to open in LaTeX-mode
+;; for use in lecture note construction
+(add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+
+(use-package delight
+  :ensure t
+  ;:no-require t
+  :init (message "Use-package: Delight")
+  )
+(delight 'eldoc-mode "Eld" 'eldoc)
+(delight 'undo-tree-mode "Ut" 'undo-tree)
+(delight 'abbrev-mode "Ab" 'abbrev)
+
+;; dashboard runs at startup by default
+(use-package dashboard
+    :ensure t
+    :delight dashboard-mode
+    :init
+    (message "Use-package: Dashboard")
+    :config
+    (setq dashboard-banner-logo-title "Quickstart!")
+    (setq dashboard-startup-banner "/home/hewitt/CURRENT/dot.local/share/icons/hicolor/128x128/apps/emacs.png")
+    (setq dashboard-set-heading-icons t)
+    (setq dashboard-set-file-icons t)
+    (setq dashboard-items '((recents  . 10)
+                        (bookmarks . 5)
+			    (agenda . 4)))
+    (dashboard-setup-startup-hook)
+    (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+    )
+
+(mapcar #'disable-theme custom-enabled-themes)
+(use-package modus-vivendi-theme
+  :ensure t
   :init
-  (message "Use-package: Amx")
+    ;;  customisations must be defined before the theme is loaded
+    ;; NOTE: Everything is disabled by default.
+    (setq modus-vivendi-theme-slanted-constructs t
+      modus-vivendi-theme-bold-constructs t    
+      modus-vivendi-theme-fringes 'subtle ; {nil,'subtle,'intense}
+      modus-vivendi-theme-3d-modeline t        
+      modus-vivendi-theme-faint-syntax t       
+      modus-vivendi-theme-intense-hl-line t    
+      modus-vivendi-theme-intense-paren-match t
+      modus-vivendi-theme-prompts 'subtle ; {nil,'subtle,'intense}
+      modus-vivendi-theme-completions 'moderate ; {nil,'moderate,'opinionated}
+      modus-vivendi-theme-diffs nil ; {nil,'desaturated,'fg-only}
+      modus-vivendi-theme-org-blocks 'greyscale ; {nil,'greyscale,'rainbow}
+      modus-vivendi-theme-variable-pitch-headings t
+      modus-vivendi-theme-rainbow-headings t
+      modus-vivendi-theme-section-headings 'nil
+      modus-vivendi-theme-scale-headings t
+      modus-vivendi-theme-scale-1 1.05
+      modus-vivendi-theme-scale-2 1.1
+      modus-vivendi-theme-scale-3 1.15
+      modus-vivendi-theme-scale-4 1.2
+      modus-vivendi-theme-scale-5 1.3)
   :config
-  (setq amx-mode t)
+    (load-theme 'modus-vivendi t)      
+  )
+
+;; modeline
+(use-package doom-modeline
+  :ensure t
+  :init (message "Use-package: Doom-modeline")
+  :hook (after-init . doom-modeline-mode)
+  :config
+  ;; Whether display icons or not (if nil nothing will be showed).
+  (setq doom-modeline-icon t)
+  ;; Display the icon for the major mode. 
+  (setq doom-modeline-major-mode-icon t )
+  ;; Display color icons for `major-mode' 
+  (setq doom-modeline-major-mode-color-icon t)
+  ;; Display minor modes or not?
+  (setq doom-modeline-minor-modes t)
+  ;; Whether display icons for buffer states.
+  (setq doom-modeline-buffer-state-icon t)
+  ;; Whether display buffer modification icon.
+  (setq doom-modeline-buffer-modification-icon t)
+  ;; If non-nil, a word count will be added to the selection-info modeline segment.
+  (setq doom-modeline-enable-word-count nil)
+  ;; If non-nil, only display one number for checker information if applicable.
+  ;(setq doom-modeline-checker-simple-format t)
+  ;; The maximum displayed length of the branch name of version control.
+  (setq doom-modeline-vcs-max-length 8)
+  ;; Whether display perspective name or not. Non-nil to display in mode-line.
+  (setq doom-modeline-persp-name t)
+  ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
+  ;(setq doom-modeline-lsp t)
+  )
+
+;; colourise those brackets
+(use-package rainbow-delimiters
+  :ensure t
+  :init
+  (message "Use-package: Rainbow delimiters")
+  :config
+  (rainbow-delimiters-mode)
+  (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
+  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
+  )
+
+(use-package which-key
+  :ensure t
+  :delight
+  :init 
+  (message "Use-package: Which-key mode")
+  :config
+  (which-key-mode)
 )
+
+;; cut and paste in Wayland environmen
+(setq x-select-enable-clipboard t)
+(defun txt-cut-function (text &optional push)
+  (with-temp-buffer
+    (insert text)
+    (call-process-region (point-min) (point-max) "wl-copy" ))
+  )
+;; (defun txt-paste-function()
+;;   (let ((xsel-output (shell-command-to-string "wl-paste")))
+;;     (unless (string= (car kill-ring) xsel-output)
+;;       xsel-output ))
+;;   )
+(setq interprogram-cut-function 'txt-cut-function)
+;; (setq interprogram-paste-function 'txt-paste-function)
+
+;; rapid-double press to activate key chords
+(use-package key-chord
+ :ensure t
+ :init
+ (progn
+   (message "Use-package: Key-chord" )
+   ;; Max time delay between two key presses to be considered a key chord
+   (setq key-chord-two-keys-delay 0.1) ; default 0.1
+   ;; Max time delay between two presses of the same key to be considered a key chord.
+   ;; Should normally be a little longer than `key-chord-two-keys-delay'.
+   (setq key-chord-one-key-delay 0.2) ; default 0.2    
+   (key-chord-mode 1)
+   (key-chord-define-global "kk"     'kill-whole-line)
+   (key-chord-define-global "qw"     'avy-goto-word-1)
+   (key-chord-define-global "qs"     'deft)
+   (key-chord-define-global "qt"     'org-babel-tangle)
+   (key-chord-define-global "qq"     'counsel-switch-buffer)
+   (key-chord-define-global "qc"     'counsel-org-capture)
+   (key-chord-define-global "qb"     'bookmark-set)
+   (key-chord-define-global "qj"     'bookmark-jump)
+   (key-chord-define-global "qo"     'other-window)
+   (key-chord-define-global "qd"     'org-journal-new-entry)
+   ;(key-chord-define-global "hh"     'previous-buffer)
+   ;(key-chord-define-global "HH"     'next-buffer)
+   )
+ )
+
+;; Better undo
+(use-package undo-tree
+  :ensure t
+  :init
+  (message "Use-package: Undo-tree")
+  (global-undo-tree-mode)
+  )
+
+;; move focus when splitting a window
+(defun split-and-follow-horizontally ()
+  (interactive)
+  (split-window-below)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
+;; move focus when splitting a window
+(defun split-and-follow-vertically ()
+  (interactive)
+  (split-window-right)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+
+;; editorconfig allows specification of tab/space/indent
+(use-package editorconfig
+  :ensure t
+  :delight (editorconfig-mode "Ec")
+  :init
+  (message "Use-package: EditorConfig")
+  :config
+  (editorconfig-mode 1)
+  )
+
+;; location of my snippets -- has to go before yas-reload-all
+(setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.emacs.d/my_snippets"))
+;; include yansippet and snippets
+(use-package yasnippet
+  :delight (yas-minor-mode "YaS")
+  :ensure t
+  :init
+  (message "Use-package: YASnippet")
+  :config
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;; hooks for YASnippet in Latex and C++;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (add-hook 'c++-mode-hook 'yas-minor-mode)
+  (add-hook 'latex-mode-hook 'yas-minor-mode)
+  (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
+  ;;;; remove default keybinding
+  (define-key yas-minor-mode-map (kbd "<tab>") nil)
+  (define-key yas-minor-mode-map (kbd "TAB") nil)
+  ;;;; redefine my own key
+  (define-key yas-minor-mode-map (kbd "M-]") yas-maybe-expand)
+  ;;;; remove default keys for navigation
+  (define-key yas-keymap [(tab)]       nil)
+  (define-key yas-keymap (kbd "TAB")   nil)
+  (define-key yas-keymap [(shift tab)] nil)
+  (define-key yas-keymap [backtab]     nil)
+  ;;;; redefine my own keys
+  (define-key yas-keymap (kbd "M-n") 'yas-next-field-or-maybe-expand)
+  (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
+  (yas-reload-all)
+  )
+
+(use-package ivy
+  :ensure t
+  :delight "Iv"
+  :init
+  (message "Use-package: Ivy")
+  :config
+  (setq ivy-use-virtual-buffers t
+        ivy-count-format "%d/%d ")
+  (ivy-mode 1)
+  :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
+         ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
+         ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
+         ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
+             ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
+         ("M-x" . counsel-M-x)        ;; More descriptive M-x
+         ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
+         ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
+         ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
+         )
+  )
+;; popup ivy completion in a separate frame top centre instead of in the minibuffer
+(use-package ivy-posframe
+  :ensure t
+  :after ivy
+  :delight 
+  :config
+  (ivy-posframe-mode 1)
+  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+  (setq ivy-posframe-height-alist '((t . 20))
+        ivy-posframe-parameters '((internal-border-width . 10)))
+  (setq ivy-posframe-parameters
+      '((left-fringe . 5)
+        (right-fringe . 5)))
+  (setq ivy-posframe-parameters '((alpha . 0.90)))
+  )
+;; ivy enhancements to add more information to buffer list
+(use-package ivy-rich
+  :ensure t
+  :after ivy
+  :init
+  (ivy-rich-mode 1)
+  )
+;; adds icons to buffer list
+(use-package all-the-icons-ivy-rich
+  :ensure t
+  :after ivy-rich
+  :init
+  (all-the-icons-ivy-rich-mode 1)
+  )
+
+(use-package prescient
+  :ensure t
+  :init
+  (message "Use-package: prescient")
+  :config
+  (prescient-persist-mode 1)
+  )
+(use-package ivy-prescient
+  :ensure t
+  :after (counsel prescient)
+  :config
+  (ivy-prescient-mode 1)
+  )
+(use-package company-prescient
+  :ensure t
+  :config
+  (company-prescient-mode 1)
+  )
 
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
@@ -46,6 +393,7 @@
 ;; fancy replace of *** etc
 (use-package org-bullets
   :ensure t
+  :after org
   :init
   (add-hook 'org-mode-hook 'org-bullets-mode)
   (message "Use-package: Org-bullets")
@@ -61,7 +409,10 @@
 (setq org-capture-templates
       '(
         ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-         "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n"))
+         "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+        ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+         "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+         :empty-lines 1))
       )
 
 ;; Agenda is constructed from org files in ONE directory
@@ -142,7 +493,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   ;(shell-command "rm /home/hewitt/Sync/Org/Todo.ics")
   (with-current-buffer (find-file-noselect "/home/hewitt/Sync/Org/Todo.org")
     (rename-file (org-icalendar-export-to-ics)
-		 "/home/hewitt/Sync/Org/Todo.ics" t)
+                 "/home/hewitt/Sync/Org/Todo.ics" t)
     (message "Exported Todo.org to Todo.ics"))
   )
 
@@ -155,18 +506,17 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 (if (system-is-Orthanc)
 ;; ONLY RUN THIS ON THE OFFICE MACHINE -- to avoid conflicted copies of .ics file
     ( progn (message "Machine is Orthanc" )
-	    (message "Writing Org calendar to ics every 30 minutes" )
-	    (run-with-timer 60 1800 'reh/export-to-ics)
-	    (run-with-timer 90 1800 'reh/replaceS) )
+            (message "Writing Org calendar to ics every 30 minutes" )
+            (run-with-timer 60 1800 'reh/export-to-ics)
+            (run-with-timer 90 1800 'reh/replaceS) )
   )
 (if (system-is-Blasius)
     ( progn (message "Machine is Blasius" )
-	    (message "Not running the .ics generator" ) )
+            (message "Not running the .ics generator" ) )
   )
 
 (use-package gnuplot
   :ensure t
-  :defer t
   :init
   (message "Use-package: gnuplot for babel installed")
   )
@@ -208,6 +558,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
 (use-package org-roam-server
   :ensure t
+  :after org-roam
   :init
   (message "Use-package: Org-roam-server")
   :config
@@ -227,7 +578,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
 (use-package org-journal
   :ensure t
-  :defer t
   :init
   (message "Use-package: Org-journal")
   :config

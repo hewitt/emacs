@@ -9,31 +9,30 @@ To convert this to "./config.el" do M-x org-babel-tangle.
 * Basic
 ** Here we setup melpa package archives and use-package.
 #+BEGIN_SRC emacs-lisp :tangle yes
-;;;;
-;;;; CONFIGURE MELPA AND GNU ARCHIVES
-;;;;
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
-(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
-(package-initialize)
+  ;;;;
+  ;;;; CONFIGURE MELPA AND GNU ARCHIVES
+  ;;;;
+  (require 'package)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
+  (add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
+  (package-initialize)
 
-;;;;
-;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
-;;;;
-(unless (package-installed-p 'use-package)
- (package-refresh-contents)
- (package-install 'use-package)
- )
+  ;;;;
+  ;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
+  ;;;;
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package)
+    )
 
-;; this is the standard use-package invocation if it is in ~/.emacs.d
-(eval-when-compile
- (require 'use-package)
- )
+  ;; this is the standard use-package invocation if it is in ~/.emacs.d
+  (eval-when-compile
+    (require 'use-package)
+    )
 
-;; Keep custom settings in a separate file to not pollute this one
-(setq custom-file "~/.emacs.d/custom-settings.el")
-(load custom-file t)
-
+  ;; Keep custom settings in a separate file to not pollute this one
+  (setq custom-file "~/.emacs.d/custom-settings.el")
+  (load custom-file t)
 #+END_SRC
 
 ** Functions to identify which machine I'm running on.
@@ -78,17 +77,23 @@ This is based on the "system-name" variable.
 
 ** Update buffer contents when file changes on "disk"
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
-;; This COMMAND will load a buffer if it changes on disk, which is
-;; super handy if editing from multiple machines over long periods.
-(defun revert-buffer-no-confirm ()
-    "Revert buffer without confirmation."
-    (interactive)
-    (revert-buffer :ignore-auto :noconfirm)
-    )
-(global-auto-revert-mode 1)
+  ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
+  ;; This COMMAND will load a buffer if it changes on disk, which is
+  ;; super handy if editing from multiple machines over long periods.
+  (defun revert-buffer-no-confirm ()
+      "Revert buffer without confirmation."
+      (interactive)
+      (revert-buffer :ignore-auto :noconfirm)
+      )
+  (global-auto-revert-mode 1)
 #+END_SRC
 
+** Add custom file extensions to set major modes
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; setup files ending in “.m4” to open in LaTeX-mode
+  ;; for use in lecture note construction
+  (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+#+END_SRC
 
 * Appearance
 ** Delight
@@ -119,7 +124,7 @@ Dashboard is the startup screen for quick access to previously used material.
     (setq dashboard-set-heading-icons t)
     (setq dashboard-set-file-icons t)
     (setq dashboard-items '((recents  . 10)
-                            (bookmarks . 5)
+                        (bookmarks . 5)
 			    (agenda . 4)))
     (dashboard-setup-startup-hook)
     (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
@@ -221,9 +226,9 @@ Popup key combinations
   (which-key-mode)
 )
 #+END_SRC
+ 
 
-
-* Interaction 
+* Interaction
 ** Cut and paste
 I run on Wayland, and this interacts with wl-copy.
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -244,7 +249,7 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 ** Key-chord
-   Keyboard shortcuts based on double pressing of low-frequency keys (e.g. 'qq').
+Keyboard shortcuts based on double pressing of low-frequency keys (e.g. 'qq').
  #+BEGIN_SRC emacs-lisp :tangle yes
  ;; rapid-double press to activate key chords
  (use-package key-chord
@@ -258,8 +263,7 @@ I run on Wayland, and this interacts with wl-copy.
     ;; Should normally be a little longer than `key-chord-two-keys-delay'.
     (setq key-chord-one-key-delay 0.2) ; default 0.2    
     (key-chord-mode 1)
-    ;(key-chord-define-global "uu"     'undo-tree-undo)
-    ;(key-chord-define-global "kk"     'kill-whole-line)
+    (key-chord-define-global "kk"     'kill-whole-line)
     (key-chord-define-global "qw"     'avy-goto-word-1)
     (key-chord-define-global "qs"     'deft)
     (key-chord-define-global "qt"     'org-babel-tangle)
@@ -275,9 +279,9 @@ I run on Wayland, and this interacts with wl-copy.
   )
 #+END_SRC
 
-** Avy
+** Avy                                                          :untangled:
 Searching for text in the current view.
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
 ;; AVY is used to jump around within a buffer see key-chords
 (use-package avy
   :ensure t
@@ -295,7 +299,6 @@ Improved undo.
 ;; Better undo
 (use-package undo-tree
   :ensure t
-  :defer t
   :init
   (message "Use-package: Undo-tree")
   (global-undo-tree-mode)
@@ -326,7 +329,6 @@ Set configuration on a per directory basis via .editorconfig
 ;; editorconfig allows specification of tab/space/indent
 (use-package editorconfig
   :ensure t
-  :defer t
   :delight (editorconfig-mode "Ec")
   :init
   (message "Use-package: EditorConfig")
@@ -344,7 +346,6 @@ Expand roots to standard text snippets with M-]
 (use-package yasnippet
   :delight (yas-minor-mode "YaS")
   :ensure t
-  ;:defer t
   :init
   (message "Use-package: YASnippet")
   :config
@@ -374,66 +375,91 @@ Expand roots to standard text snippets with M-]
 ** Ivy
 A completion engine, that comes with Counsel.
 #+BEGIN_SRC emacs-lisp :tangle yes
-(use-package ivy
-  :ensure t
-  :delight "Iv"
-  :init
-  (message "Use-package: Ivy")
-  :config
-  (setq ivy-use-virtual-buffers t
-        ivy-count-format "%d/%d ")
-  (ivy-mode 1)
-  :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
-         ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
-         ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
-         ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
-	     ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
-         ("M-x" . counsel-M-x)        ;; More descriptive M-x
-         ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
-         ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
-         ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
-	 )
-  )
-;; popup ivy completion in a separate frame top centre instead of in the minibuffer
-(use-package ivy-posframe
-  :ensure t
-  :after ivy
-  :delight 
-  :config
-  (ivy-posframe-mode 1)
-  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-top-center)))
-  (setq ivy-posframe-height-alist '((t . 10))
-        ivy-posframe-parameters '((internal-border-width . 10)))
-  (setq ivy-posframe-parameters
-      '((left-fringe . 5)
-        (right-fringe . 5)))
-  (setq ivy-posframe-parameters '((alpha . 0.90)))
-  )
-;; ivy enhancements to add more information to buffer list
-(use-package ivy-rich
-  :ensure t
-  :init
-  (ivy-rich-mode 1)
-  )
-;; adds icons to buffer list
-(use-package all-the-icons-ivy-rich
-  :ensure t
-  :init
-  (all-the-icons-ivy-rich-mode 1)
-  )
+  (use-package ivy
+    :ensure t
+    :delight "Iv"
+    :init
+    (message "Use-package: Ivy")
+    :config
+    (setq ivy-use-virtual-buffers t
+          ivy-count-format "%d/%d ")
+    (ivy-mode 1)
+    :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
+           ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
+           ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
+           ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
+               ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
+           ("M-x" . counsel-M-x)        ;; More descriptive M-x
+           ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
+           ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
+           ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
+           )
+    )
+  ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
+  (use-package ivy-posframe
+    :ensure t
+    :after ivy
+    :delight 
+    :config
+    (ivy-posframe-mode 1)
+    (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+    (setq ivy-posframe-height-alist '((t . 20))
+          ivy-posframe-parameters '((internal-border-width . 10)))
+    (setq ivy-posframe-parameters
+        '((left-fringe . 5)
+          (right-fringe . 5)))
+    (setq ivy-posframe-parameters '((alpha . 0.90)))
+    )
+  ;; ivy enhancements to add more information to buffer list
+  (use-package ivy-rich
+    :ensure t
+    :after ivy
+    :init
+    (ivy-rich-mode 1)
+    )
+  ;; adds icons to buffer list
+  (use-package all-the-icons-ivy-rich
+    :ensure t
+    :after ivy-rich
+    :init
+    (all-the-icons-ivy-rich-mode 1)
+    )
 #+END_SRC
 
-** AMX
+** Prescient
+Replaced AMX in favour of a more general candidate selection mechanism as provvided by "prescient"
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package prescient
+    :ensure t
+    :init
+    (message "Use-package: prescient")
+    :config
+    (prescient-persist-mode 1)
+    )
+  (use-package ivy-prescient
+    :ensure t
+    :after (counsel prescient)
+    :config
+    (ivy-prescient-mode 1)
+    )
+  (use-package company-prescient
+    :ensure t
+    :config
+    (company-prescient-mode 1)
+    )
+#+END_SRC
+** AMX                                                           :untangled:
 Replaces M-x to keep track of popular commands and offer them by default
-#+BEGIN_SRC emacs-lisp 
-(use-package amx
-  :init
-  (message "Use-package: Amx")
-  :config
-  (setq amx-mode t)
-) 
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package amx
+    :ensure t
+    :init
+    (message "Use-package: Amx")
+    :config
+    (setq amx-mode t)
+    ) 
 #+END_SRC
-
+ 
 
 * Coding environment
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -469,7 +495,7 @@ Replaces M-x to keep track of popular commands and offer them by default
         )
   )
 #+END_SRC
-
+ 
 
 * Projectile                                                      :untangled:
 #+BEGIN_SRC emacs-lisp :tangle no
@@ -531,143 +557,145 @@ Replaces M-x to keep track of popular commands and offer them by default
 #+END_SRC
 
 
-
 * Org mode
 ** Basics of Org mode
 #+BEGIN_SRC  emacs-lisp :tangle yes
-(use-package org
-  :ensure t
-  :init
-  (message "Use-package: Org")
-  )
+  (use-package org
+    :ensure t
+    :init
+    (message "Use-package: Org")
+    )
 
-;; fancy replace of *** etc
-(use-package org-bullets
-  :ensure t
-  :init
-  (add-hook 'org-mode-hook 'org-bullets-mode)
-  (message "Use-package: Org-bullets")
-  )
+  ;; fancy replace of *** etc
+  (use-package org-bullets
+    :ensure t
+    :after org
+    :init
+    (add-hook 'org-mode-hook 'org-bullets-mode)
+    (message "Use-package: Org-bullets")
+    )
 
-;; ORG link to mu4e -- see mu from https://github.com/djcb/mu
-(require 'org-mu4e)
-(setq org-mu4e-link-query-in-headers-mode nil)
+  ;; ORG link to mu4e -- see mu from https://github.com/djcb/mu
+  (require 'org-mu4e)
+  (setq org-mu4e-link-query-in-headers-mode nil)
 
-;; custom capture
-(require 'org-capture)
-(define-key global-map "\C-cc" 'org-capture)
-(setq org-capture-templates
-      '(
-        ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-         "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n"))
-      )
+  ;; custom capture
+  (require 'org-capture)
+  (define-key global-map "\C-cc" 'org-capture)
+  (setq org-capture-templates
+        '(
+          ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+           "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+          ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+           "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+           :empty-lines 1))
+        )
 
-;; Agenda is constructed from org files in ONE directory
-(setq org-agenda-files '("~/Sync/Org"))
+  ;; Agenda is constructed from org files in ONE directory
+  (setq org-agenda-files '("~/Sync/Org"))
 
-;; refile to targets defined by the org-agenda-files list above
-(setq org-refile-targets '((nil :maxlevel . 3)
-                           (org-agenda-files :maxlevel . 3)))
-(setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
-(setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+  ;; refile to targets defined by the org-agenda-files list above
+  (setq org-refile-targets '((nil :maxlevel . 3)
+                             (org-agenda-files :maxlevel . 3)))
+  (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+  (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
 
-;; store DONE time in the drawer
-(setq org-log-done (quote time))
-(setq org-log-into-drawer t)
+  ;; store DONE time in the drawer
+  (setq org-log-done (quote time))
+  (setq org-log-into-drawer t)
 
-;; Ask and store note if rescheduling
-(setq org-log-reschedule (quote note))
+  ;; Ask and store note if rescheduling
+  (setq org-log-reschedule (quote note))
 
-;; syntax highlight latex in org files
-(setq org-highlight-latex-and-related '(latex script entities))
+  ;; syntax highlight latex in org files
+  (setq org-highlight-latex-and-related '(latex script entities))
 
-;; highlight the current line in the agenda
-(add-hook 'org-agenda-mode-hook
-          '(lambda () (hl-line-mode 1))
-          'append)
+  ;; highlight the current line in the agenda
+  (add-hook 'org-agenda-mode-hook
+            '(lambda () (hl-line-mode 1))
+            'append)
 
-;; define the number of days to show in the agenda
-(setq org-agenda-span 14
-      org-agenda-start-on-weekday nil
-      org-agenda-start-day "-3d")
+  ;; define the number of days to show in the agenda
+  (setq org-agenda-span 14
+        org-agenda-start-on-weekday nil
+        org-agenda-start-day "-3d")
 
-;; default duration of events
-(setq org-agenda-default-appointment-duration 60)
+  ;; default duration of events
+  (setq org-agenda-default-appointment-duration 60)
 
-;; function for below
-(defun air-org-skip-subtree-if-priority (priority)
-  "Skip an agenda subtree if it has a priority of PRIORITY.
+  ;; function for below
+  (defun air-org-skip-subtree-if-priority (priority)
+    "Skip an agenda subtree if it has a priority of PRIORITY.
 
-PRIORITY may be one of the characters ?A, ?B, or ?C."
-  (let ((subtree-end (save-excursion (org-end-of-subtree t)))
-        (pri-value (* 1000 (- org-lowest-priority priority)))
-        (pri-current (org-get-priority (thing-at-point 'line t))))
-    (if (= pri-value pri-current)
-        subtree-end
-      nil))
-  )
+  PRIORITY may be one of the characters ?A, ?B, or ?C."
+    (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+          (pri-value (* 1000 (- org-lowest-priority priority)))
+          (pri-current (org-get-priority (thing-at-point 'line t))))
+      (if (= pri-value pri-current)
+          subtree-end
+        nil))
+    )
 
-;; custom agenda view
-(setq org-agenda-custom-commands
-      '(("c" "Simple agenda view"
-         ((tags "PRIORITY=\"A\""
-                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                 (org-agenda-overriding-header "High-priority unfinished tasks:")))
-          (agenda "")
-          (alltodo ""
-                   ((org-agenda-skip-function
-                     '(or (air-org-skip-subtree-if-priority ?A)
-                          (org-agenda-skip-if nil '(scheduled deadline))))))))))
+  ;; custom agenda view
+  (setq org-agenda-custom-commands
+        '(("c" "Simple agenda view"
+           ((tags "PRIORITY=\"A\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "High-priority unfinished tasks:")))
+            (agenda "")
+            (alltodo ""
+                     ((org-agenda-skip-function
+                       '(or (air-org-skip-subtree-if-priority ?A)
+                            (org-agenda-skip-if nil '(scheduled deadline))))))))))
 
-;; calendar export
-(setq org-icalendar-alarm-time 45)
-;; This makes sure to-do items as a category can show up on the calendar
-(setq org-icalendar-include-todo nil)
-;; dont include the body
-(setq org-icalendar-include-body nil)
-;; This ensures all org "deadlines" show up, and show up as due dates
-;; (setq org-icalendar-use-deadline '(event-if-todo event-if-not-todo todo-due))
-;; This ensures "scheduled" org items show up, and show up as start times
-(setq org-icalendar-use-scheduled '(todo-start event-if-todo event-if-not-todo))
-(setq org-icalendar-categories '(all-tags))
-;; this makes repeated scheduled tasks NOT show after the deadline is passed
-(setq org-agenda-skip-scheduled-if-deadline-is-shown 'repeated-after-deadline)
+  ;; calendar export
+  (setq org-icalendar-alarm-time 45)
+  ;; This makes sure to-do items as a category can show up on the calendar
+  (setq org-icalendar-include-todo nil)
+  ;; dont include the body
+  (setq org-icalendar-include-body nil)
+  ;; This ensures all org "deadlines" show up, and show up as due dates
+  ;; (setq org-icalendar-use-deadline '(event-if-todo event-if-not-todo todo-due))
+  ;; This ensures "scheduled" org items show up, and show up as start times
+  (setq org-icalendar-use-scheduled '(todo-start event-if-todo event-if-not-todo))
+  (setq org-icalendar-categories '(all-tags))
+  ;; this makes repeated scheduled tasks NOT show after the deadline is passed
+  (setq org-agenda-skip-scheduled-if-deadline-is-shown 'repeated-after-deadline)
 
-;; my own function to export to .ics
-(defun reh/export-to-ics ()
-  "Routine that dumps Todo.org to Todo.ics in Syncthing"
-  (interactive)
-  ;(shell-command "rm /home/hewitt/Sync/Org/Todo.ics")
-  (with-current-buffer (find-file-noselect "/home/hewitt/Sync/Org/Todo.org")
-    (rename-file (org-icalendar-export-to-ics)
-		 "/home/hewitt/Sync/Org/Todo.ics" t)
-    (message "Exported Todo.org to Todo.ics"))
-  )
+  ;; my own function to export to .ics
+  (defun reh/export-to-ics ()
+    "Routine that dumps Todo.org to Todo.ics in Syncthing"
+    (interactive)
+    ;(shell-command "rm /home/hewitt/Sync/Org/Todo.ics")
+    (with-current-buffer (find-file-noselect "/home/hewitt/Sync/Org/Todo.org")
+      (rename-file (org-icalendar-export-to-ics)
+                   "/home/hewitt/Sync/Org/Todo.ics" t)
+      (message "Exported Todo.org to Todo.ics"))
+    )
 
-;; Annoying output littered with S
-(defun reh/replaceS ()
-  (interactive)
-  (shell-command "sed -i -e \'s/SUMMARY:S:/SUMMARY:/g\' /home/hewitt/Sync/Org/Todo.ics")
-  )
+  ;; Annoying output littered with S
+  (defun reh/replaceS ()
+    (interactive)
+    (shell-command "sed -i -e \'s/SUMMARY:S:/SUMMARY:/g\' /home/hewitt/Sync/Org/Todo.ics")
+    )
 
-(if (system-is-Orthanc)
-;; ONLY RUN THIS ON THE OFFICE MACHINE -- to avoid conflicted copies of .ics file
-    ( progn (message "Machine is Orthanc" )
-	    (message "Writing Org calendar to ics every 30 minutes" )
-	    (run-with-timer 60 1800 'reh/export-to-ics)
-	    (run-with-timer 90 1800 'reh/replaceS) )
-  )
-(if (system-is-Blasius)
-    ( progn (message "Machine is Blasius" )
-	    (message "Not running the .ics generator" ) )
-  )
+  (if (system-is-Orthanc)
+  ;; ONLY RUN THIS ON THE OFFICE MACHINE -- to avoid conflicted copies of .ics file
+      ( progn (message "Machine is Orthanc" )
+              (message "Writing Org calendar to ics every 30 minutes" )
+              (run-with-timer 60 1800 'reh/export-to-ics)
+              (run-with-timer 90 1800 'reh/replaceS) )
+    )
+  (if (system-is-Blasius)
+      ( progn (message "Machine is Blasius" )
+              (message "Not running the .ics generator" ) )
+    )
 #+END_SRC
 
 ** Org-babel
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package gnuplot
   :ensure t
-  :defer t
   :init
   (message "Use-package: gnuplot for babel installed")
   )
@@ -714,6 +742,7 @@ Org-journal is installed together with org-roam-server at localhost:8080.
 
   (use-package org-roam-server
     :ensure t
+    :after org-roam
     :init
     (message "Use-package: Org-roam-server")
     :config
@@ -733,7 +762,6 @@ Org-journal is installed together with org-roam-server at localhost:8080.
 
   (use-package org-journal
     :ensure t
-    :defer t
     :init
     (message "Use-package: Org-journal")
     :config
@@ -807,7 +835,7 @@ fail on poorly-designed websites."
         )
 )
 #+END_SRC
-
+ 
 
 * PDF tools
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -818,7 +846,7 @@ fail on poorly-designed websites."
   (pdf-tools-install)
   )
 #+END_SRC
-
+ 
 
 * Email
 You need the "mu" package and also "mbsync" (also called "isync").
@@ -928,9 +956,10 @@ You need the "mu" package and also "mbsync" (also called "isync").
 #+END_SRC
 
 
-
+ 
 
 * Fn-key shortcuts
+Let's put the Fn key shortcuts into one place for the moment.
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; F7 : elfeed
 (global-set-key (kbd "<f7>") 'elfeed)
@@ -956,3 +985,5 @@ You need the "mu" package and also "mbsync" (also called "isync").
   )
 (global-set-key (kbd "C-c r") 'config-reload)
 #+END_SRC
+
+ 
