@@ -69,6 +69,7 @@
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
 (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+(add-hook 'latex-mode-hook 'flyspell-mode)
 
 (use-package delight
   :ensure t
@@ -194,37 +195,49 @@
 
 ;; rapid-double press to activate key chords
 (use-package key-chord
- :ensure t
- :init
- (progn
-   (message "Use-package: Key-chord" )
-   ;; Max time delay between two key presses to be considered a key chord
-   (setq key-chord-two-keys-delay 0.1) ; default 0.1
-   ;; Max time delay between two presses of the same key to be considered a key chord.
-   ;; Should normally be a little longer than `key-chord-two-keys-delay'.
-   (setq key-chord-one-key-delay 0.2) ; default 0.2    
-   (key-chord-mode 1)
-   (key-chord-define-global "kk"     'kill-whole-line)
-   (key-chord-define-global "qw"     'avy-goto-word-1)
-   (key-chord-define-global "qs"     'deft)
-   (key-chord-define-global "qt"     'org-babel-tangle)
-   (key-chord-define-global "qq"     'counsel-switch-buffer)
-   (key-chord-define-global "qc"     'counsel-org-capture)
-   (key-chord-define-global "qb"     'bookmark-set)
-   (key-chord-define-global "qj"     'bookmark-jump)
-   (key-chord-define-global "qo"     'other-window)
-   (key-chord-define-global "qd"     'org-journal-new-entry)
-   ;(key-chord-define-global "hh"     'previous-buffer)
-   ;(key-chord-define-global "HH"     'next-buffer)
-   )
- )
-
-;; Better undo
-(use-package undo-tree
   :ensure t
   :init
-  (message "Use-package: Undo-tree")
-  (global-undo-tree-mode)
+  (progn
+    (message "Use-package: Key-chord" )
+    ;; Max time delay between two key presses to be considered a key chord
+    (setq key-chord-two-keys-delay 0.1) ; default 0.1
+    ;; Max time delay between two presses of the same key to be considered a key chord.
+    ;; Should normally be a little longer than `key-chord-two-keys-delay'.
+    (setq key-chord-one-key-delay 0.2) ; default 0.2    
+    (key-chord-mode 1)
+    ;(key-chord-define-global "kk"     'kill-whole-line)
+    ;(key-chord-define-global "qw"     'avy-goto-word-1)
+    ;(key-chord-define-global "qs"     'deft)
+    ;(key-chord-define-global "qt"     'org-babel-tangle)
+    ;(key-chord-define-global "qq"     'counsel-switch-buffer)
+    ;(key-chord-define-global "qc"     'counsel-org-capture)
+    ;(key-chord-define-global "qb"     'bookmark-set)
+    ;(key-chord-define-global "qj"     'bookmark-jump)
+    ;(key-chord-define-global "qo"     'other-window)
+    ;(key-chord-define-global "qd"     'org-journal-new-entry)
+    )
+  )
+
+;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
+;; instead key-seq checks the order -- but relies on key-chord-mode still
+(use-package key-seq
+  :ensure t
+  :after key-chord
+  :init
+  (progn
+    (message "Use-package: Key-seq" )
+    (key-seq-define-global "qd" 'dired)
+    (key-seq-define-global "kk"     'kill-whole-line)
+    (key-seq-define-global "qw"     'avy-goto-word-1)
+    (key-seq-define-global "qs"     'deft)
+    (key-seq-define-global "qt"     'org-babel-tangle)
+    (key-seq-define-global "qq"     'counsel-switch-buffer)
+    (key-seq-define-global "qc"     'counsel-org-capture)
+    (key-seq-define-global "qb"     'bookmark-set)
+    (key-seq-define-global "qj"     'bookmark-jump)
+    (key-seq-define-global "qo"     'other-window)
+    (key-seq-define-global "qd"     'org-journal-new-entry)
+    )
   )
 
 ;; move focus when splitting a window
