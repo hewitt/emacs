@@ -8,10 +8,10 @@
  '(elfeed-feeds
    '("https://protesilaos.com/codelog.xml" "https://irreal.org/blog/?feed=rss2" "https://www.reddit.com/r/orgmode/.rss" "http://feeds.feedburner.com/XahsEmacsBlog" "http://www.reddit.com/r/emacs/.rss" "http://pragmaticemacs.com/feed/"))
  '(line-number-mode nil)
+ '(mini-frame-show-parameters '((top . 10) (width . 0.7) (left . 0.5) (height . 0.5)))
  '(modus-vivendi-theme-variable-pitch-headings t)
- '(org-roam-server-mode t)
  '(package-selected-packages
-   '(key-seq company-prescient counsel-prescient ivy-prescient prescient bufler rainbow-mode elfeed xt modus-vivendi org-journal company-org-roam org-roam-server deft org-roam modus-vivendi-theme yasnippet which-key use-package undo-tree rainbow-delimiters projectile org-pdftools org-bullets magit key-chord ivy-posframe gnuplot git-gutter eglot editorconfig doom-themes doom-modeline delight dashboard counsel company avy all-the-icons-ivy-rich))
+   '(consult selectrum-prescient selectrum marginalia mini-frame pdf-tools ivy-rich ivy key-seq company-prescient counsel-prescient ivy-prescient prescient bufler rainbow-mode elfeed xt modus-vivendi org-journal company-org-roam org-roam-server deft org-roam modus-vivendi-theme yasnippet which-key use-package undo-tree rainbow-delimiters projectile org-pdftools org-bullets magit key-chord ivy-posframe gnuplot git-gutter eglot editorconfig doom-themes doom-modeline delight dashboard counsel company avy all-the-icons-ivy-rich))
  '(tool-bar-mode nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

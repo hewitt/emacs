@@ -69,6 +69,11 @@
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
 (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+;; my default gnuplot extension
+(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+;; Octave/Matlab
+(add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
+;; defaullt to spelll check in latex
 (add-hook 'latex-mode-hook 'flyspell-mode)
 
 (use-package delight
@@ -178,6 +183,69 @@
   (which-key-mode)
 )
 
+(use-package mini-frame
+  :ensure t
+  :init
+  (message "Use-package: mini-frame")
+  :config
+  ;(mini-frame-mode 1)
+  :custom
+  (x-gtk-resize-child-frames 'resize-mod)
+  (mini-frame-resize nil)
+  )
+(custom-set-variables
+  '(mini-frame-show-parameters
+  '((top . 10)
+  (width . 0.7)
+  (left . 0.5)
+  (height . 0.5))))
+  (setq x-gtk-resize-child-frames 'resize-mode)
+
+(use-package prescient
+  :ensure t
+  :init
+  (message "Use-package: prescient")
+  :config
+  ; store across restarts
+  (prescient-persist-mode 1)
+  )
+(use-package company-prescient
+  :ensure t
+  :config
+  (company-prescient-mode 1)
+  )
+
+(use-package marginalia
+  :ensure t
+  :init
+  (marginalia-mode)
+)
+(use-package consult
+  :ensure t
+  :bind
+  ("C-x b" . consult-buffer)
+  ("M-g g" . consult-goto-line)
+  ("M-y"   . consult-yank-pop)
+  ("C-y"   . consult-yank)
+  ("C-s"   . consult-line)
+  ("M-g o" . consult-outline)
+)
+(use-package selectrum
+  :ensure t
+  :after (consult marginalia)
+  :init (message "Use-package: selectrum")
+  :config
+  (selectrum-mode 1)
+)
+(use-package selectrum-prescient
+  :ensure t
+  :init (message "Use-package: selectrum-prescient")
+  :after (prescient selectrum)
+  :config
+  (selectrum-prescient-mode 1)
+)
+(marginalia-cycle)
+
 ;; cut and paste in Wayland environmen
 (setq x-select-enable-clipboard t)
 (defun txt-cut-function (text &optional push)
@@ -226,13 +294,12 @@
   :init
   (progn
     (message "Use-package: Key-seq" )
-    (key-seq-define-global "qd" 'dired)
+    ;(key-seq-define-global "qd" 'dired)
     (key-seq-define-global "kk"     'kill-whole-line)
-    (key-seq-define-global "qw"     'avy-goto-word-1)
     (key-seq-define-global "qs"     'deft)
     (key-seq-define-global "qt"     'org-babel-tangle)
-    (key-seq-define-global "qq"     'counsel-switch-buffer)
-    (key-seq-define-global "qc"     'counsel-org-capture)
+    (key-seq-define-global "qq"     'consult-buffer)
+    (key-seq-define-global "qc"     'org-capture)
     (key-seq-define-global "qb"     'bookmark-set)
     (key-seq-define-global "qj"     'bookmark-jump)
     (key-seq-define-global "qo"     'other-window)
@@ -296,75 +363,6 @@
   (yas-reload-all)
   )
 
-(use-package ivy
-  :ensure t
-  :delight "Iv"
-  :init
-  (message "Use-package: Ivy")
-  :config
-  (setq ivy-use-virtual-buffers t
-        ivy-count-format "%d/%d ")
-  (ivy-mode 1)
-  :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
-         ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
-         ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
-         ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
-             ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
-         ("M-x" . counsel-M-x)        ;; More descriptive M-x
-         ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
-         ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
-         ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
-         )
-  )
-;; popup ivy completion in a separate frame top centre instead of in the minibuffer
-(use-package ivy-posframe
-  :ensure t
-  :after ivy
-  :delight 
-  :config
-  (ivy-posframe-mode 1)
-  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
-  (setq ivy-posframe-height-alist '((t . 20))
-        ivy-posframe-parameters '((internal-border-width . 10)))
-  (setq ivy-posframe-parameters
-      '((left-fringe . 5)
-        (right-fringe . 5)))
-  (setq ivy-posframe-parameters '((alpha . 0.90)))
-  )
-;; ivy enhancements to add more information to buffer list
-(use-package ivy-rich
-  :ensure t
-  :after ivy
-  :init
-  (ivy-rich-mode 1)
-  )
-;; adds icons to buffer list
-(use-package all-the-icons-ivy-rich
-  :ensure t
-  :after ivy-rich
-  :init
-  (all-the-icons-ivy-rich-mode 1)
-  )
-
-(use-package prescient
-  :ensure t
-  :init
-  (message "Use-package: prescient")
-  :config
-  (prescient-persist-mode 1)
-  )
-(use-package ivy-prescient
-  :ensure t
-  :after (counsel prescient)
-  :config
-  (ivy-prescient-mode 1)
-  )
-(use-package company-prescient
-  :ensure t
-  :config
-  (company-prescient-mode 1)
-  )
-
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
   :ensure t
@@ -372,8 +370,11 @@
   :init
   (message "Use-package: Eglot")
   (add-hook 'c++-mode-hook 'eglot-ensure)
+  (add-hook 'latex-mode-hook 'eglot-ensure)
+
   )
 (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+(add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
 
 ;; company gives the selection front end for code completion
 ;; but not the C++-aware backend
@@ -446,6 +447,16 @@
 
 ;; syntax highlight latex in org files
 (setq org-highlight-latex-and-related '(latex script entities))
+
+;; org-latex-export quotes are nasty, so replace them here
+;(setq org-export-with-smart-quotes t)
+;(add-to-list 'org-export-smart-quotes-alist 
+;           '("am"
+;             (primary-opening   :utf-8 "“" :html "&ldquo;" :latex "\\enquote{"  :texinfo "``")
+;             (primary-closing   :utf-8 "”" :html "&rdquo;" :latex "}"           :texinfo "''")
+;             (secondary-opening :utf-8 "‘" :html "&lsquo;" :latex "\\enquote*{" :texinfo "`")
+;             (secondary-closing :utf-8 "’" :html "&rsquo;" :latex "}"           :texinfo "'")
+;             (apostrophe        :utf-8 "’" :html "&rsquo;")))
 
 ;; highlight the current line in the agenda
 (add-hook 'org-agenda-mode-hook
@@ -559,16 +570,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
       :unnarrowed t) )
       )
   )
-
-(use-package company-org-roam
-  :ensure t
-  :after org-roam
-  ;; You may want to pin in case the version from stable.melpa.org is not working 
-  ; :pin melpa
-  :config
-  (push 'company-org-roam company-backends)
-  )
-
+; doesn't start by default
 (use-package org-roam-server
   :ensure t
   :after org-roam
@@ -586,9 +588,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
         org-roam-server-network-label-truncate t
         org-roam-server-network-label-truncate-length 60
         org-roam-server-network-label-wrap-length 20
-        org-roam-server-mode nil) ; default to off
+        org-roam-server-mode nil)
   )
-
 (use-package org-journal
   :ensure t
   :init
@@ -663,109 +664,6 @@ fail on poorly-designed websites."
   :config
   (pdf-tools-install)
   )
-
-;; mu4e is part of the "mu" package and sometimes doesn't get
-;; found auto-magically. So this points directly to it.
-(add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
-;; defines mu4e exists, but holds off until needed
-(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
-;; used for outgoing mail send
-(use-package smtpmail
-  :ensure t
-  :defer t
-  :init
-  (message "Use-package: SMTPmail")
-  (setq message-send-mail-function 'smtpmail-send-it
-	user-mail-address "richard.hewitt@manchester.ac.uk"
-	smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
-	smtpmail-local-domain "manchester.ac.uk"
-	smtpmail-smtp-server "outgoing.manchester.ac.uk"
-	smtpmail-stream-type 'ssl
-	smtpmail-smtp-service 465)
-  )
-;; this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
-(setq mu4e-change-filenames-when-moving t)
-;; general mu4e config
-(setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
-(setq mu4e-drafts-folder "/Drafts")
-(setq mu4e-sent-folder   "/Sent Items")
-(setq mu4e-trash-folder  "/Trash")
-(setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
-(setq mu4e-headers-show-thread nil)
-(setq mu4e-headers-include-related nil)
-(setq mu4e-headers-results-limit 100)
-(setq mu4e-mu-binary "/home/hewitt/local/bin/mu")
-;; stop mail draft/sent appearing in the recent files list of the dashboard
-(add-to-list 'recentf-exclude "\\mbsyncmail\\")
-;; how to get mail
-(setq mu4e-get-mail-command "mbsync Work"
-      ;mu4e-html2text-command "w3m -T text/html"
-      mu4e-html2text-command "html2markdown --body-width=70" 
-      mu4e-update-interval 300
-      mu4e-headers-auto-update t
-      ;mu4e-compose-signature-auto-include nil
-      )
-;; the headers to show in the headers list -- a pair of a field
-;; and its width, with `nil' meaning 'unlimited'
-;; better only use that for the last field.
-;; These are the defaults:
-(setq mu4e-headers-fields
-    '( (:human-date    .  15)    ;; alternatively, use :date
-       (:flags         .   6)
-       (:from          .  22)
-       (:subject       .  nil))  ;; alternatively, use :thread-subject
-    )
-(setq mu4e-maildir-shortcuts
-      '( ("/INBOX"          . ?i)
-         ("/Sent Items"     . ?s)
-         ("/Deleted Items"  . ?t)
-         ("/Drafts"         . ?d))
-      )
-;; REMOVE BELOW FOR TERMINUAL EMACS
-;; show images
-(setq mu4e-show-images t)
-;; use imagemagick, if available
-(when (fboundp 'imagemagick-register-types)
-  (imagemagick-register-types)
-  )
-;; don't keep message buffers around
-(setq message-kill-buffer-on-exit t)
-;; general emacs mail settings; used when composing e-mail
-;; the non-mu4e-* stuff is inherited from emacs/message-mode
-(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
-    user-mail-address "richard.hewitt@manchester.ac.uk"
-    user-full-name  "Rich Hewitt")
-;;;; don't save message to Sent Messages, IMAP takes care of this
-;; 2019: emails are vanishing with below!
-;; (setq mu4e-sent-messages-behavior 'delete)
-
-;; spell check
-(add-hook 'mu4e-compose-mode-hook
-          (defun my-do-compose-stuff ()
-            "My settings for message composition."
-            (set-fill-column 72)
-            (flyspell-mode) )
-	  )
-;;;; https://emacs.stackexchange.com/questions/21723/how-can-i-delete-mu4e-drafts-on-successfully-sending-the-mail
-;;;; "As I'm composing mail, mu4e automatically saves drafts to the mu4e-drafts-folder.
-;;;; When I send the mail, these drafts persist. I expected mu4e to delete from the folder."
-;;;; "If you use offlineimap (like I do) then your drafts likely accumulate because offlineimap syncs
-;;;; emacs' #autosave# files (kept in Drafts/cur folder). As offlineimap can only ignore files starting
-;;;; with '.' (and it's not configurable) the solution is to change the way draft autosaves are named:
-(defun draft-auto-save-buffer-name-handler (operation &rest args)
-"for `make-auto-save-file-name' set '.' in front of the file name; do nothing for other operations"
-(if
-  (and buffer-file-name (eq operation 'make-auto-save-file-name))
-  (concat (file-name-directory buffer-file-name)
-            "."
-            (file-name-nondirectory buffer-file-name))
- (let ((inhibit-file-name-handlers
-       (cons 'draft-auto-save-buffer-name-handler
-             (and (eq inhibit-file-name-operation operation)
-                  inhibit-file-name-handlers)))
-      (inhibit-file-name-operation operation))
-  (apply operation args))))
-(add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
 
 ;; F7 : elfeed
 (global-set-key (kbd "<f7>") 'elfeed)

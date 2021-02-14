@@ -38,41 +38,41 @@ To convert this to "./config.el" do M-x org-babel-tangle.
 ** Functions to identify which machine I'm running on.
 This is based on the "system-name" variable.
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun system-is-Blasius ()
-  (interactive)
-  "True for Blasius laptop"
-  (string-equal system-name "Blasius"))
-(defun system-is-Orthanc ()
-  (interactive)
-  "True for Orthanc desktop"
-  (string-equal system-name "Orthanc"))
+  (defun system-is-Blasius ()
+    (interactive)
+    "True for Blasius laptop"
+    (string-equal system-name "Blasius"))
+  (defun system-is-Orthanc ()
+    (interactive)
+    "True for Orthanc desktop"
+    (string-equal system-name "Orthanc"))
 #+END_SRC
 
 ** Change some of the default emacs variables
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; move backups to stop *~ proliferation
-(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
-;; have mouse input in the terminal
-;; the disadvantage is you need to SHIFT+middle mouse to paste in the terminal
-(xterm-mouse-mode 1)
-;; Turn off the menu/scroll/toolbar
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
-;; this stops the cursor recentering on leaving the page
-;; ie. stop scrolling by 0.5 page
-(setq scroll-conservatively 101 )
-;; replace annoying yes/no
-(fset 'yes-or-no-p 'y-or-n-p)
-;; don't end sentences with a single space
-(setq sentence-end-double-space nil)
-;; From Prelude: reduce the frequency of garbage collection by making it happen on
-;; each 5MB of allocated data (the default is on every 0.76MB)
-(setq gc-cons-threshold 5000000)
-;; warn when opening files bigger than 50MB
-(setq large-file-warning-threshold 50000000)
-;; set this to avoid having to reply y/n every time you open a symbolic link in a git repo
-(setq vc-follow-symlinks nil)
+  ;; move backups to stop *~ proliferation
+  (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+  ;; have mouse input in the terminal
+  ;; the disadvantage is you need to SHIFT+middle mouse to paste in the terminal
+  (xterm-mouse-mode 1)
+  ;; Turn off the menu/scroll/toolbar
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1)
+  ;; this stops the cursor recentering on leaving the page
+  ;; ie. stop scrolling by 0.5 page
+  (setq scroll-conservatively 101 )
+  ;; replace annoying yes/no
+  (fset 'yes-or-no-p 'y-or-n-p)
+  ;; don't end sentences with a single space
+  (setq sentence-end-double-space nil)
+  ;; From Prelude: reduce the frequency of garbage collection by making it happen on
+  ;; each 5MB of allocated data (the default is on every 0.76MB)
+  (setq gc-cons-threshold 5000000)
+  ;; warn when opening files bigger than 50MB
+  (setq large-file-warning-threshold 50000000)
+  ;; set this to avoid having to reply y/n every time you open a symbolic link in a git repo
+  (setq vc-follow-symlinks nil)
 #+END_SRC
 
 ** Update buffer contents when file changes on "disk"
@@ -234,6 +234,177 @@ Popup key combinations
 )
 #+END_SRC
  
+** mini-frame instead of mini-buffer
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package mini-frame
+    :ensure t
+    :init
+    (message "Use-package: mini-frame")
+    :config
+    ;(mini-frame-mode 1)
+    :custom
+    (x-gtk-resize-child-frames 'resize-mod)
+    (mini-frame-resize nil)
+    )
+  (custom-set-variables
+    '(mini-frame-show-parameters
+    '((top . 10)
+    (width . 0.7)
+    (left . 0.5)
+    (height . 0.5))))
+    (setq x-gtk-resize-child-frames 'resize-mode)
+
+#+END_SRC
+
+
+* Completion
+** Prescient
+Replaced AMX in favour of a more general candidate selection mechanism as provvided by "prescient"
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package prescient
+    :ensure t
+    :init
+    (message "Use-package: prescient")
+    :config
+    ; store across restarts
+    (prescient-persist-mode 1)
+    )
+  (use-package company-prescient
+    :ensure t
+    :config
+    (company-prescient-mode 1)
+    )
+#+END_SRC
+
+** Selection via Selectrum and Consult
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package marginalia
+    :ensure t
+    :init
+    (marginalia-mode)
+  )
+  (use-package consult
+    :ensure t
+    :bind
+    ("C-x b" . consult-buffer)
+    ("M-g g" . consult-goto-line)
+    ("M-y"   . consult-yank-pop)
+    ("C-y"   . consult-yank)
+    ("C-s"   . consult-line)
+    ("M-g o" . consult-outline)
+  )
+  (use-package selectrum
+    :ensure t
+    :after (consult marginalia)
+    :init (message "Use-package: selectrum")
+    :config
+    (selectrum-mode 1)
+  )
+  (use-package selectrum-prescient
+    :ensure t
+    :init (message "Use-package: selectrum-prescient")
+    :after (prescient selectrum)
+    :config
+    (selectrum-prescient-mode 1)
+  )
+  (marginalia-cycle)
+#+END_SRC
+
+** Avy                                                           :untangled:
+Searching for text in the current view.
+#+BEGIN_SRC emacs-lisp :tangle no
+;; AVY is used to jump around within a buffer see key-chords
+(use-package avy
+  :ensure t
+  :defer t
+  :init
+  (message "Use-package: Avy")
+  :config
+  (setq avy-background t)
+  )
+#+END_SRC
+** Undo-tree                                                     :untangled:
+Improved undo.
+#+BEGIN_SRC emacs-lisp :tangle no
+;; Better undo
+(use-package undo-tree
+  :ensure t
+  :init
+  (message "Use-package: Undo-tree")
+  (global-undo-tree-mode)
+  )
+#+END_SRC
+
+** Ivy                                                           :untangled:
+A completion engine, that comes with Counsel.
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package ivy
+    :ensure t
+    :delight "Iv"
+    :init
+    (message "Use-package: Ivy")
+    :config
+    (setq ivy-use-virtual-buffers t
+          ivy-count-format "%d/%d ")
+    (ivy-mode 1)
+    :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
+           ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
+           ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
+           ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
+           ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
+           ("M-x" . counsel-M-x)        ;; More descriptive M-x
+           ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
+           ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
+           ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
+           )
+    )
+
+  ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
+  (use-package ivy-posframe
+    :ensure t
+    :after ivy
+    :delight 
+    :config
+    (ivy-posframe-mode 1)
+    (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
+    (setq ivy-posframe-height-alist '((t . 20))
+          ivy-posframe-parameters '((internal-border-width . 10)))
+    (setq ivy-posframe-parameters
+        '((left-fringe . 5)
+          (right-fringe . 5)))
+  ;  ;(setq ivy-posframe-parameters '((alpha . 0.90)))
+    )
+
+  ;; ivy enhancements to add more information to buffer list
+  (use-package ivy-rich
+    :ensure t
+    :after ivy
+    :init
+    (ivy-rich-mode 1)
+    )
+  ;; adds icons to buffer list
+  (use-package all-the-icons-ivy-rich
+    :ensure t
+    :after ivy-rich
+    :init
+    (all-the-icons-ivy-rich-mode 1)
+    )
+#+END_SRC
+
+** AMX                                                           :untangled:
+Replaces M-x to keep track of popular commands and offer them by default
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package amx
+    :ensure t
+    :init
+    (message "Use-package: Amx")
+    :config
+    (setq amx-mode t)
+    ) 
+#+END_SRC
+ 
+
+
 
 * Interaction
 ** Cut and paste
@@ -291,45 +462,18 @@ Keyboard shortcuts based on double pressing of low-frequency keys (e.g. 'qq').
       :init
       (progn
         (message "Use-package: Key-seq" )
-        (key-seq-define-global "qd" 'dired)
+        ;(key-seq-define-global "qd" 'dired)
         (key-seq-define-global "kk"     'kill-whole-line)
-        (key-seq-define-global "qw"     'avy-goto-word-1)
         (key-seq-define-global "qs"     'deft)
         (key-seq-define-global "qt"     'org-babel-tangle)
-        (key-seq-define-global "qq"     'counsel-switch-buffer)
-        (key-seq-define-global "qc"     'counsel-org-capture)
+        (key-seq-define-global "qq"     'consult-buffer)
+        (key-seq-define-global "qc"     'org-capture)
         (key-seq-define-global "qb"     'bookmark-set)
         (key-seq-define-global "qj"     'bookmark-jump)
         (key-seq-define-global "qo"     'other-window)
         (key-seq-define-global "qd"     'org-journal-new-entry)
         )
       )
-#+END_SRC
-
-** Avy                                                           :untangled:
-Searching for text in the current view.
-#+BEGIN_SRC emacs-lisp :tangle no
-;; AVY is used to jump around within a buffer see key-chords
-(use-package avy
-  :ensure t
-  :defer t
-  :init
-  (message "Use-package: Avy")
-  :config
-  (setq avy-background t)
-  )
-#+END_SRC
-
-** Undo-tree                                                     :untangled:
-Improved undo.
-#+BEGIN_SRC emacs-lisp :tangle no
-;; Better undo
-(use-package undo-tree
-  :ensure t
-  :init
-  (message "Use-package: Undo-tree")
-  (global-undo-tree-mode)
-  )
 #+END_SRC
 
 ** Splitting window behaviour
@@ -399,133 +543,47 @@ Expand roots to standard text snippets with M-]
   )
 #+END_SRC
 
-** Ivy
-A completion engine, that comes with Counsel.
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package ivy
-    :ensure t
-    :delight "Iv"
-    :init
-    (message "Use-package: Ivy")
-    :config
-    (setq ivy-use-virtual-buffers t
-          ivy-count-format "%d/%d ")
-    (ivy-mode 1)
-    :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
-           ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
-           ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
-           ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
-               ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
-           ("M-x" . counsel-M-x)        ;; More descriptive M-x
-           ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
-           ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
-           ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
-           )
-    )
-  ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
-  (use-package ivy-posframe
-    :ensure t
-    :after ivy
-    :delight 
-    :config
-    (ivy-posframe-mode 1)
-    (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
-    (setq ivy-posframe-height-alist '((t . 20))
-          ivy-posframe-parameters '((internal-border-width . 10)))
-    (setq ivy-posframe-parameters
-        '((left-fringe . 5)
-          (right-fringe . 5)))
-    (setq ivy-posframe-parameters '((alpha . 0.90)))
-    )
-  ;; ivy enhancements to add more information to buffer list
-  (use-package ivy-rich
-    :ensure t
-    :after ivy
-    :init
-    (ivy-rich-mode 1)
-    )
-  ;; adds icons to buffer list
-  (use-package all-the-icons-ivy-rich
-    :ensure t
-    :after ivy-rich
-    :init
-    (all-the-icons-ivy-rich-mode 1)
-    )
-#+END_SRC
-
-** Prescient
-Replaced AMX in favour of a more general candidate selection mechanism as provvided by "prescient"
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package prescient
-    :ensure t
-    :init
-    (message "Use-package: prescient")
-    :config
-    (prescient-persist-mode 1)
-    )
-  (use-package ivy-prescient
-    :ensure t
-    :after (counsel prescient)
-    :config
-    (ivy-prescient-mode 1)
-    )
-  (use-package company-prescient
-    :ensure t
-    :config
-    (company-prescient-mode 1)
-    )
-#+END_SRC
-
-** AMX                                                           :untangled:
-Replaces M-x to keep track of popular commands and offer them by default
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package amx
-    :ensure t
-    :init
-    (message "Use-package: Amx")
-    :config
-    (setq amx-mode t)
-    ) 
-#+END_SRC
- 
 
 * Coding environment
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; eglot is a simpler alternative to LSP-mode
-(use-package eglot
-  :ensure t
-  :delight (eglot "Eglot")
-  :init
-  (message "Use-package: Eglot")
-  (add-hook 'c++-mode-hook 'eglot-ensure)
-  )
-(add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+  ;; eglot is a simpler alternative to LSP-mode
+  (use-package eglot
+    :ensure t
+    :delight (eglot "Eglot")
+    :init
+    (message "Use-package: Eglot")
+    (add-hook 'c++-mode-hook 'eglot-ensure)
+    (add-hook 'latex-mode-hook 'eglot-ensure)
 
-;; company gives the selection front end for code completion
-;; but not the C++-aware backend
-(use-package company
-  :ensure t
-  :delight (company-mode "Co")
-  :bind ("M-/" . company-complete)
-  :init
-  (progn
-    (message "Use-package: Company")
-    (add-hook 'after-init-hook 'global-company-mode))
-  :config
-  (require 'yasnippet)
-  ;(setq company-idle-delay 1)
-  (setq company-minimum-prefix-length 3)
-  (setq company-idle-delay 0)
-  (setq company-selection-wrap-around t)
-  (setq company-tooltip-align-annotations t)
-  (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-        company-echo-metadata-frontend)
-        )
-  )
+    )
+  (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+  (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+
+  ;; company gives the selection front end for code completion
+  ;; but not the C++-aware backend
+  (use-package company
+    :ensure t
+    :delight (company-mode "Co")
+    :bind ("M-/" . company-complete)
+    :init
+    (progn
+      (message "Use-package: Company")
+      (add-hook 'after-init-hook 'global-company-mode))
+    :config
+    (require 'yasnippet)
+    ;(setq company-idle-delay 1)
+    (setq company-minimum-prefix-length 3)
+    (setq company-idle-delay 0)
+    (setq company-selection-wrap-around t)
+    (setq company-tooltip-align-annotations t)
+    (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
+          company-echo-metadata-frontend)
+          )
+    )
 #+END_SRC
  
 
-* Projectile                                                      :untangled:
+* Projectile :untangled:
 #+BEGIN_SRC emacs-lisp :tangle no
 (use-package projectile
   :ensure t
@@ -559,7 +617,7 @@ Replaces M-x to keep track of popular commands and offer them by default
 #+END_SRC
 
 
-* Magit                                                           :untangled:
+* Magit :untangled:
 #+BEGIN_SRC emacs-lisp :tangle no
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
@@ -637,6 +695,16 @@ Replaces M-x to keep track of popular commands and offer them by default
 
   ;; syntax highlight latex in org files
   (setq org-highlight-latex-and-related '(latex script entities))
+
+  ;; org-latex-export quotes are nasty, so replace them here
+  ;(setq org-export-with-smart-quotes t)
+  ;(add-to-list 'org-export-smart-quotes-alist 
+  ;           '("am"
+  ;             (primary-opening   :utf-8 "“" :html "&ldquo;" :latex "\\enquote{"  :texinfo "``")
+  ;             (primary-closing   :utf-8 "”" :html "&rdquo;" :latex "}"           :texinfo "''")
+  ;             (secondary-opening :utf-8 "‘" :html "&lsquo;" :latex "\\enquote*{" :texinfo "`")
+  ;             (secondary-closing :utf-8 "’" :html "&rsquo;" :latex "}"           :texinfo "'")
+  ;             (apostrophe        :utf-8 "’" :html "&rsquo;")))
 
   ;; highlight the current line in the agenda
   (add-hook 'org-agenda-mode-hook
@@ -758,16 +826,7 @@ Org-journal is installed together with org-roam-server at localhost:8080.
         :unnarrowed t) )
         )
     )
-
-  (use-package company-org-roam
-    :ensure t
-    :after org-roam
-    ;; You may want to pin in case the version from stable.melpa.org is not working 
-    ; :pin melpa
-    :config
-    (push 'company-org-roam company-backends)
-    )
-
+  ; doesn't start by default
   (use-package org-roam-server
     :ensure t
     :after org-roam
@@ -785,9 +844,8 @@ Org-journal is installed together with org-roam-server at localhost:8080.
           org-roam-server-network-label-truncate t
           org-roam-server-network-label-truncate-length 60
           org-roam-server-network-label-wrap-length 20
-          org-roam-server-mode nil) ; default to off
+          org-roam-server-mode nil)
     )
-
   (use-package org-journal
     :ensure t
     :init
@@ -876,9 +934,12 @@ fail on poorly-designed websites."
 #+END_SRC
  
 
-* Email
+* Email :untangled:
+
 You need the "mu" package and also "mbsync" (also called "isync").
-#+BEGIN_SRC emacs-lisp :tangle yes
+This has been broken by the shift to Office365
+
+#+BEGIN_SRC emacs-lisp :tangle no
 ;; mu4e is part of the "mu" package and sometimes doesn't get
 ;; found auto-magically. So this points directly to it.
 (add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
@@ -891,12 +952,13 @@ You need the "mu" package and also "mbsync" (also called "isync").
   :init
   (message "Use-package: SMTPmail")
   (setq message-send-mail-function 'smtpmail-send-it
-	user-mail-address "richard.hewitt@manchester.ac.uk"
-	smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+	user-mail-address "user@address.co.uk"
+	;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+      smtpmail-default-smtp-server "smtp.office365.com"
 	smtpmail-local-domain "manchester.ac.uk"
-	smtpmail-smtp-server "outgoing.manchester.ac.uk"
-	smtpmail-stream-type 'ssl
-	smtpmail-smtp-service 465)
+	smtpmail-smtp-server "smtp.office365.com"
+	smtpmail-stream-type 'starttls
+	smtpmail-smtp-service 587)
   )
 ;; this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
 (setq mu4e-change-filenames-when-moving t)
@@ -983,8 +1045,6 @@ You need the "mu" package and also "mbsync" (also called "isync").
 (add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
 #+END_SRC
 
-
- 
 
 * Fn-key shortcuts
 Let's put the Fn key shortcuts into one place for the moment.
