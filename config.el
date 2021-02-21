@@ -2,8 +2,14 @@
 ;;;; CONFIGURE MELPA AND GNU ARCHIVES
 ;;;;
 (require 'package)
-(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
-(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
+;;(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
+;;(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
+(setq package-archives
+    '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
+      ("MELPA"        . "https://melpa.org/packages/"))
+    package-archive-priorities
+    '(("GNU ELPA"     . 10)
+      ("MELPA" . 5)))
 (package-initialize)
 
 ;;;;
@@ -53,7 +59,7 @@
 (setq gc-cons-threshold 5000000)
 ;; warn when opening files bigger than 50MB
 (setq large-file-warning-threshold 50000000)
-;; set this to avoid having to reply y/n every time you open a symbolic link in a git repo
+;; always follow the symlink
 (setq vc-follow-symlinks nil)
 
 ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
@@ -103,35 +109,59 @@
     (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
     )
 
-(mapcar #'disable-theme custom-enabled-themes)
-(use-package modus-vivendi-theme
-  :ensure t
-  :init
-    ;;  customisations must be defined before the theme is loaded
-    ;; NOTE: Everything is disabled by default.
-    (setq modus-vivendi-theme-slanted-constructs t
-      modus-vivendi-theme-bold-constructs t    
-      modus-vivendi-theme-fringes 'subtle ; {nil,'subtle,'intense}
-      modus-vivendi-theme-3d-modeline t        
-      modus-vivendi-theme-faint-syntax t       
-      modus-vivendi-theme-intense-hl-line t    
-      modus-vivendi-theme-intense-paren-match t
-      modus-vivendi-theme-prompts 'subtle ; {nil,'subtle,'intense}
-      modus-vivendi-theme-completions 'moderate ; {nil,'moderate,'opinionated}
-      modus-vivendi-theme-diffs nil ; {nil,'desaturated,'fg-only}
-      modus-vivendi-theme-org-blocks 'greyscale ; {nil,'greyscale,'rainbow}
-      modus-vivendi-theme-variable-pitch-headings t
-      modus-vivendi-theme-rainbow-headings t
-      modus-vivendi-theme-section-headings 'nil
-      modus-vivendi-theme-scale-headings t
-      modus-vivendi-theme-scale-1 1.05
-      modus-vivendi-theme-scale-2 1.1
-      modus-vivendi-theme-scale-3 1.15
-      modus-vivendi-theme-scale-4 1.2
-      modus-vivendi-theme-scale-5 1.3)
-  :config
-    (load-theme 'modus-vivendi t)      
-  )
+(set-face-attribute 'default nil
+:family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded)
+(set-face-attribute 'variable-pitch nil
+:family "Iosevka" :height 1.0 :weight 'normal)
+(set-face-attribute 'fixed-pitch nil
+:family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
+(setq hl-line-mode t)
+;;
+(use-package modus-themes
+:ensure
+:init
+;; Add all your customizations prior to loading the themes
+(setq modus-vivendi-theme-slanted-constructs t ; allow italics
+      modus-vivendi-theme-bold-constructs t ; allow bold font use
+      modus-themes-syntax 'yellow-comments-green-strings ; highlighting
+      modus-themes-mode-line 'borderless ; add vertical separators
+      modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
+      modus-themes-intense-hl-line t ; stronger hl-line-mode
+      modus-themes-org-blocks 'rainbow ; {nil,'greyscale,'rainbow}
+      modus-themes-paren-match 'intense-bold ;
+      modus-themes-scale-headings t ; scale heading text
+      modus-themes-rainbow-headings t
+      modus-themes-scale-1 1.05
+      modus-themes-scale-2 1.1
+      modus-themes-scale-3 1.15
+      modus-themes-scale-4 1.2
+      modus-themes-scale-5 1.3
+      ;;
+      ;modus-vivendi-theme-fringes 'intense ; {nil,'subtle,'intense}
+      ;modus-vivendi-theme-3d-modeline t        
+      ;modus-vivendi-theme-faint-syntax t       
+      ;modus-vivendi-theme-intense-hl-line t    
+      ;modus-vivendi-theme-intense-paren-match t
+      ;modus-vivendi-theme-prompts 'intense ; {nil,'subtle,'intense}
+      ;modus-vivendi-theme-diffs nil ; {nil,'desaturated,'fg-only}
+      ;modus-vivendi-theme-org-blocks 'rainbow 
+      ;modus-vivendi-theme-variable-pitch-headings t
+      ;modus-vivendi-theme-rainbow-headings t
+      ;modus-vivendi-theme-section-headings 'nil
+      ;modus-vivendi-theme-scale-headings t
+      ;modus-vivendi-theme-scale-1 1.05
+      ;modus-vivendi-theme-scale-2 1.1
+      ;modus-vivendi-theme-scale-3 1.15
+      ;modus-vivendi-theme-scale-4 1.2
+      ;modus-vivendi-theme-scale-5 1.3)
+      )
+;; Load the theme files before enabling a theme
+(modus-themes-load-themes)
+:config
+;; Load the theme of your choice:
+;;(modus-themes-load-operandi) ;; OR 
+(modus-themes-load-vivendi)
+:bind ("<f5>" . modus-themes-toggle))
 
 ;; modeline
 (use-package doom-modeline
@@ -188,7 +218,7 @@
   :init
   (message "Use-package: mini-frame")
   :config
-  ;(mini-frame-mode 1)
+  (mini-frame-mode 1)
   :custom
   (x-gtk-resize-child-frames 'resize-mod)
   (mini-frame-resize nil)
