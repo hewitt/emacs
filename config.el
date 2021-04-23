@@ -2,28 +2,29 @@
 ;;;; CONFIGURE MELPA AND GNU ARCHIVES
 ;;;;
 (require 'package)
-;;(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
-;;(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
 (setq package-archives
     '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
       ("MELPA"        . "https://melpa.org/packages/"))
-    package-archive-priorities
+    package-archive-priorities ; prefer ELPA to MELPA
     '(("GNU ELPA"     . 10)
-      ("MELPA" . 5)))
+      ("MELPA"        . 5 )))
 (package-initialize)
+
+;;;; 
+;;;; any MANUAL (non-elpa/melpa) PACKAGES are installed here
+;;;;
+;; (add-to-list 'load-path "~/.emacs.d/manual")
 
 ;;;;
 ;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
 ;;;;
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
-  (package-install 'use-package)
-  )
+  (package-install 'use-package) )
 
 ;; this is the standard use-package invocation if it is in ~/.emacs.d
 (eval-when-compile
-  (require 'use-package)
-  )
+  (require 'use-package) )
 
 ;; Keep custom settings in a separate file to not pollute this one
 (setq custom-file "~/.emacs.d/custom-settings.el")
@@ -66,10 +67,9 @@
 ;; This COMMAND will load a buffer if it changes on disk, which is
 ;; super handy if editing from multiple machines over long periods.
 (defun revert-buffer-no-confirm ()
-    "Revert buffer without confirmation."
-    (interactive)
-    (revert-buffer :ignore-auto :noconfirm)
-    )
+  "Revert buffer without confirmation."
+  (interactive)
+  (revert-buffer :ignore-auto :noconfirm))
 (global-auto-revert-mode 1)
 
 ;; setup files ending in “.m4” to open in LaTeX-mode
@@ -84,30 +84,27 @@
 
 (use-package delight
   :ensure t
-  ;:no-require t
-  :init (message "Use-package: Delight")
-  )
+  :init (message "Use-package: Delight") )
 (delight 'eldoc-mode "Eld" 'eldoc)
 (delight 'undo-tree-mode "Ut" 'undo-tree)
 (delight 'abbrev-mode "Ab" 'abbrev)
 
 ;; dashboard runs at startup by default
-(use-package dashboard
+  (use-package dashboard
     :ensure t
     :delight dashboard-mode
     :init
     (message "Use-package: Dashboard")
     :config
     (setq dashboard-banner-logo-title "Quickstart!")
-    (setq dashboard-startup-banner "/home/hewitt/CURRENT/dot.local/share/icons/hicolor/128x128/apps/emacs.png")
     (setq dashboard-set-heading-icons t)
     (setq dashboard-set-file-icons t)
     (setq dashboard-items '((recents  . 10)
-                        (bookmarks . 5)
-			    (agenda . 4)))
-    (dashboard-setup-startup-hook)
-    (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
-    )
+                            (bookmarks . 5)
+                            (agenda . 4)))
+    (dashboard-setup-startup-hook) )
+
+(setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
 
 (set-face-attribute 'default nil
 :family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded)
@@ -115,18 +112,18 @@
 :family "Iosevka" :height 1.0 :weight 'normal)
 (set-face-attribute 'fixed-pitch nil
 :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
-(setq hl-line-mode t)
 ;;
 (use-package modus-themes
-:ensure
+:ensure t
 :init
 ;; Add all your customizations prior to loading the themes
-(setq modus-vivendi-theme-slanted-constructs t ; allow italics
-      modus-vivendi-theme-bold-constructs t ; allow bold font use
+(setq modus-themes-slanted-constructs t ; allow italics
+      modus-themes-bold-constructs t ; allow bold font use
       modus-themes-syntax 'yellow-comments-green-strings ; highlighting
       modus-themes-mode-line 'borderless ; add vertical separators
       modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
-      modus-themes-intense-hl-line t ; stronger hl-line-mode
+      modus-themes-intense-hl-line t ; v.1.2.x
+      modus-themes-hl-line 'intense-background ; v.1.3.0
       modus-themes-org-blocks 'rainbow ; {nil,'greyscale,'rainbow}
       modus-themes-paren-match 'intense-bold ;
       modus-themes-scale-headings t ; scale heading text
@@ -135,33 +132,18 @@
       modus-themes-scale-2 1.1
       modus-themes-scale-3 1.15
       modus-themes-scale-4 1.2
-      modus-themes-scale-5 1.3
-      ;;
-      ;modus-vivendi-theme-fringes 'intense ; {nil,'subtle,'intense}
-      ;modus-vivendi-theme-3d-modeline t        
-      ;modus-vivendi-theme-faint-syntax t       
-      ;modus-vivendi-theme-intense-hl-line t    
-      ;modus-vivendi-theme-intense-paren-match t
-      ;modus-vivendi-theme-prompts 'intense ; {nil,'subtle,'intense}
-      ;modus-vivendi-theme-diffs nil ; {nil,'desaturated,'fg-only}
-      ;modus-vivendi-theme-org-blocks 'rainbow 
-      ;modus-vivendi-theme-variable-pitch-headings t
-      ;modus-vivendi-theme-rainbow-headings t
-      ;modus-vivendi-theme-section-headings 'nil
-      ;modus-vivendi-theme-scale-headings t
-      ;modus-vivendi-theme-scale-1 1.05
-      ;modus-vivendi-theme-scale-2 1.1
-      ;modus-vivendi-theme-scale-3 1.15
-      ;modus-vivendi-theme-scale-4 1.2
-      ;modus-vivendi-theme-scale-5 1.3)
-      )
+      modus-themes-scale-5 1.3)      
 ;; Load the theme files before enabling a theme
 (modus-themes-load-themes)
 :config
-;; Load the theme of your choice:
-;;(modus-themes-load-operandi) ;; OR 
-(modus-themes-load-vivendi)
-:bind ("<f5>" . modus-themes-toggle))
+  ;; Load the theme of your choice:
+  ;;(modus-themes-load-operandi) ;; OR 
+  (modus-themes-load-vivendi)
+:bind 
+  ("<f5>" . modus-themes-toggle) )
+;; highlighting  
+(setq hl-line-mode t)
+(setq global-hl-line-mode t)
 
 ;; modeline
 (use-package doom-modeline
@@ -190,8 +172,7 @@
   ;; Whether display perspective name or not. Non-nil to display in mode-line.
   (setq doom-modeline-persp-name t)
   ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
-  ;(setq doom-modeline-lsp t)
-  )
+  (setq doom-modeline-lsp t)  )
 
 ;; colourise those brackets
 (use-package rainbow-delimiters
@@ -201,8 +182,7 @@
   :config
   (rainbow-delimiters-mode)
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
-  )
+  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)  )
 
 (use-package which-key
   :ensure t
@@ -210,46 +190,23 @@
   :init 
   (message "Use-package: Which-key mode")
   :config
-  (which-key-mode)
-)
-
-(use-package mini-frame
-  :ensure t
-  :init
-  (message "Use-package: mini-frame")
-  :config
-  (mini-frame-mode 1)
-  :custom
-  (x-gtk-resize-child-frames 'resize-mod)
-  (mini-frame-resize nil)
-  )
-(custom-set-variables
-  '(mini-frame-show-parameters
-  '((top . 10)
-  (width . 0.7)
-  (left . 0.5)
-  (height . 0.5))))
-  (setq x-gtk-resize-child-frames 'resize-mode)
+  (which-key-mode) )
 
 (use-package prescient
   :ensure t
   :init
   (message "Use-package: prescient")
-  :config
-  ; store across restarts
-  (prescient-persist-mode 1)
-  )
+  :config  ; store across restarts
+  (prescient-persist-mode 1))
 (use-package company-prescient
   :ensure t
   :config
-  (company-prescient-mode 1)
-  )
+  (company-prescient-mode 1))
 
 (use-package marginalia
   :ensure t
   :init
-  (marginalia-mode)
-)
+  (marginalia-mode)  )
 (use-package consult
   :ensure t
   :bind
@@ -258,22 +215,19 @@
   ("M-y"   . consult-yank-pop)
   ("C-y"   . consult-yank)
   ("C-s"   . consult-line)
-  ("M-g o" . consult-outline)
-)
+  ("M-g o" . consult-outline) )
 (use-package selectrum
   :ensure t
   :after (consult marginalia)
   :init (message "Use-package: selectrum")
   :config
-  (selectrum-mode 1)
-)
+  (selectrum-mode 1)  )
 (use-package selectrum-prescient
   :ensure t
   :init (message "Use-package: selectrum-prescient")
   :after (prescient selectrum)
   :config
-  (selectrum-prescient-mode 1)
-)
+  (selectrum-prescient-mode 1) )
 (marginalia-cycle)
 
 ;; cut and paste in Wayland environmen
@@ -303,18 +257,7 @@
     ;; Should normally be a little longer than `key-chord-two-keys-delay'.
     (setq key-chord-one-key-delay 0.2) ; default 0.2    
     (key-chord-mode 1)
-    ;(key-chord-define-global "kk"     'kill-whole-line)
-    ;(key-chord-define-global "qw"     'avy-goto-word-1)
-    ;(key-chord-define-global "qs"     'deft)
-    ;(key-chord-define-global "qt"     'org-babel-tangle)
-    ;(key-chord-define-global "qq"     'counsel-switch-buffer)
-    ;(key-chord-define-global "qc"     'counsel-org-capture)
-    ;(key-chord-define-global "qb"     'bookmark-set)
-    ;(key-chord-define-global "qj"     'bookmark-jump)
-    ;(key-chord-define-global "qo"     'other-window)
-    ;(key-chord-define-global "qd"     'org-journal-new-entry)
-    )
-  )
+    )  )
 
 ;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
 ;; instead key-seq checks the order -- but relies on key-chord-mode still
@@ -333,9 +276,7 @@
     (key-seq-define-global "qb"     'bookmark-set)
     (key-seq-define-global "qj"     'bookmark-jump)
     (key-seq-define-global "qo"     'other-window)
-    (key-seq-define-global "qd"     'org-journal-new-entry)
-    )
-  )
+    (key-seq-define-global "qd"     'org-journal-new-entry)  ) )
 
 ;; move focus when splitting a window
 (defun split-and-follow-horizontally ()
@@ -359,8 +300,7 @@
   :init
   (message "Use-package: EditorConfig")
   :config
-  (editorconfig-mode 1)
-  )
+  (editorconfig-mode 1) )
 
 ;; location of my snippets -- has to go before yas-reload-all
 (setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.emacs.d/my_snippets"))
@@ -377,17 +317,17 @@
   (add-hook 'c++-mode-hook 'yas-minor-mode)
   (add-hook 'latex-mode-hook 'yas-minor-mode)
   (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
-  ;;;; remove default keybinding
+  ;; remove default keybinding
   (define-key yas-minor-mode-map (kbd "<tab>") nil)
   (define-key yas-minor-mode-map (kbd "TAB") nil)
-  ;;;; redefine my own key
+  ;; redefine my own key
   (define-key yas-minor-mode-map (kbd "M-]") yas-maybe-expand)
-  ;;;; remove default keys for navigation
+  ;; remove default keys for navigation
   (define-key yas-keymap [(tab)]       nil)
   (define-key yas-keymap (kbd "TAB")   nil)
   (define-key yas-keymap [(shift tab)] nil)
   (define-key yas-keymap [backtab]     nil)
-  ;;;; redefine my own keys
+  ;; redefine my own keys
   (define-key yas-keymap (kbd "M-n") 'yas-next-field-or-maybe-expand)
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all)
@@ -400,11 +340,13 @@
   :init
   (message "Use-package: Eglot")
   (add-hook 'c++-mode-hook 'eglot-ensure)
-  (add-hook 'latex-mode-hook 'eglot-ensure)
+  (add-hook 'latex-mode-hook 'eglot-ensure)  )
 
-  )
-(add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+(add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
 (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+
+;;  (use-package flycheck
+;;      :ensure t )
 
 ;; company gives the selection front end for code completion
 ;; but not the C++-aware backend
@@ -418,21 +360,18 @@
     (add-hook 'after-init-hook 'global-company-mode))
   :config
   (require 'yasnippet)
-  ;(setq company-idle-delay 1)
+  ;;(setq company-idle-delay 1)
   (setq company-minimum-prefix-length 3)
   (setq company-idle-delay 0)
   (setq company-selection-wrap-around t)
   (setq company-tooltip-align-annotations t)
   (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-        company-echo-metadata-frontend)
-        )
-  )
+                            company-echo-metadata-frontend) ) )
 
 (use-package org
   :ensure t
   :init
-  (message "Use-package: Org")
-  )
+  (message "Use-package: Org") )
 
 ;; fancy replace of *** etc
 (use-package org-bullets
@@ -440,8 +379,7 @@
   :after org
   :init
   (add-hook 'org-mode-hook 'org-bullets-mode)
-  (message "Use-package: Org-bullets")
-  )
+  (message "Use-package: Org-bullets") )
 
 ;; ORG link to mu4e -- see mu from https://github.com/djcb/mu
 (require 'org-mu4e)
@@ -456,8 +394,7 @@
          "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
         ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
          "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-         :empty-lines 1))
-      )
+         :empty-lines 1)) )
 
 ;; Agenda is constructed from org files in ONE directory
 (setq org-agenda-files '("~/Sync/Org"))
@@ -489,9 +426,9 @@
 ;             (apostrophe        :utf-8 "’" :html "&rsquo;")))
 
 ;; highlight the current line in the agenda
-(add-hook 'org-agenda-mode-hook
-          '(lambda () (hl-line-mode 1))
-          'append)
+;(add-hook 'org-agenda-mode-hook
+;          '(lambda () (hl-line-mode 1))
+;          'append)
 
 ;; define the number of days to show in the agenda
 (setq org-agenda-span 14
@@ -511,8 +448,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
         (pri-current (org-get-priority (thing-at-point 'line t))))
     (if (= pri-value pri-current)
         subtree-end
-      nil))
-  )
+      nil)) )
 
 ;; custom agenda view
 (setq org-agenda-custom-commands
@@ -562,12 +498,10 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
     ( progn (message "Machine is Orthanc" )
             (message "Writing Org calendar to ics every 30 minutes" )
             (run-with-timer 60 1800 'reh/export-to-ics)
-            (run-with-timer 90 1800 'reh/replaceS) )
-  )
-(if (system-is-Blasius)
-    ( progn (message "Machine is Blasius" )
-            (message "Not running the .ics generator" ) )
-  )
+            (run-with-timer 90 1800 'reh/replaceS) ) )
+;(if (system-is-Blasius)
+;    ( progn (message "Machine is Blasius" )
+;            (message "Not running the .ics generator" ) ) )
 
 (use-package gnuplot
   :ensure t
@@ -598,8 +532,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
       :file-name "${slug}"
       :head "#+title: ${title}\n"
       :unnarrowed t) )
-      )
-  )
+      )  )
 ; doesn't start by default
 (use-package org-roam-server
   :ensure t
@@ -618,8 +551,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
         org-roam-server-network-label-truncate t
         org-roam-server-network-label-truncate-length 60
         org-roam-server-network-label-wrap-length 20
-        org-roam-server-mode nil)
-  )
+        org-roam-server-mode nil) )
 (use-package org-journal
   :ensure t
   :init
@@ -630,8 +562,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
         org-journal-file-format "%Y_%m_%d"
         org-journal-time-prefix "  - "
         org-journal-time-format nil
-        org-journal-file-type 'monthly)
-  )
+        org-journal-file-type 'monthly)  )
 
 ;;
 ;; custom faces/colours are in custom-setting.el
@@ -666,7 +597,13 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (setq elfeed-search-trailing-width 25)
   (setq elfeed-show-truncate-long-urls t)
   (setq elfeed-show-unique-buffers t)
-
+  (setq elfeed-feeds
+   '("https://protesilaos.com/codelog.xml"
+     "https://irreal.org/blog/?feed=rss2"
+     "https://www.reddit.com/r/orgmode/.rss"
+     "http://feeds.feedburner.com/XahsEmacsBlog"
+     "http://www.reddit.com/r/emacs/.rss"
+     "http://pragmaticemacs.com/feed/"))
   ; see https://protesilaos.com/dotemacs/
   (defun prot/elfeed-show-eww (&optional link)
     "Browse current `elfeed' entry link in `eww'.
@@ -680,20 +617,125 @@ fail on poorly-designed websites."
       (eww link)
       (add-hook 'eww-after-render-hook 'eww-readable nil t))
       ) ;close defun
-      
+
   :bind
   (("C-c f" . elfeed)
          :map elfeed-search-mode-map
         ("e" . prot/elfeed-show-eww)
-        )
-)
+        ) )
 
 ;; pdf tools for organising and annotating PDF
 (use-package pdf-tools
   :ensure t
   :config
-  (pdf-tools-install)
-  )
+  (pdf-tools-install) )
+
+;; mu4e is part of the "mu" package and sometimes doesn't get
+;; found auto-magically. So this points directly to it.
+(add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
+;; defines mu4e exists, but holds off until needed
+(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+
+;; used for outgoing mail send
+(use-package smtpmail
+  :ensure t
+  :defer t
+  :init
+  (message "Use-package: SMTPmail")
+  (setq message-send-mail-function 'smtpmail-send-it
+    user-mail-address "richard.hewitt@manchester.ac.uk"
+    ;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+    smtpmail-default-smtp-server "localhost"
+    smtpmail-local-domain "manchester.ac.uk"
+    smtpmail-smtp-server "localhost"
+    ;smtpmail-stream-type 'starttls
+    smtpmail-smtp-service 1025) )
+
+;; 2018 : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+(setq mu4e-change-filenames-when-moving t)
+;; general mu4e config
+(setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
+(setq mu4e-drafts-folder "/Drafts")
+(setq mu4e-sent-folder   "/Sent")
+(setq mu4e-trash-folder  "/Deleted Items") ; I don't sync Deleted Items & largely do permanent delete "D" rather than move to trash "d"
+(setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
+(setq mu4e-headers-show-thread nil)
+(setq mu4e-headers-include-related nil)
+(setq mu4e-headers-results-limit 200)
+(setq mu4e-mu-binary "/home/hewitt/local/bin/mu")
+;; stop mail draft/sent appearing in the recent files list of the dashboard
+(add-to-list 'recentf-exclude "\\mbsyncmail\\")
+;; how to get mail
+(setq mu4e-get-mail-command "~/local/bin/mbsync Work"
+      ;mu4e-html2text-command "w3m -T text/html"
+      mu4e-html2text-command "html2markdown --body-width=72" 
+      mu4e-update-interval 300
+      mu4e-headers-auto-update t
+      mu4e-compose-signature-auto-include t)
+
+;; the headers to show 
+;; in the headers list -- a pair of a field
+;; and its width, with `nil' meaning 'unlimited'
+;; better only use that for the last field.
+;; These are the defaults:
+(setq mu4e-headers-fields
+    '((:human-date    .  15)    ;; alternatively, use :date
+       (:flags         .   6)
+       (:from          .  22)
+       (:subject       .  nil))  ;; alternatively, use :thread-subject
+    )
+(setq mu4e-maildir-shortcuts
+      '( ("/INBOX"          . ?i)
+         ("/Sent"           . ?s)
+         ("/Deleted Items"  . ?t)
+         ("/Drafts"         . ?d)) )
+;; REMOVE BELOW FOR TERMINAL EMACS
+;; show images
+(setq mu4e-show-images t)
+;; use imagemagick, if available
+(when (fboundp 'imagemagick-register-types)
+  (imagemagick-register-types) )
+;; don't keep message buffers around
+(setq message-kill-buffer-on-exit t)
+;; general emacs mail settings; used when composing e-mail
+;; the non-mu4e-* stuff is inherited from emacs/message-mode
+(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
+    user-mail-address "richard.hewitt@manchester.ac.uk"
+    user-full-name  "Rich Hewitt")
+;;;; don't save message to Sent Messages, IMAP takes care of this
+;; 2019: emails are vanishing with below!
+(setq mu4e-sent-messages-behavior 'sent)
+
+;; spell check during compose
+(add-hook 'mu4e-compose-mode-hook
+  (defun my-do-compose-stuff ()
+  "My settings for message composition."
+  (set-fill-column 72)
+  (flyspell-mode)
+  ; turn off autosave, otherwise we end up with multiple versions of sent/draft mail being sync'd
+  (auto-save-mode -1) ) )
+
+
+;;;; https://emacs.stackexchange.com/questions/21723/how-can-i-delete-mu4e-drafts-on-successfully-sending-the-mail
+;;;; "As I'm composing mail, mu4e automatically saves drafts to the mu4e-drafts-folder.
+;;;; When I send the mail, these drafts persist. I expected mu4e to delete from the folder."
+;;;; "If you use offlineimap (like I do) then your drafts likely accumulate because offlineimap syncs
+;;;; emacs' #autosave# files (kept in Drafts/cur folder). As offlineimap can only ignore files starting
+;;;; with '.' (and it's not configurable) the solution is to change the way draft autosaves are named:
+;; (defun draft-auto-save-buffer-name-handler (operation &rest args)
+;; "for `make-auto-save-file-name' set '.' in front of the file name; do nothing for other operations"
+;; (if
+;;   (and buffer-file-name (eq operation 'make-auto-save-file-name))
+;;   (concat (file-name-directory buffer-file-name)
+;;             "."
+;;             (file-name-nondirectory buffer-file-name))
+;;  (let ((inhibit-file-name-handlers
+;;        (cons 'draft-auto-save-buffer-name-handler
+;;              (and (eq inhibit-file-name-operation operation)
+;;                   inhibit-file-name-handlers)))
+;;       (inhibit-file-name-operation operation))
+;;   (apply operation args))))
+;; (add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
 
 ;; F7 : elfeed
 (global-set-key (kbd "<f7>") 'elfeed)
@@ -709,12 +751,10 @@ fail on poorly-designed websites."
 ;; C-c e : edit the init.el configuration file
 (defun config-visit ()
   (interactive)
-  (find-file "~/CURRENT/dot.emacs.d/config.org")
-  )
+  (find-file "~/CURRENT/dot.emacs.d/config.org") )
 (global-set-key (kbd "C-c e") 'config-visit)
 ;; C-c r : reload the configuration file
 (defun config-reload ()
   (interactive)
-  (load-file (expand-file-name "~/.emacs.d/init.el"))
-  )
+  (load-file (expand-file-name "~/.emacs.d/init.el")) )
 (global-set-key (kbd "C-c r") 'config-reload)

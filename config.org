@@ -7,34 +7,38 @@
 To convert this to "./config.el" do M-x org-babel-tangle.
 
 * Basic
-** Package archives: elpa/melpa
+** Package archives: ELPA/MELPA
+
+Standard content to configure ELPA and MELPA for packages.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;;;;
   ;;;; CONFIGURE MELPA AND GNU ARCHIVES
   ;;;;
   (require 'package)
-  ;;(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
-  ;;(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
   (setq package-archives
       '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
         ("MELPA"        . "https://melpa.org/packages/"))
-      package-archive-priorities
+      package-archive-priorities ; prefer ELPA to MELPA
       '(("GNU ELPA"     . 10)
-        ("MELPA" . 5)))
+        ("MELPA"        . 5 )))
   (package-initialize)
+
+  ;;;; 
+  ;;;; any MANUAL (non-elpa/melpa) PACKAGES are installed here
+  ;;;;
+  ;; (add-to-list 'load-path "~/.emacs.d/manual")
 
   ;;;;
   ;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
   ;;;;
   (unless (package-installed-p 'use-package)
     (package-refresh-contents)
-    (package-install 'use-package)
-    )
+    (package-install 'use-package) )
 
   ;; this is the standard use-package invocation if it is in ~/.emacs.d
   (eval-when-compile
-    (require 'use-package)
-    )
+    (require 'use-package) )
 
   ;; Keep custom settings in a separate file to not pollute this one
   (setq custom-file "~/.emacs.d/custom-settings.el")
@@ -42,7 +46,10 @@ To convert this to "./config.el" do M-x org-babel-tangle.
 #+END_SRC
 
 ** Identify which machine I'm running on
-This is based on the "system-name" variable.
+
+There are some minor things I want to run, but only on one of the machines I use.
+So here we define a quick function to check the machine based on the system name.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   (defun system-is-Blasius ()
     (interactive)
@@ -55,6 +62,10 @@ This is based on the "system-name" variable.
 #+END_SRC
 
 ** Change some of the default emacs variables
+
+Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all backups to a single folder.
+Minor tweaks to garbage collection.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; move backups to stop *~ proliferation
   (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
@@ -82,19 +93,28 @@ This is based on the "system-name" variable.
 #+END_SRC
 
 ** Update buffer contents when file changes on "disk"
+
+When editing the same file on a shared drive/remote machine, make sure
+that we update any open buffers to show the on-file current status.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
   ;; This COMMAND will load a buffer if it changes on disk, which is
   ;; super handy if editing from multiple machines over long periods.
   (defun revert-buffer-no-confirm ()
-      "Revert buffer without confirmation."
-      (interactive)
-      (revert-buffer :ignore-auto :noconfirm)
-      )
+    "Revert buffer without confirmation."
+    (interactive)
+    (revert-buffer :ignore-auto :noconfirm))
   (global-auto-revert-mode 1)
 #+END_SRC
 
+
 ** Add custom file extensions to set major modes
+
+I use "m4" to update headers/footers/dates in LaTeX files for teaching material.
+So here we default to latex-mode for .m4 extensions. In addition ".gnu" for Gnuplot
+and ".m" for Octave.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; setup files ending in “.m4” to open in LaTeX-mode
   ;; for use in lecture note construction
@@ -110,42 +130,45 @@ This is based on the "system-name" variable.
 
 * Appearance
 ** Delight
+
 Delight declutters the modeline by reducing the amount of mode information.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
-(use-package delight
-  :ensure t
-  ;:no-require t
-  :init (message "Use-package: Delight")
-  )
-(delight 'eldoc-mode "Eld" 'eldoc)
-(delight 'undo-tree-mode "Ut" 'undo-tree)
-(delight 'abbrev-mode "Ab" 'abbrev)
+  (use-package delight
+    :ensure t
+    :init (message "Use-package: Delight") )
+  (delight 'eldoc-mode "Eld" 'eldoc)
+  (delight 'undo-tree-mode "Ut" 'undo-tree)
+  (delight 'abbrev-mode "Ab" 'abbrev)
 #+END_SRC
 
 ** Dashboard
+
 Dashboard is the startup screen for quick access to previously used material.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; dashboard runs at startup by default
-(use-package dashboard
-    :ensure t
-    :delight dashboard-mode
-    :init
-    (message "Use-package: Dashboard")
-    :config
-    (setq dashboard-banner-logo-title "Quickstart!")
-    (setq dashboard-startup-banner "/home/hewitt/CURRENT/dot.local/share/icons/hicolor/128x128/apps/emacs.png")
-    (setq dashboard-set-heading-icons t)
-    (setq dashboard-set-file-icons t)
-    (setq dashboard-items '((recents  . 10)
-                        (bookmarks . 5)
-			    (agenda . 4)))
-    (dashboard-setup-startup-hook)
-    (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
-    )
+    ;; dashboard runs at startup by default
+    (use-package dashboard
+      :ensure t
+      :delight dashboard-mode
+      :init
+      (message "Use-package: Dashboard")
+      :config
+      (setq dashboard-banner-logo-title "Quickstart!")
+      (setq dashboard-set-heading-icons t)
+      (setq dashboard-set-file-icons t)
+      (setq dashboard-items '((recents  . 10)
+                              (bookmarks . 5)
+                              (agenda . 4)))
+      (dashboard-setup-startup-hook) )
+
+  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
 #+END_SRC
 
-** Theme choices
-I've switched away from doom-themes to the more systematic & consistent modus-* themes from Protesilaos Stavrou 
+** Modus theme choices 
+
+I've switched away from doom-themes to the more systematic & consistent modus-* themes from Protesilaos Stavrou.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   (set-face-attribute 'default nil
   :family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded)
@@ -153,18 +176,18 @@ I've switched away from doom-themes to the more systematic & consistent modus-* 
   :family "Iosevka" :height 1.0 :weight 'normal)
   (set-face-attribute 'fixed-pitch nil
   :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
-  (setq hl-line-mode t)
   ;;
   (use-package modus-themes
   :ensure t
   :init
   ;; Add all your customizations prior to loading the themes
-  (setq modus-vivendi-theme-slanted-constructs t ; allow italics
-        modus-vivendi-theme-bold-constructs t ; allow bold font use
+  (setq modus-themes-slanted-constructs t ; allow italics
+        modus-themes-bold-constructs t ; allow bold font use
         modus-themes-syntax 'yellow-comments-green-strings ; highlighting
         modus-themes-mode-line 'borderless ; add vertical separators
         modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
-        modus-themes-intense-hl-line t ; stronger hl-line-mode
+        modus-themes-intense-hl-line t ; v.1.2.x
+        modus-themes-hl-line 'intense-background ; v.1.3.0
         modus-themes-org-blocks 'rainbow ; {nil,'greyscale,'rainbow}
         modus-themes-paren-match 'intense-bold ;
         modus-themes-scale-headings t ; scale heading text
@@ -177,13 +200,21 @@ I've switched away from doom-themes to the more systematic & consistent modus-* 
   ;; Load the theme files before enabling a theme
   (modus-themes-load-themes)
   :config
-  ;; Load the theme of your choice:
-  ;;(modus-themes-load-operandi) ;; OR 
-  (modus-themes-load-vivendi)
-  :bind ("<f5>" . modus-themes-toggle))
+    ;; Load the theme of your choice:
+    ;;(modus-themes-load-operandi) ;; OR 
+    (modus-themes-load-vivendi)
+  :bind 
+    ("<f5>" . modus-themes-toggle) )
+  ;; highlighting  
+  (setq hl-line-mode t)
+  (setq global-hl-line-mode t)
 #+END_SRC
 
+
 ** Modeline (doom)
+
+Doom modeline is my default choice, just to add a bit of usability to the standard mode line. 
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; modeline
 (use-package doom-modeline
@@ -212,12 +243,13 @@ I've switched away from doom-themes to the more systematic & consistent modus-* 
   ;; Whether display perspective name or not. Non-nil to display in mode-line.
   (setq doom-modeline-persp-name t)
   ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
-  ;(setq doom-modeline-lsp t)
-  )
+  (setq doom-modeline-lsp t)  )
 #+END_SRC
 
 ** Rainbow-delimiters
+
 Colorised brackets to make matching easier.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; colourise those brackets
 (use-package rainbow-delimiters
@@ -227,12 +259,13 @@ Colorised brackets to make matching easier.
   :config
   (rainbow-delimiters-mode)
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
-  )
+  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)  )
 #+END_SRC
 
 ** Which-key
-Popup key combinations
+
+Popup a description of key combinations after a delay.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package which-key
   :ensure t
@@ -240,12 +273,16 @@ Popup key combinations
   :init 
   (message "Use-package: Which-key mode")
   :config
-  (which-key-mode)
-)
+  (which-key-mode) )
 #+END_SRC
  
 ** mini-frame instead of mini-buffer
-#+BEGIN_SRC emacs-lisp :tangle yes
+
+I like the look/usability of mini-frame, but there are some edge cases that were too frustrating.
+When switching away & back to the emacs window/frame the focus can shift from the mini-frame and
+need a mouse click to get it back. Currently *disabled*.
+
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package mini-frame
     :ensure t
     :init
@@ -254,45 +291,47 @@ Popup key combinations
     (mini-frame-mode 1)
     :custom
     (x-gtk-resize-child-frames 'resize-mod)
-    (mini-frame-resize nil)
-    )
+    (mini-frame-resize nil) )
   (custom-set-variables
-    '(mini-frame-show-parameters
-    '((top . 10)
-    (width . 0.7)
-    (left . 0.5)
-    (height . 0.5))))
-    (setq x-gtk-resize-child-frames 'resize-mode)
+   '(mini-frame-show-parameters
+     '((top . 10)
+       (width . 0.7)
+       (left . 0.5)
+       (height . 0.5))) )
 
+  (setq x-gtk-resize-child-frames 'resize-mode)
 #+END_SRC
 
 
 * Narrowing and completion
 ** Prescient
-Replaced AMX in favour of a more general candidate selection mechanism as provvided by "prescient"
+
+Prescient keeps track of narrowing selections bubbling the common selections to the
+top of the narrowing list.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package prescient
     :ensure t
     :init
     (message "Use-package: prescient")
-    :config
-    ; store across restarts
-    (prescient-persist-mode 1)
-    )
+    :config  ; store across restarts
+    (prescient-persist-mode 1))
   (use-package company-prescient
     :ensure t
     :config
-    (company-prescient-mode 1)
-    )
+    (company-prescient-mode 1))
 #+END_SRC
 
 ** Selection via Selectrum and Consult
+
+Narrowing/selection is done by Selectrum and Consult -- using Prescient above.
+Consult versions replace the standard buffer selection/yank/pop etc.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package marginalia
     :ensure t
     :init
-    (marginalia-mode)
-  )
+    (marginalia-mode)  )
   (use-package consult
     :ensure t
     :bind
@@ -301,27 +340,27 @@ Replaced AMX in favour of a more general candidate selection mechanism as provvi
     ("M-y"   . consult-yank-pop)
     ("C-y"   . consult-yank)
     ("C-s"   . consult-line)
-    ("M-g o" . consult-outline)
-  )
+    ("M-g o" . consult-outline) )
   (use-package selectrum
     :ensure t
     :after (consult marginalia)
     :init (message "Use-package: selectrum")
     :config
-    (selectrum-mode 1)
-  )
+    (selectrum-mode 1)  )
   (use-package selectrum-prescient
     :ensure t
     :init (message "Use-package: selectrum-prescient")
     :after (prescient selectrum)
     :config
-    (selectrum-prescient-mode 1)
-  )
+    (selectrum-prescient-mode 1) )
   (marginalia-cycle)
 #+END_SRC
 
 ** Avy                                                           :untangled:
-Searching for text in the current view.
+
+Searching for text in the current view. I feel like I should use this more, but somehow
+it just doesn't seem to stick. *Currently not in the configuration.*
+
 #+BEGIN_SRC emacs-lisp :tangle no
 ;; AVY is used to jump around within a buffer see key-chords
 (use-package avy
@@ -330,23 +369,28 @@ Searching for text in the current view.
   :init
   (message "Use-package: Avy")
   :config
-  (setq avy-background t)
-  )
+  (setq avy-background t) )
 #+END_SRC
+
 ** Undo-tree                                                     :untangled:
-Improved undo.
+
+I find Emacs undo counter-intuitive. I need to fund something simpler, but undo-tree
+isn't it. *Currently not in the configuration.*
+
 #+BEGIN_SRC emacs-lisp :tangle no
-;; Better undo
-(use-package undo-tree
-  :ensure t
-  :init
-  (message "Use-package: Undo-tree")
-  (global-undo-tree-mode)
-  )
+  ;; Better undo
+  (use-package undo-tree
+    :ensure t
+    :init
+    (message "Use-package: Undo-tree")
+    (global-undo-tree-mode) )
 #+END_SRC
 
 ** Ivy                                                           :untangled:
-A completion engine, that comes with Counsel.
+
+Here for historical reasons, but not used anymore -- I've switched from IVY.
+*Currently not in the configuration.*
+
 #+BEGIN_SRC emacs-lisp :tangle no
   (use-package ivy
     :ensure t
@@ -366,8 +410,7 @@ A completion engine, that comes with Counsel.
            ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
            ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
            ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
-           )
-    )
+           )    )
 
   ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
   (use-package ivy-posframe
@@ -380,45 +423,32 @@ A completion engine, that comes with Counsel.
     (setq ivy-posframe-height-alist '((t . 20))
           ivy-posframe-parameters '((internal-border-width . 10)))
     (setq ivy-posframe-parameters
-        '((left-fringe . 5)
-          (right-fringe . 5)))
-  ;  ;(setq ivy-posframe-parameters '((alpha . 0.90)))
-    )
+          '((left-fringe . 5)
+            (right-fringe . 5))) )
 
   ;; ivy enhancements to add more information to buffer list
   (use-package ivy-rich
     :ensure t
     :after ivy
     :init
-    (ivy-rich-mode 1)
-    )
+    (ivy-rich-mode 1) )
+
   ;; adds icons to buffer list
   (use-package all-the-icons-ivy-rich
     :ensure t
     :after ivy-rich
     :init
-    (all-the-icons-ivy-rich-mode 1)
-    )
-#+END_SRC
-
-** AMX                                                           :untangled:
-Replaces M-x to keep track of popular commands and offer them by default
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package amx
-    :ensure t
-    :init
-    (message "Use-package: Amx")
-    :config
-    (setq amx-mode t)
-    ) 
-#+END_SRC
- 
+    (all-the-icons-ivy-rich-mode 1) )
+#+END_SRC 
 
 
 
 * Interaction
+
 ** Cut and paste
+
 I run on Wayland, and this interacts with wl-copy.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; cut and paste in Wayland environmen
 (setq x-select-enable-clipboard t)
@@ -437,56 +467,50 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 ** Key-chord and key-seq
-Keyboard shortcuts based on double pressing of low-frequency keys (e.g. 'qq').
- #+BEGIN_SRC emacs-lisp :tangle yes
-    ;; rapid-double press to activate key chords
-    (use-package key-chord
-      :ensure t
-      :init
-      (progn
-        (message "Use-package: Key-chord" )
-        ;; Max time delay between two key presses to be considered a key chord
-        (setq key-chord-two-keys-delay 0.1) ; default 0.1
-        ;; Max time delay between two presses of the same key to be considered a key chord.
-        ;; Should normally be a little longer than `key-chord-two-keys-delay'.
-        (setq key-chord-one-key-delay 0.2) ; default 0.2    
-        (key-chord-mode 1)
-        ;(key-chord-define-global "kk"     'kill-whole-line)
-        ;(key-chord-define-global "qw"     'avy-goto-word-1)
-        ;(key-chord-define-global "qs"     'deft)
-        ;(key-chord-define-global "qt"     'org-babel-tangle)
-        ;(key-chord-define-global "qq"     'counsel-switch-buffer)
-        ;(key-chord-define-global "qc"     'counsel-org-capture)
-        ;(key-chord-define-global "qb"     'bookmark-set)
-        ;(key-chord-define-global "qj"     'bookmark-jump)
-        ;(key-chord-define-global "qo"     'other-window)
-        ;(key-chord-define-global "qd"     'org-journal-new-entry)
-        )
-      )
 
-    ;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
-    ;; instead key-seq checks the order -- but relies on key-chord-mode still
-    (use-package key-seq
-      :ensure t
-      :after key-chord
-      :init
-      (progn
-        (message "Use-package: Key-seq" )
-        ;(key-seq-define-global "qd" 'dired)
-        (key-seq-define-global "kk"     'kill-whole-line)
-        (key-seq-define-global "qs"     'deft)
-        (key-seq-define-global "qt"     'org-babel-tangle)
-        (key-seq-define-global "qq"     'consult-buffer)
-        (key-seq-define-global "qc"     'org-capture)
-        (key-seq-define-global "qb"     'bookmark-set)
-        (key-seq-define-global "qj"     'bookmark-jump)
-        (key-seq-define-global "qo"     'other-window)
-        (key-seq-define-global "qd"     'org-journal-new-entry)
-        )
-      )
+Keyboard shortcuts based on double pressing of low-frequency keys (e.g. 'qq').
+Key-chord doesn't take account of order (e.g. 'qa'='aq') so instead I prefer to
+use key-seq, which requires the "chord" to be in the right order.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; rapid-double press to activate key chords
+  (use-package key-chord
+    :ensure t
+    :init
+    (progn
+      (message "Use-package: Key-chord" )
+      ;; Max time delay between two key presses to be considered a key chord
+      (setq key-chord-two-keys-delay 0.1) ; default 0.1
+      ;; Max time delay between two presses of the same key to be considered a key chord.
+      ;; Should normally be a little longer than `key-chord-two-keys-delay'.
+      (setq key-chord-one-key-delay 0.2) ; default 0.2    
+      (key-chord-mode 1)
+      )  )
+
+  ;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
+  ;; instead key-seq checks the order -- but relies on key-chord-mode still
+  (use-package key-seq
+    :ensure t
+    :after key-chord
+    :init
+    (progn
+      (message "Use-package: Key-seq" )
+      ;(key-seq-define-global "qd" 'dired)
+      (key-seq-define-global "kk"     'kill-whole-line)
+      (key-seq-define-global "qs"     'deft)
+      (key-seq-define-global "qt"     'org-babel-tangle)
+      (key-seq-define-global "qq"     'consult-buffer)
+      (key-seq-define-global "qc"     'org-capture)
+      (key-seq-define-global "qb"     'bookmark-set)
+      (key-seq-define-global "qj"     'bookmark-jump)
+      (key-seq-define-global "qo"     'other-window)
+      (key-seq-define-global "qd"     'org-journal-new-entry)  ) )
 #+END_SRC
 
 ** Splitting window behaviour
+
+Global keys to split the window AND follow by moving point to the new window.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; move focus when splitting a window
 (defun split-and-follow-horizontally ()
@@ -505,21 +529,24 @@ Keyboard shortcuts based on double pressing of low-frequency keys (e.g. 'qq').
 #+END_SRC
 
 ** Editorconfig
-Set configuration on a per directory basis via .editorconfig
+
+Set configuration on a per directory basis via .editorconfig.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; editorconfig allows specification of tab/space/indent
-(use-package editorconfig
-  :ensure t
-  :delight (editorconfig-mode "Ec")
-  :init
-  (message "Use-package: EditorConfig")
-  :config
-  (editorconfig-mode 1)
-  )
+  ;; editorconfig allows specification of tab/space/indent
+  (use-package editorconfig
+    :ensure t
+    :delight (editorconfig-mode "Ec")
+    :init
+    (message "Use-package: EditorConfig")
+    :config
+    (editorconfig-mode 1) )
 #+END_SRC
 
 ** Yasnippet
-Expand roots to standard text snippets with M-]
+
+Expand roots to standard text snippets with M-].
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; location of my snippets -- has to go before yas-reload-all
 (setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.emacs.d/my_snippets"))
@@ -536,17 +563,17 @@ Expand roots to standard text snippets with M-]
   (add-hook 'c++-mode-hook 'yas-minor-mode)
   (add-hook 'latex-mode-hook 'yas-minor-mode)
   (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
-  ;;;; remove default keybinding
+  ;; remove default keybinding
   (define-key yas-minor-mode-map (kbd "<tab>") nil)
   (define-key yas-minor-mode-map (kbd "TAB") nil)
-  ;;;; redefine my own key
+  ;; redefine my own key
   (define-key yas-minor-mode-map (kbd "M-]") yas-maybe-expand)
-  ;;;; remove default keys for navigation
+  ;; remove default keys for navigation
   (define-key yas-keymap [(tab)]       nil)
   (define-key yas-keymap (kbd "TAB")   nil)
   (define-key yas-keymap [(shift tab)] nil)
   (define-key yas-keymap [backtab]     nil)
-  ;;;; redefine my own keys
+  ;; redefine my own keys
   (define-key yas-keymap (kbd "M-n") 'yas-next-field-or-maybe-expand)
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all)
@@ -555,6 +582,15 @@ Expand roots to standard text snippets with M-]
 
 
 * Coding environment
+
+Code completion and on-the-fly check/make. I've tested both lsp-mode and eglot.
+I find eglot to be simpler and more responsive. lsp-mode has a bit too much pop-up
+clutter for my use case.
+
+On my Ubuntu 20.04 LTS installation I had to apt install g++ with a version that matched
+the latest version of the gcc compiler as noted in the FAQ for ccls:
+"For example, if you have gcc-7, g++-7 and gcc-8 installed (note the omission of g++-8). clang may pick the gcc toolchain with the largest version number."
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; eglot is a simpler alternative to LSP-mode
   (use-package eglot
@@ -563,11 +599,13 @@ Expand roots to standard text snippets with M-]
     :init
     (message "Use-package: Eglot")
     (add-hook 'c++-mode-hook 'eglot-ensure)
-    (add-hook 'latex-mode-hook 'eglot-ensure)
+    (add-hook 'latex-mode-hook 'eglot-ensure)  )
 
-    )
-  (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+  (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
   (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+
+  ;;  (use-package flycheck
+  ;;      :ensure t )
 
   ;; company gives the selection front end for code completion
   ;; but not the C++-aware backend
@@ -581,19 +619,21 @@ Expand roots to standard text snippets with M-]
       (add-hook 'after-init-hook 'global-company-mode))
     :config
     (require 'yasnippet)
-    ;(setq company-idle-delay 1)
+    ;;(setq company-idle-delay 1)
     (setq company-minimum-prefix-length 3)
     (setq company-idle-delay 0)
     (setq company-selection-wrap-around t)
     (setq company-tooltip-align-annotations t)
     (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-          company-echo-metadata-frontend)
-          )
-    )
+                              company-echo-metadata-frontend) ) )
 #+END_SRC
  
 
 * Projectile :untangled:
+
+I've yet not quite got into the habit of projectile yet.
+*Currently not in the configuration.*
+
 #+BEGIN_SRC emacs-lisp :tangle no
 (use-package projectile
   :ensure t
@@ -628,6 +668,10 @@ Expand roots to standard text snippets with M-]
 
 
 * Magit :untangled:
+
+I've dabbled with magit, but again not quite got into the habit yet. 
+*Currently not in the configuration.*
+
 #+BEGIN_SRC emacs-lisp :tangle no
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
@@ -655,12 +699,14 @@ Expand roots to standard text snippets with M-]
 
 * Org mode
 ** Basics of Org mode
+
+
+
 #+BEGIN_SRC  emacs-lisp :tangle yes
   (use-package org
     :ensure t
     :init
-    (message "Use-package: Org")
-    )
+    (message "Use-package: Org") )
 
   ;; fancy replace of *** etc
   (use-package org-bullets
@@ -668,8 +714,7 @@ Expand roots to standard text snippets with M-]
     :after org
     :init
     (add-hook 'org-mode-hook 'org-bullets-mode)
-    (message "Use-package: Org-bullets")
-    )
+    (message "Use-package: Org-bullets") )
 
   ;; ORG link to mu4e -- see mu from https://github.com/djcb/mu
   (require 'org-mu4e)
@@ -684,8 +729,7 @@ Expand roots to standard text snippets with M-]
            "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
           ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
            "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-           :empty-lines 1))
-        )
+           :empty-lines 1)) )
 
   ;; Agenda is constructed from org files in ONE directory
   (setq org-agenda-files '("~/Sync/Org"))
@@ -717,9 +761,9 @@ Expand roots to standard text snippets with M-]
   ;             (apostrophe        :utf-8 "’" :html "&rsquo;")))
 
   ;; highlight the current line in the agenda
-  (add-hook 'org-agenda-mode-hook
-            '(lambda () (hl-line-mode 1))
-            'append)
+  ;(add-hook 'org-agenda-mode-hook
+  ;          '(lambda () (hl-line-mode 1))
+  ;          'append)
 
   ;; define the number of days to show in the agenda
   (setq org-agenda-span 14
@@ -739,8 +783,7 @@ Expand roots to standard text snippets with M-]
           (pri-current (org-get-priority (thing-at-point 'line t))))
       (if (= pri-value pri-current)
           subtree-end
-        nil))
-    )
+        nil)) )
 
   ;; custom agenda view
   (setq org-agenda-custom-commands
@@ -790,15 +833,16 @@ Expand roots to standard text snippets with M-]
       ( progn (message "Machine is Orthanc" )
               (message "Writing Org calendar to ics every 30 minutes" )
               (run-with-timer 60 1800 'reh/export-to-ics)
-              (run-with-timer 90 1800 'reh/replaceS) )
-    )
-  (if (system-is-Blasius)
-      ( progn (message "Machine is Blasius" )
-              (message "Not running the .ics generator" ) )
-    )
+              (run-with-timer 90 1800 'reh/replaceS) ) )
+  ;(if (system-is-Blasius)
+  ;    ( progn (message "Machine is Blasius" )
+  ;            (message "Not running the .ics generator" ) ) )
 #+END_SRC
 
 ** Org-babel
+
+Reproducible research aide.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package gnuplot
   :ensure t
@@ -814,8 +858,10 @@ Expand roots to standard text snippets with M-]
 #+END_SRC
 
 ** Org-Roam
+
 Sets up org-roam as a personal wiki using Deft as an Org search tool.
 Org-journal is installed together with org-roam-server at localhost:8080.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package org-roam
     :ensure t
@@ -834,8 +880,7 @@ Org-journal is installed together with org-roam-server at localhost:8080.
         :file-name "${slug}"
         :head "#+title: ${title}\n"
         :unnarrowed t) )
-        )
-    )
+        )  )
   ; doesn't start by default
   (use-package org-roam-server
     :ensure t
@@ -854,8 +899,7 @@ Org-journal is installed together with org-roam-server at localhost:8080.
           org-roam-server-network-label-truncate t
           org-roam-server-network-label-truncate-length 60
           org-roam-server-network-label-wrap-length 20
-          org-roam-server-mode nil)
-    )
+          org-roam-server-mode nil) )
   (use-package org-journal
     :ensure t
     :init
@@ -866,8 +910,7 @@ Org-journal is installed together with org-roam-server at localhost:8080.
           org-journal-file-format "%Y_%m_%d"
           org-journal-time-prefix "  - "
           org-journal-time-format nil
-          org-journal-file-type 'monthly)
-    )
+          org-journal-file-type 'monthly)  )
 
   ;;
   ;; custom faces/colours are in custom-setting.el
@@ -878,6 +921,9 @@ Org-journal is installed together with org-roam-server at localhost:8080.
 #+END_SRC
 
 ** Search for Org directory via Deft
+
+Allows direct searching of my org-roam files.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package deft
    :ensure t
@@ -893,166 +939,182 @@ Org-journal is installed together with org-roam-server at localhost:8080.
 
 
 * Elfeed
-#+BEGIN_SRC emacs-lisp :tangle yes
-(use-package elfeed
-  :ensure t
-  :config
-  (setq elfeed-use-curl t)
-  (setq elfeed-curl-max-connections 10)
-  (setq elfeed-db-directory "~/CURRENT/dot.emacs.d/elfeed/")
-  (setq elfeed-enclosure-default-dir "~/Downloads/")
-  (setq elfeed-search-filter "@4-months-ago +unread")
-  (setq elfeed-sort-order 'descending)
-  (setq elfeed-search-clipboard-type 'CLIPBOARD)
-  (setq elfeed-search-title-max-width 100)
-  (setq elfeed-search-title-min-width 30)
-  (setq elfeed-search-trailing-width 25)
-  (setq elfeed-show-truncate-long-urls t)
-  (setq elfeed-show-unique-buffers t)
 
-  ; see https://protesilaos.com/dotemacs/
-  (defun prot/elfeed-show-eww (&optional link)
-    "Browse current `elfeed' entry link in `eww'.
-Only show the readable part once the website loads.  This can
-fail on poorly-designed websites."
-    (interactive)
-    (let* ((entry (if (eq major-mode 'elfeed-show-mode)
-                      elfeed-show-entry
-                    (elfeed-search-selected :ignore-region)))
-           (link (if link link (elfeed-entry-link entry))))
-      (eww link)
-      (add-hook 'eww-after-render-hook 'eww-readable nil t))
-      ) ;close defun
-      
-  :bind
-  (("C-c f" . elfeed)
-         :map elfeed-search-mode-map
-        ("e" . prot/elfeed-show-eww)
-        )
-)
+RSS reader. The feed list can be setq below.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package elfeed
+    :ensure t
+    :config
+    (setq elfeed-use-curl t)
+    (setq elfeed-curl-max-connections 10)
+    (setq elfeed-db-directory "~/CURRENT/dot.emacs.d/elfeed/")
+    (setq elfeed-enclosure-default-dir "~/Downloads/")
+    (setq elfeed-search-filter "@4-months-ago +unread")
+    (setq elfeed-sort-order 'descending)
+    (setq elfeed-search-clipboard-type 'CLIPBOARD)
+    (setq elfeed-search-title-max-width 100)
+    (setq elfeed-search-title-min-width 30)
+    (setq elfeed-search-trailing-width 25)
+    (setq elfeed-show-truncate-long-urls t)
+    (setq elfeed-show-unique-buffers t)
+    (setq elfeed-feeds
+     '("https://protesilaos.com/codelog.xml"
+       "https://irreal.org/blog/?feed=rss2"
+       "https://www.reddit.com/r/orgmode/.rss"
+       "http://feeds.feedburner.com/XahsEmacsBlog"
+       "http://www.reddit.com/r/emacs/.rss"
+       "http://pragmaticemacs.com/feed/"))
+    ; see https://protesilaos.com/dotemacs/
+    (defun prot/elfeed-show-eww (&optional link)
+      "Browse current `elfeed' entry link in `eww'.
+  Only show the readable part once the website loads.  This can
+  fail on poorly-designed websites."
+      (interactive)
+      (let* ((entry (if (eq major-mode 'elfeed-show-mode)
+                        elfeed-show-entry
+                      (elfeed-search-selected :ignore-region)))
+             (link (if link link (elfeed-entry-link entry))))
+        (eww link)
+        (add-hook 'eww-after-render-hook 'eww-readable nil t))
+        ) ;close defun
+
+    :bind
+    (("C-c f" . elfeed)
+           :map elfeed-search-mode-map
+          ("e" . prot/elfeed-show-eww)
+          ) )
 #+END_SRC
  
 
 * PDF tools
+
+This is a great tool if you have to comment on or otherwise annotate PDFs.
+The standard method for adding a text comment is much faster than trying to
+scribble a hadnwritten note via other methods.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; pdf tools for organising and annotating PDF
 (use-package pdf-tools
   :ensure t
   :config
-  (pdf-tools-install)
-  )
+  (pdf-tools-install) )
 #+END_SRC
  
 
-* Email :untangled:
+* Email/mu4e
 
 You need the "mu" package and also "mbsync" (also called "isync").
-This has been broken by the shift to Office365
+Existing solution was broken by move to Oauth2 in O365. Now I run "davmail"
+as an intermediary, with IMAP/SMTP on localhost which seems to run well.
 
-#+BEGIN_SRC emacs-lisp :tangle no
-;; mu4e is part of the "mu" package and sometimes doesn't get
-;; found auto-magically. So this points directly to it.
-(add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
-;; defines mu4e exists, but holds off until needed
-(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
-;; used for outgoing mail send
-(use-package smtpmail
-  :ensure t
-  :defer t
-  :init
-  (message "Use-package: SMTPmail")
-  (setq message-send-mail-function 'smtpmail-send-it
-	user-mail-address "user@address.co.uk"
-	;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
-      smtpmail-default-smtp-server "smtp.office365.com"
-	smtpmail-local-domain "manchester.ac.uk"
-	smtpmail-smtp-server "smtp.office365.com"
-	smtpmail-stream-type 'starttls
-	smtpmail-smtp-service 587)
-  )
-;; this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
-(setq mu4e-change-filenames-when-moving t)
-;; general mu4e config
-(setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
-(setq mu4e-drafts-folder "/Drafts")
-(setq mu4e-sent-folder   "/Sent Items")
-(setq mu4e-trash-folder  "/Trash")
-(setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
-(setq mu4e-headers-show-thread nil)
-(setq mu4e-headers-include-related nil)
-(setq mu4e-headers-results-limit 100)
-(setq mu4e-mu-binary "/home/hewitt/local/bin/mu")
-;; stop mail draft/sent appearing in the recent files list of the dashboard
-(add-to-list 'recentf-exclude "\\mbsyncmail\\")
-;; how to get mail
-(setq mu4e-get-mail-command "mbsync Work"
-      ;mu4e-html2text-command "w3m -T text/html"
-      mu4e-html2text-command "html2markdown --body-width=70" 
-      mu4e-update-interval 300
-      mu4e-headers-auto-update t
-      ;mu4e-compose-signature-auto-include nil
-      )
-;; the headers to show in the headers list -- a pair of a field
-;; and its width, with `nil' meaning 'unlimited'
-;; better only use that for the last field.
-;; These are the defaults:
-(setq mu4e-headers-fields
-    '( (:human-date    .  15)    ;; alternatively, use :date
-       (:flags         .   6)
-       (:from          .  22)
-       (:subject       .  nil))  ;; alternatively, use :thread-subject
-    )
-(setq mu4e-maildir-shortcuts
-      '( ("/INBOX"          . ?i)
-         ("/Sent Items"     . ?s)
-         ("/Deleted Items"  . ?t)
-         ("/Drafts"         . ?d))
-      )
-;; REMOVE BELOW FOR TERMINUAL EMACS
-;; show images
-(setq mu4e-show-images t)
-;; use imagemagick, if available
-(when (fboundp 'imagemagick-register-types)
-  (imagemagick-register-types)
-  )
-;; don't keep message buffers around
-(setq message-kill-buffer-on-exit t)
-;; general emacs mail settings; used when composing e-mail
-;; the non-mu4e-* stuff is inherited from emacs/message-mode
-(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
-    user-mail-address "richard.hewitt@manchester.ac.uk"
-    user-full-name  "Rich Hewitt")
-;;;; don't save message to Sent Messages, IMAP takes care of this
-;; 2019: emails are vanishing with below!
-;; (setq mu4e-sent-messages-behavior 'delete)
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; mu4e is part of the "mu" package and sometimes doesn't get
+  ;; found auto-magically. So this points directly to it.
+  (add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
+  ;; defines mu4e exists, but holds off until needed
+  (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
-;; spell check
-(add-hook 'mu4e-compose-mode-hook
-          (defun my-do-compose-stuff ()
-            "My settings for message composition."
-            (set-fill-column 72)
-            (flyspell-mode) )
-	  )
-;;;; https://emacs.stackexchange.com/questions/21723/how-can-i-delete-mu4e-drafts-on-successfully-sending-the-mail
-;;;; "As I'm composing mail, mu4e automatically saves drafts to the mu4e-drafts-folder.
-;;;; When I send the mail, these drafts persist. I expected mu4e to delete from the folder."
-;;;; "If you use offlineimap (like I do) then your drafts likely accumulate because offlineimap syncs
-;;;; emacs' #autosave# files (kept in Drafts/cur folder). As offlineimap can only ignore files starting
-;;;; with '.' (and it's not configurable) the solution is to change the way draft autosaves are named:
-(defun draft-auto-save-buffer-name-handler (operation &rest args)
-"for `make-auto-save-file-name' set '.' in front of the file name; do nothing for other operations"
-(if
-  (and buffer-file-name (eq operation 'make-auto-save-file-name))
-  (concat (file-name-directory buffer-file-name)
-            "."
-            (file-name-nondirectory buffer-file-name))
- (let ((inhibit-file-name-handlers
-       (cons 'draft-auto-save-buffer-name-handler
-             (and (eq inhibit-file-name-operation operation)
-                  inhibit-file-name-handlers)))
-      (inhibit-file-name-operation operation))
-  (apply operation args))))
-(add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
+  ;; used for outgoing mail send
+  (use-package smtpmail
+    :ensure t
+    :defer t
+    :init
+    (message "Use-package: SMTPmail")
+    (setq message-send-mail-function 'smtpmail-send-it
+      user-mail-address "richard.hewitt@manchester.ac.uk"
+      ;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+      smtpmail-default-smtp-server "localhost"
+      smtpmail-local-domain "manchester.ac.uk"
+      smtpmail-smtp-server "localhost"
+      ;smtpmail-stream-type 'starttls
+      smtpmail-smtp-service 1025) )
+
+  ;; 2018 : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+  (setq mu4e-change-filenames-when-moving t)
+  ;; general mu4e config
+  (setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
+  (setq mu4e-drafts-folder "/Drafts")
+  (setq mu4e-sent-folder   "/Sent")
+  (setq mu4e-trash-folder  "/Deleted Items") ; I don't sync Deleted Items & largely do permanent delete "D" rather than move to trash "d"
+  (setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
+  (setq mu4e-headers-show-thread nil)
+  (setq mu4e-headers-include-related nil)
+  (setq mu4e-headers-results-limit 200)
+  (setq mu4e-mu-binary "/home/hewitt/local/bin/mu")
+  ;; stop mail draft/sent appearing in the recent files list of the dashboard
+  (add-to-list 'recentf-exclude "\\mbsyncmail\\")
+  ;; how to get mail
+  (setq mu4e-get-mail-command "~/local/bin/mbsync Work"
+        ;mu4e-html2text-command "w3m -T text/html"
+        mu4e-html2text-command "html2markdown --body-width=72" 
+        mu4e-update-interval 300
+        mu4e-headers-auto-update t
+        mu4e-compose-signature-auto-include t)
+
+  ;; the headers to show 
+  ;; in the headers list -- a pair of a field
+  ;; and its width, with `nil' meaning 'unlimited'
+  ;; better only use that for the last field.
+  ;; These are the defaults:
+  (setq mu4e-headers-fields
+      '((:human-date    .  15)    ;; alternatively, use :date
+         (:flags         .   6)
+         (:from          .  22)
+         (:subject       .  nil))  ;; alternatively, use :thread-subject
+      )
+  (setq mu4e-maildir-shortcuts
+        '( ("/INBOX"          . ?i)
+           ("/Sent"           . ?s)
+           ("/Deleted Items"  . ?t)
+           ("/Drafts"         . ?d)) )
+  ;; REMOVE BELOW FOR TERMINAL EMACS
+  ;; show images
+  (setq mu4e-show-images t)
+  ;; use imagemagick, if available
+  (when (fboundp 'imagemagick-register-types)
+    (imagemagick-register-types) )
+  ;; don't keep message buffers around
+  (setq message-kill-buffer-on-exit t)
+  ;; general emacs mail settings; used when composing e-mail
+  ;; the non-mu4e-* stuff is inherited from emacs/message-mode
+  (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
+      user-mail-address "richard.hewitt@manchester.ac.uk"
+      user-full-name  "Rich Hewitt")
+  ;;;; don't save message to Sent Messages, IMAP takes care of this
+  ;; 2019: emails are vanishing with below!
+  (setq mu4e-sent-messages-behavior 'sent)
+
+  ;; spell check during compose
+  (add-hook 'mu4e-compose-mode-hook
+    (defun my-do-compose-stuff ()
+    "My settings for message composition."
+    (set-fill-column 72)
+    (flyspell-mode)
+    ; turn off autosave, otherwise we end up with multiple versions of sent/draft mail being sync'd
+    (auto-save-mode -1) ) )
+
+
+  ;;;; https://emacs.stackexchange.com/questions/21723/how-can-i-delete-mu4e-drafts-on-successfully-sending-the-mail
+  ;;;; "As I'm composing mail, mu4e automatically saves drafts to the mu4e-drafts-folder.
+  ;;;; When I send the mail, these drafts persist. I expected mu4e to delete from the folder."
+  ;;;; "If you use offlineimap (like I do) then your drafts likely accumulate because offlineimap syncs
+  ;;;; emacs' #autosave# files (kept in Drafts/cur folder). As offlineimap can only ignore files starting
+  ;;;; with '.' (and it's not configurable) the solution is to change the way draft autosaves are named:
+  ;; (defun draft-auto-save-buffer-name-handler (operation &rest args)
+  ;; "for `make-auto-save-file-name' set '.' in front of the file name; do nothing for other operations"
+  ;; (if
+  ;;   (and buffer-file-name (eq operation 'make-auto-save-file-name))
+  ;;   (concat (file-name-directory buffer-file-name)
+  ;;             "."
+  ;;             (file-name-nondirectory buffer-file-name))
+  ;;  (let ((inhibit-file-name-handlers
+  ;;        (cons 'draft-auto-save-buffer-name-handler
+  ;;              (and (eq inhibit-file-name-operation operation)
+  ;;                   inhibit-file-name-handlers)))
+  ;;       (inhibit-file-name-operation operation))
+  ;;   (apply operation args))))
+  ;; (add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
 #+END_SRC
 
 
@@ -1073,14 +1135,12 @@ Let's put the Fn key shortcuts into one place for the moment.
 ;; C-c e : edit the init.el configuration file
 (defun config-visit ()
   (interactive)
-  (find-file "~/CURRENT/dot.emacs.d/config.org")
-  )
+  (find-file "~/CURRENT/dot.emacs.d/config.org") )
 (global-set-key (kbd "C-c e") 'config-visit)
 ;; C-c r : reload the configuration file
 (defun config-reload ()
   (interactive)
-  (load-file (expand-file-name "~/.emacs.d/init.el"))
-  )
+  (load-file (expand-file-name "~/.emacs.d/init.el")) )
 (global-set-key (kbd "C-c r") 'config-reload)
 #+END_SRC
 
