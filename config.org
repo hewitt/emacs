@@ -1118,9 +1118,9 @@ as an intermediary, with IMAP/SMTP on localhost which seems to run well.
 #+END_SRC
 
 
-* Fn-key shortcuts
+* Shortcut keys
 
-Let's put the Fn key shortcuts into one place for the moment.
+Let's put some general shortcuts into one place for the moment.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; simple prefix key launcher
