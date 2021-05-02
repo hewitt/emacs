@@ -79,8 +79,6 @@
 (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
 ;; Octave/Matlab
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
-;; defaullt to spelll check in latex
-(add-hook 'latex-mode-hook 'flyspell-mode)
 
 (use-package delight
   :ensure t
@@ -97,6 +95,7 @@
     (message "Use-package: Dashboard")
     :config
     (setq dashboard-banner-logo-title "Quickstart!")
+    (setq dashboard-startup-banner nil)
     (setq dashboard-set-heading-icons t)
     (setq dashboard-set-file-icons t)
     (setq dashboard-items '((recents  . 10)
@@ -107,12 +106,25 @@
 (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
 
 (set-face-attribute 'default nil
-:family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded)
+:family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded )
 (set-face-attribute 'variable-pitch nil
 :family "Iosevka" :height 1.0 :weight 'normal)
 (set-face-attribute 'fixed-pitch nil
 :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
-;;
+;; allow for customizations : so far I've only lifted bg-main up slightly
+(setq modus-themes-vivendi-color-overrides
+        '((bg-main . "#181a26")
+          (bg-dim . "#161129")
+          (bg-alt . "#181732")
+          (bg-hl-line . "#282a36")
+          (bg-active . "#282e46")
+          (bg-inactive . "#1a1e39")
+          (bg-region . "#393a53")
+          (bg-header . "#202037")
+          (bg-tab-bar . "#262b41")
+          (bg-tab-active . "#120f18")
+          (bg-tab-inactive . "#3a3a5a")
+          (fg-unfocused . "#9a9aab")))
 (use-package modus-themes
 :ensure t
 :init
@@ -121,6 +133,8 @@
       modus-themes-bold-constructs t ; allow bold font use
       modus-themes-syntax 'yellow-comments-green-strings ; highlighting
       modus-themes-mode-line 'borderless ; add vertical separators
+      modus-themes-prompts 'intense-accented
+      modus-themes-lang-checkers 'colored-background
       modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
       modus-themes-intense-hl-line t ; v.1.2.x
       modus-themes-hl-line 'intense-background ; v.1.3.0
@@ -141,9 +155,9 @@
   (modus-themes-load-vivendi)
 :bind 
   ("<f5>" . modus-themes-toggle) )
-;; highlighting  
-(setq hl-line-mode t)
-(setq global-hl-line-mode t)
+;; highlighting -- won't register if in daemon mode
+;(setq hl-line-mode t)
+;(setq global-hl-line-mode t)
 
 ;; modeline
 (use-package doom-modeline
@@ -168,7 +182,7 @@
   ;; If non-nil, only display one number for checker information if applicable.
   ;(setq doom-modeline-checker-simple-format t)
   ;; The maximum displayed length of the branch name of version control.
-  (setq doom-modeline-vcs-max-length 8)
+  (setq doom-modeline-vcs-max-length 6)
   ;; Whether display perspective name or not. Non-nil to display in mode-line.
   (setq doom-modeline-persp-name t)
   ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
@@ -191,6 +205,13 @@
   (message "Use-package: Which-key mode")
   :config
   (which-key-mode) )
+
+;; defaullt to spelll check in latex
+(add-hook 'latex-mode-hook 'flyspell-mode)
+(add-hook 'latex-mode-hook 'hl-line-mode)
+(add-hook 'prog-mode-hook 'hl-line-mode)
+(add-hook 'org-mode-hook 'hl-line-mode)
+(add-hook 'org-mode-hook 'visual-line-mode)
 
 (use-package prescient
   :ensure t
@@ -269,13 +290,14 @@
     (message "Use-package: Key-seq" )
     ;(key-seq-define-global "qd" 'dired)
     (key-seq-define-global "kk"     'kill-whole-line)
-    (key-seq-define-global "qs"     'deft)
-    (key-seq-define-global "qt"     'org-babel-tangle)
+    (key-seq-define-global "qs"     'deft) ; search org files
+    (key-seq-define-global "qp"     'prot/elfeed-show-eww) 
     (key-seq-define-global "qq"     'consult-buffer)
-    (key-seq-define-global "qc"     'org-capture)
-    (key-seq-define-global "qb"     'bookmark-set)
+    (key-seq-define-global "qb"     'bookmark-set) 
     (key-seq-define-global "qj"     'bookmark-jump)
     (key-seq-define-global "qo"     'other-window)
+    (key-seq-define-global "qc"     'org-capture)
+    (key-seq-define-global "qt"     'org-babel-tangle)
     (key-seq-define-global "qd"     'org-journal-new-entry)  ) )
 
 ;; move focus when splitting a window
@@ -303,7 +325,7 @@
   (editorconfig-mode 1) )
 
 ;; location of my snippets -- has to go before yas-reload-all
-(setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.emacs.d/my_snippets"))
+(setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.config/emacs.d/my_snippets"))
 ;; include yansippet and snippets
 (use-package yasnippet
   :delight (yas-minor-mode "YaS")
@@ -314,7 +336,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;; hooks for YASnippet in Latex and C++;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (add-hook 'c++-mode-hook 'yas-minor-mode)
+  (add-hook 'c++-mode-hook 'yas-minor-mode)  
   (add-hook 'latex-mode-hook 'yas-minor-mode)
   (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
   ;; remove default keybinding
@@ -332,6 +354,17 @@
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all)
   )
+
+;; GIT-GUTTER: SHOW changes relative to git repo
+(use-package git-gutter
+  :ensure t
+  :defer t
+  :delight (git-gutter-mode "Gg.")
+  :init (message "Use-package: Git-Gutter")
+  )
+(add-hook 'c++-mode-hook 'git-gutter-mode)
+(add-hook 'python-mode-hook 'git-gutter-mode)
+(add-hook 'emacs-lisp-mode-hook 'git-gutter-mode)
 
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
@@ -568,7 +601,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 ;; custom faces/colours are in custom-setting.el
 ;;
 ;(add-hook 'org-mode-hook 'variable-pitch-mode)
-(add-hook 'org-mode-hook 'visual-line-mode)
 (add-hook 'after-init-hook 'org-roam-mode)
 
 (use-package deft
@@ -587,24 +619,27 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :config
   (setq elfeed-use-curl t)
   (setq elfeed-curl-max-connections 10)
-  (setq elfeed-db-directory "~/CURRENT/dot.emacs.d/elfeed/")
+  (setq elfeed-db-directory "~/CURRENT/dot.config/emacs.d/elfeed/")
   (setq elfeed-enclosure-default-dir "~/Downloads/")
-  (setq elfeed-search-filter "@4-months-ago +unread")
+  (setq elfeed-search-filter "@1-week-ago +unread")
   (setq elfeed-sort-order 'descending)
-  (setq elfeed-search-clipboard-type 'CLIPBOARD)
+  ;(setq elfeed-search-clipboard-type 'CLIPBOARD)
   (setq elfeed-search-title-max-width 100)
   (setq elfeed-search-title-min-width 30)
   (setq elfeed-search-trailing-width 25)
   (setq elfeed-show-truncate-long-urls t)
   (setq elfeed-show-unique-buffers t)
   (setq elfeed-feeds
-   '("https://protesilaos.com/codelog.xml"
-     "https://irreal.org/blog/?feed=rss2"
-     "https://www.reddit.com/r/orgmode/.rss"
-     "http://feeds.feedburner.com/XahsEmacsBlog"
-     "http://www.reddit.com/r/emacs/.rss"
-     "http://pragmaticemacs.com/feed/"))
-  ; see https://protesilaos.com/dotemacs/
+   '(("https://protesilaos.com/codelog.xml" emacs tech)
+     ("https://irreal.org/blog/?feed=rss2" emacs tech)
+     ("http://feeds.feedburner.com/XahsEmacsBlog" emacs tech)
+     ("http://pragmaticemacs.com/feed/" emacs tech)
+     ("http://feeds.bbci.co.uk/news/technology/rss.xml" news tech)
+     ("http://feeds.bbci.co.uk/sport/rss.xml" news sport)
+     ("https://www.theverge.com/rss/index.xml" news tech)
+     ("https://emacsredux.com/atom.xml" emacs tech )
+     ))
+  ;; see https://protesilaos.com/dotemacs/
   (defun prot/elfeed-show-eww (&optional link)
     "Browse current `elfeed' entry link in `eww'.
 Only show the readable part once the website loads.  This can
@@ -715,43 +750,15 @@ fail on poorly-designed websites."
   ; turn off autosave, otherwise we end up with multiple versions of sent/draft mail being sync'd
   (auto-save-mode -1) ) )
 
-
-;;;; https://emacs.stackexchange.com/questions/21723/how-can-i-delete-mu4e-drafts-on-successfully-sending-the-mail
-;;;; "As I'm composing mail, mu4e automatically saves drafts to the mu4e-drafts-folder.
-;;;; When I send the mail, these drafts persist. I expected mu4e to delete from the folder."
-;;;; "If you use offlineimap (like I do) then your drafts likely accumulate because offlineimap syncs
-;;;; emacs' #autosave# files (kept in Drafts/cur folder). As offlineimap can only ignore files starting
-;;;; with '.' (and it's not configurable) the solution is to change the way draft autosaves are named:
-;; (defun draft-auto-save-buffer-name-handler (operation &rest args)
-;; "for `make-auto-save-file-name' set '.' in front of the file name; do nothing for other operations"
-;; (if
-;;   (and buffer-file-name (eq operation 'make-auto-save-file-name))
-;;   (concat (file-name-directory buffer-file-name)
-;;             "."
-;;             (file-name-nondirectory buffer-file-name))
-;;  (let ((inhibit-file-name-handlers
-;;        (cons 'draft-auto-save-buffer-name-handler
-;;              (and (eq inhibit-file-name-operation operation)
-;;                   inhibit-file-name-handlers)))
-;;       (inhibit-file-name-operation operation))
-;;   (apply operation args))))
-;; (add-to-list 'file-name-handler-alist '("Drafts/cur/" . draft-auto-save-buffer-name-handler))
-
-;; F7 : elfeed
-(global-set-key (kbd "<f7>") 'elfeed)
-;; F8 : mu4e
-(global-set-key (kbd "<f8>") 'mu4e)
-;; F9 : org wiki hot key
-(global-set-key (kbd "<f9>") 'org-roam)
-;; F10 : ORG AGENDA keybinding
-(global-set-key (kbd "<f10>") 'org-agenda)
-;; F11 is full screen in the Sway WM
-;; F12 : turn on the menu bar
-(global-set-key (kbd "<f12>") 'menu-bar-mode)
+;; simple prefix key launcher
+(global-set-key (kbd "C-c h l") 'elfeed)
+(global-set-key (kbd "C-c h m") 'mu4e)
+(global-set-key (kbd "C-c h r") 'org-roam)
+(global-set-key (kbd "C-c h a") 'org-agenda)
 ;; C-c e : edit the init.el configuration file
 (defun config-visit ()
   (interactive)
-  (find-file "~/CURRENT/dot.emacs.d/config.org") )
+  (find-file "~/CURRENT/dot.config/emacs.d/config.org") )
 (global-set-key (kbd "C-c e") 'config-visit)
 ;; C-c r : reload the configuration file
 (defun config-reload ()
