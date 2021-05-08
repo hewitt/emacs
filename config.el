@@ -83,37 +83,61 @@
 (use-package delight
   :ensure t
   :init (message "Use-package: Delight") )
-(delight 'eldoc-mode "Eld" 'eldoc)
-(delight 'undo-tree-mode "Ut" 'undo-tree)
-(delight 'abbrev-mode "Ab" 'abbrev)
+;; delight some basic modes to get rid of modeline content
+(delight 'eldoc-mode "" 'eldoc)
+(delight 'abbrev-mode "" 'abbrev)
 
 ;; dashboard runs at startup by default
-  (use-package dashboard
-    :ensure t
-    :delight dashboard-mode
-    :init
-    (message "Use-package: Dashboard")
-    :config
-    (setq dashboard-banner-logo-title "Quickstart!")
-    (setq dashboard-startup-banner nil)
-    (setq dashboard-set-heading-icons t)
-    (setq dashboard-set-file-icons t)
-    (setq dashboard-items '((recents  . 10)
-                            (bookmarks . 5)
-                            (agenda . 4)))
-    (dashboard-setup-startup-hook) )
+(use-package dashboard
+  :ensure t
+  :delight "Dash"
+  :init
+  (message "Use-package: Dashboard")
+  :config
+  (setq dashboard-banner-logo-title "Go!")
+  (setq dashboard-startup-banner 'logo) ; 1,2,3 are the text banners
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (setq dashboard-items '((recents  . 10)
+                          (bookmarks . 5)
+                          (agenda . 4)))
+  (dashboard-setup-startup-hook) )
 
 (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
 
 (set-face-attribute 'default nil
-:family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded )
+                    :family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded )
 (set-face-attribute 'variable-pitch nil
-:family "Iosevka" :height 1.0 :weight 'normal)
+                    :family "Iosevka" :height 1.0 :weight 'normal)
 (set-face-attribute 'fixed-pitch nil
-:family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
-;; allow for customizations : so far I've only lifted bg-main up slightly
-(setq modus-themes-vivendi-color-overrides
-        '((bg-main . "#181a26")
+                    :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
+;;
+(use-package modus-themes
+  :ensure t
+  :init
+  (message "Use-package: modus-theme")
+  ;; Add all your customizations prior to loading the themes
+  (setq modus-themes-slanted-constructs t ; allow italics
+        modus-themes-bold-constructs t ; allow bold font use
+        modus-themes-syntax 'yellow-comments-green-strings ; highlighting
+        modus-themes-mode-line 'borderless ; add vertical separators
+        modus-themes-prompts 'intense-accented
+        modus-themes-lang-checkers 'colored-background
+        modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
+        ;modus-themes-intense-hl-line t ; v.1.2.x
+        modus-themes-hl-line 'intense-background ; v.1.3.0
+        modus-themes-org-blocks 'rainbow ; {nil,'greyscale,'rainbow}
+        modus-themes-paren-match 'intense-bold ;
+        modus-themes-scale-headings t ; scale heading text
+        modus-themes-rainbow-headings t
+        modus-themes-scale-1 1.05
+        modus-themes-scale-2 1.1
+        modus-themes-scale-3 1.15
+        modus-themes-scale-4 1.2
+        modus-themes-scale-5 1.3)      
+  ;; allow for color changes : so far I've only lifted bg-main up slightly
+  (setq modus-themes-vivendi-color-overrides
+        '((bg-main . "#1a1f26")
           (bg-dim . "#161129")
           (bg-alt . "#181732")
           (bg-hl-line . "#282a36")
@@ -125,39 +149,15 @@
           (bg-tab-active . "#120f18")
           (bg-tab-inactive . "#3a3a5a")
           (fg-unfocused . "#9a9aab")))
-(use-package modus-themes
-:ensure t
-:init
-;; Add all your customizations prior to loading the themes
-(setq modus-themes-slanted-constructs t ; allow italics
-      modus-themes-bold-constructs t ; allow bold font use
-      modus-themes-syntax 'yellow-comments-green-strings ; highlighting
-      modus-themes-mode-line 'borderless ; add vertical separators
-      modus-themes-prompts 'intense-accented
-      modus-themes-lang-checkers 'colored-background
-      modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
-      modus-themes-intense-hl-line t ; v.1.2.x
-      modus-themes-hl-line 'intense-background ; v.1.3.0
-      modus-themes-org-blocks 'rainbow ; {nil,'greyscale,'rainbow}
-      modus-themes-paren-match 'intense-bold ;
-      modus-themes-scale-headings t ; scale heading text
-      modus-themes-rainbow-headings t
-      modus-themes-scale-1 1.05
-      modus-themes-scale-2 1.1
-      modus-themes-scale-3 1.15
-      modus-themes-scale-4 1.2
-      modus-themes-scale-5 1.3)      
-;; Load the theme files before enabling a theme
-(modus-themes-load-themes)
-:config
+  (setq global-hl-line-mode t)
+  ;; Load the theme files before enabling a theme
+  (modus-themes-load-themes)
+  :config
   ;; Load the theme of your choice:
   ;;(modus-themes-load-operandi) ;; OR 
   (modus-themes-load-vivendi)
-:bind 
+  :bind 
   ("<f5>" . modus-themes-toggle) )
-;; highlighting -- won't register if in daemon mode
-;(setq hl-line-mode t)
-;(setq global-hl-line-mode t)
 
 ;; modeline
 (use-package doom-modeline
@@ -180,7 +180,7 @@
   ;; If non-nil, a word count will be added to the selection-info modeline segment.
   (setq doom-modeline-enable-word-count nil)
   ;; If non-nil, only display one number for checker information if applicable.
-  ;(setq doom-modeline-checker-simple-format t)
+  ; (setq doom-modeline-checker-simple-format t)
   ;; The maximum displayed length of the branch name of version control.
   (setq doom-modeline-vcs-max-length 6)
   ;; Whether display perspective name or not. Non-nil to display in mode-line.
@@ -196,11 +196,11 @@
   :config
   (rainbow-delimiters-mode)
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)  )
+  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode) )
 
 (use-package which-key
   :ensure t
-  :delight
+  :delight 
   :init 
   (message "Use-package: Which-key mode")
   :config
@@ -218,18 +218,18 @@
   :init
   (message "Use-package: prescient")
   :config  ; store across restarts
-  (prescient-persist-mode 1))
-(use-package company-prescient
-  :ensure t
-  :config
-  (company-prescient-mode 1))
+  (prescient-persist-mode 1) )
 
 (use-package marginalia
   :ensure t
   :init
-  (marginalia-mode)  )
+  (message "Use-package: marginalia")
+  (marginalia-mode) )
+
 (use-package consult
   :ensure t
+  :init
+  (message "Use-package: consult")
   :bind
   ("C-x b" . consult-buffer)
   ("M-g g" . consult-goto-line)
@@ -237,19 +237,19 @@
   ("C-y"   . consult-yank)
   ("C-s"   . consult-line)
   ("M-g o" . consult-outline) )
+
 (use-package selectrum
   :ensure t
-  :after (consult marginalia)
   :init (message "Use-package: selectrum")
   :config
-  (selectrum-mode 1)  )
+  (selectrum-mode 1) )
+
 (use-package selectrum-prescient
   :ensure t
   :init (message "Use-package: selectrum-prescient")
   :after (prescient selectrum)
   :config
   (selectrum-prescient-mode 1) )
-(marginalia-cycle)
 
 ;; cut and paste in Wayland environmen
 (setq x-select-enable-clipboard t)
@@ -272,13 +272,14 @@
   :init
   (progn
     (message "Use-package: Key-chord" )
-    ;; Max time delay between two key presses to be considered a key chord
-    (setq key-chord-two-keys-delay 0.1) ; default 0.1
-    ;; Max time delay between two presses of the same key to be considered a key chord.
-    ;; Should normally be a little longer than `key-chord-two-keys-delay'.
-    (setq key-chord-one-key-delay 0.2) ; default 0.2    
-    (key-chord-mode 1)
-    )  )
+    )
+  :config
+  ;; Max time delay between two key presses to be considered a key chord
+  (setq key-chord-two-keys-delay 0.1) ; default 0.1
+  ;; Max time delay between two presses of the same key to be considered a key chord.
+  ;; Should normally be a little longer than `key-chord-two-keys-delay'.
+  (setq key-chord-one-key-delay 0.2) ; default 0.2    
+  (key-chord-mode 1) )
 
 ;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
 ;; instead key-seq checks the order -- but relies on key-chord-mode still
@@ -355,16 +356,20 @@
   (yas-reload-all)
   )
 
+;; corfu
+(use-package corfu
+:ensure t
+:init (message "Use-package: Corfu") )
+
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
   :ensure t
   :defer t
-  :delight (git-gutter-mode "Gg.")
+  :delight (git-gutter-mode "Gg")
   :init (message "Use-package: Git-Gutter")
-  )
-(add-hook 'c++-mode-hook 'git-gutter-mode)
-(add-hook 'python-mode-hook 'git-gutter-mode)
-(add-hook 'emacs-lisp-mode-hook 'git-gutter-mode)
+  :hook
+  (prog-mode . git-gutter-mode)
+  (org-mode . git-gutter-mode) )
 
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
@@ -373,36 +378,34 @@
   :init
   (message "Use-package: Eglot")
   (add-hook 'c++-mode-hook 'eglot-ensure)
-  (add-hook 'latex-mode-hook 'eglot-ensure)  )
+  (add-hook 'latex-mode-hook 'eglot-ensure) 
+  :custom
+  (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
+  (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
-(add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
-(add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
-
-;;  (use-package flycheck
-;;      :ensure t )
-
-;; company gives the selection front end for code completion
-;; but not the C++-aware backend
-(use-package company
-  :ensure t
-  :delight (company-mode "Co")
-  :bind ("M-/" . company-complete)
-  :init
-  (progn
-    (message "Use-package: Company")
-    (add-hook 'after-init-hook 'global-company-mode))
-  :config
-  (require 'yasnippet)
-  ;;(setq company-idle-delay 1)
-  (setq company-minimum-prefix-length 3)
-  (setq company-idle-delay 0)
-  (setq company-selection-wrap-around t)
-  (setq company-tooltip-align-annotations t)
-  (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-                            company-echo-metadata-frontend) ) )
+;; ;; company gives the selection front end for code completion
+;; ;; but not the C++-aware backend
+;; (use-package company
+;;   :ensure t
+;;   :delight (company-mode "Co")
+;;   :bind ("M-/" . company-complete)
+;;   :init
+;;   (progn
+;;     (message "Use-package: Company")
+;;     (add-hook 'after-init-hook 'global-company-mode))
+;;   :config
+;;   (require 'yasnippet)
+;;   ;;(setq company-idle-delay 1)
+;;   (setq company-minimum-prefix-length 3)
+;;   (setq company-idle-delay 0)
+;;   (setq company-selection-wrap-around t)
+;;   (setq company-tooltip-align-annotations t)
+;;   (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
+;;                             company-echo-metadata-frontend) ) )
 
 (use-package org
   :ensure t
+  :delight "OM"
   :init
   (message "Use-package: Org") )
 
@@ -447,21 +450,6 @@
 
 ;; syntax highlight latex in org files
 (setq org-highlight-latex-and-related '(latex script entities))
-
-;; org-latex-export quotes are nasty, so replace them here
-;(setq org-export-with-smart-quotes t)
-;(add-to-list 'org-export-smart-quotes-alist 
-;           '("am"
-;             (primary-opening   :utf-8 "“" :html "&ldquo;" :latex "\\enquote{"  :texinfo "``")
-;             (primary-closing   :utf-8 "”" :html "&rdquo;" :latex "}"           :texinfo "''")
-;             (secondary-opening :utf-8 "‘" :html "&lsquo;" :latex "\\enquote*{" :texinfo "`")
-;             (secondary-closing :utf-8 "’" :html "&rsquo;" :latex "}"           :texinfo "'")
-;             (apostrophe        :utf-8 "’" :html "&rsquo;")))
-
-;; highlight the current line in the agenda
-;(add-hook 'org-agenda-mode-hook
-;          '(lambda () (hl-line-mode 1))
-;          'append)
 
 ;; define the number of days to show in the agenda
 (setq org-agenda-span 14
@@ -539,18 +527,17 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 (use-package gnuplot
   :ensure t
   :init
-  (message "Use-package: gnuplot for babel installed")
-  )
-  ;; languages I work in via babel
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
-  ;; stop it asking if I'm sure about evaluation
-  (setq org-confirm-babel-evaluate nil)
+  (message "Use-package: gnuplot for babel installed") )
+;; languages I work in via babel
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
+;; stop it asking if I'm sure about evaluation
+(setq org-confirm-babel-evaluate nil)
 
 (use-package org-roam
   :ensure t
-  :delight "Or"
+  :delight "OR"
   :after org
   :init
   (message "Use-package: Org-roam")
@@ -566,9 +553,11 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
       :head "#+title: ${title}\n"
       :unnarrowed t) )
       )  )
+
 ; doesn't start by default
 (use-package org-roam-server
   :ensure t
+  :defer
   :after org-roam
   :init
   (message "Use-package: Org-roam-server")

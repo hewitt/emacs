@@ -63,8 +63,7 @@ So here we define a quick function to check the machine based on the system name
 
 ** Change some of the default emacs variables
 
-Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all backups to a single folder.
-Minor tweaks to garbage collection.
+Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all backups to a single folder. Minor tweaks to garbage collection.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; move backups to stop *~ proliferation
@@ -134,9 +133,9 @@ Delight declutters the modeline by reducing the amount of mode information.
   (use-package delight
     :ensure t
     :init (message "Use-package: Delight") )
-  (delight 'eldoc-mode "Eld" 'eldoc)
-  (delight 'undo-tree-mode "Ut" 'undo-tree)
-  (delight 'abbrev-mode "Ab" 'abbrev)
+  ;; delight some basic modes to get rid of modeline content
+  (delight 'eldoc-mode "" 'eldoc)
+  (delight 'abbrev-mode "" 'abbrev)
 #+END_SRC
 
 ** Dashboard
@@ -144,21 +143,21 @@ Delight declutters the modeline by reducing the amount of mode information.
 Dashboard is the startup screen for quick access to previously used material.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-    ;; dashboard runs at startup by default
-    (use-package dashboard
-      :ensure t
-      :delight dashboard-mode
-      :init
-      (message "Use-package: Dashboard")
-      :config
-      (setq dashboard-banner-logo-title "Quickstart!")
-      (setq dashboard-startup-banner nil)
-      (setq dashboard-set-heading-icons t)
-      (setq dashboard-set-file-icons t)
-      (setq dashboard-items '((recents  . 10)
-                              (bookmarks . 5)
-                              (agenda . 4)))
-      (dashboard-setup-startup-hook) )
+  ;; dashboard runs at startup by default
+  (use-package dashboard
+    :ensure t
+    :delight "Dash"
+    :init
+    (message "Use-package: Dashboard")
+    :config
+    (setq dashboard-banner-logo-title "Go!")
+    (setq dashboard-startup-banner 'logo) ; 1,2,3 are the text banners
+    (setq dashboard-set-heading-icons t)
+    (setq dashboard-set-file-icons t)
+    (setq dashboard-items '((recents  . 10)
+                            (bookmarks . 5)
+                            (agenda . 4)))
+    (dashboard-setup-startup-hook) )
 
   (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
 #+END_SRC
@@ -168,29 +167,17 @@ Dashboard is the startup screen for quick access to previously used material.
 I've switched away from doom-themes to the more systematic & consistent modus-* themes from Protesilaos Stavrou.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-    (set-face-attribute 'default nil
-    :family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded )
-    (set-face-attribute 'variable-pitch nil
-    :family "Iosevka" :height 1.0 :weight 'normal)
-    (set-face-attribute 'fixed-pitch nil
-    :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
-    ;; allow for customizations : so far I've only lifted bg-main up slightly
-    (setq modus-themes-vivendi-color-overrides
-            '((bg-main . "#181a26")
-              (bg-dim . "#161129")
-              (bg-alt . "#181732")
-              (bg-hl-line . "#282a36")
-              (bg-active . "#282e46")
-              (bg-inactive . "#1a1e39")
-              (bg-region . "#393a53")
-              (bg-header . "#202037")
-              (bg-tab-bar . "#262b41")
-              (bg-tab-active . "#120f18")
-              (bg-tab-inactive . "#3a3a5a")
-              (fg-unfocused . "#9a9aab")))
-    (use-package modus-themes
+  (set-face-attribute 'default nil
+                      :family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded )
+  (set-face-attribute 'variable-pitch nil
+                      :family "Iosevka" :height 1.0 :weight 'normal)
+  (set-face-attribute 'fixed-pitch nil
+                      :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
+  ;;
+  (use-package modus-themes
     :ensure t
     :init
+    (message "Use-package: modus-theme")
     ;; Add all your customizations prior to loading the themes
     (setq modus-themes-slanted-constructs t ; allow italics
           modus-themes-bold-constructs t ; allow bold font use
@@ -199,7 +186,7 @@ I've switched away from doom-themes to the more systematic & consistent modus-* 
           modus-themes-prompts 'intense-accented
           modus-themes-lang-checkers 'colored-background
           modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
-          modus-themes-intense-hl-line t ; v.1.2.x
+          ;modus-themes-intense-hl-line t ; v.1.2.x
           modus-themes-hl-line 'intense-background ; v.1.3.0
           modus-themes-org-blocks 'rainbow ; {nil,'greyscale,'rainbow}
           modus-themes-paren-match 'intense-bold ;
@@ -210,17 +197,29 @@ I've switched away from doom-themes to the more systematic & consistent modus-* 
           modus-themes-scale-3 1.15
           modus-themes-scale-4 1.2
           modus-themes-scale-5 1.3)      
+    ;; allow for color changes : so far I've only lifted bg-main up slightly
+    (setq modus-themes-vivendi-color-overrides
+          '((bg-main . "#1a1f26")
+            (bg-dim . "#161129")
+            (bg-alt . "#181732")
+            (bg-hl-line . "#282a36")
+            (bg-active . "#282e46")
+            (bg-inactive . "#1a1e39")
+            (bg-region . "#393a53")
+            (bg-header . "#202037")
+            (bg-tab-bar . "#262b41")
+            (bg-tab-active . "#120f18")
+            (bg-tab-inactive . "#3a3a5a")
+            (fg-unfocused . "#9a9aab")))
+    (setq global-hl-line-mode t)
     ;; Load the theme files before enabling a theme
     (modus-themes-load-themes)
     :config
-      ;; Load the theme of your choice:
-      ;;(modus-themes-load-operandi) ;; OR 
-      (modus-themes-load-vivendi)
+    ;; Load the theme of your choice:
+    ;;(modus-themes-load-operandi) ;; OR 
+    (modus-themes-load-vivendi)
     :bind 
-      ("<f5>" . modus-themes-toggle) )
-    ;; highlighting -- won't register if in daemon mode
-    ;(setq hl-line-mode t)
-    ;(setq global-hl-line-mode t)
+    ("<f5>" . modus-themes-toggle) )
   #+END_SRC
 
 ** Modeline (doom)
@@ -249,7 +248,7 @@ Doom modeline is my default choice, just to add a bit of usability to the standa
   ;; If non-nil, a word count will be added to the selection-info modeline segment.
   (setq doom-modeline-enable-word-count nil)
   ;; If non-nil, only display one number for checker information if applicable.
-  ;(setq doom-modeline-checker-simple-format t)
+  ; (setq doom-modeline-checker-simple-format t)
   ;; The maximum displayed length of the branch name of version control.
   (setq doom-modeline-vcs-max-length 6)
   ;; Whether display perspective name or not. Non-nil to display in mode-line.
@@ -271,7 +270,7 @@ Colorised brackets to make matching easier.
     :config
     (rainbow-delimiters-mode)
     (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-    (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)  )
+    (add-hook 'latex-mode-hook 'rainbow-delimiters-mode) )
 #+END_SRC
 
 ** Which-key
@@ -281,7 +280,7 @@ Popup a description of key combinations after a delay.
 #+BEGIN_SRC emacs-lisp :tangle yes
 (use-package which-key
   :ensure t
-  :delight
+  :delight 
   :init 
   (message "Use-package: Which-key mode")
   :config
@@ -297,38 +296,11 @@ Popup a description of key combinations after a delay.
   (add-hook 'org-mode-hook 'hl-line-mode)
   (add-hook 'org-mode-hook 'visual-line-mode)
 #+END_SRC
-** mini-frame instead of mini-buffer                             :untangled:
-
-I like the look/usability of mini-frame, but there are some edge cases that were too frustrating.
-When switching away & back to the emacs window/frame the focus can shift from the mini-frame and
-need a mouse click to get it back. Currently *disabled*.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package mini-frame
-    :ensure t
-    :init
-    (message "Use-package: mini-frame")
-    :config
-    (mini-frame-mode 1)
-    :custom
-    (x-gtk-resize-child-frames 'resize-mod)
-    (mini-frame-resize nil) )
-  (custom-set-variables
-   '(mini-frame-show-parameters
-     '((top . 10)
-       (width . 0.7)
-       (left . 0.5)
-       (height . 0.5))) )
-
-  (setq x-gtk-resize-child-frames 'resize-mode)
-#+END_SRC
-
 
 * Narrowing and completion
 ** Prescient
 
-Prescient keeps track of narrowing selections bubbling the common selections to the
-top of the narrowing list.
+Prescient keeps track of narrowing selections bubbling the common selections to the top of the narrowing list.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package prescient
@@ -336,25 +308,37 @@ top of the narrowing list.
     :init
     (message "Use-package: prescient")
     :config  ; store across restarts
-    (prescient-persist-mode 1))
-  (use-package company-prescient
-    :ensure t
-    :config
-    (company-prescient-mode 1))
+    (prescient-persist-mode 1) )
 #+END_SRC
 
-** Selection via Selectrum and Consult
+** Narrowing and completion
 
-Narrowing/selection is done by Selectrum and Consult -- using Prescient above.
-Consult versions replace the standard buffer selection/yank/pop etc.
+- Selectrum is a better solution for incremental narrowing in Emacs,
+replacing Helm, Ivy, and Ido.
+
+- This package provides marginalia-mode which adds marginalia to the
+minibuffer completions. Marginalia can only add annotations to be
+displayed with the completion candidates.
+
+- Consult provides various practical commands based on the Emacs
+completion function completing-read, which allows to quickly select an
+item from a list of candidates with completion. Consult offers in
+particular an advanced buffer switching command consult-buffer to
+switch between buffers and recently opened files. Multiple search
+commands are provided, an asynchronous consult-grep and
+consult-ripgrep, and consult-line, which resembles Swiper.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package marginalia
     :ensure t
     :init
-    (marginalia-mode)  )
+    (message "Use-package: marginalia")
+    (marginalia-mode) )
+
   (use-package consult
     :ensure t
+    :init
+    (message "Use-package: consult")
     :bind
     ("C-x b" . consult-buffer)
     ("M-g g" . consult-goto-line)
@@ -362,19 +346,19 @@ Consult versions replace the standard buffer selection/yank/pop etc.
     ("C-y"   . consult-yank)
     ("C-s"   . consult-line)
     ("M-g o" . consult-outline) )
+
   (use-package selectrum
     :ensure t
-    :after (consult marginalia)
     :init (message "Use-package: selectrum")
     :config
-    (selectrum-mode 1)  )
+    (selectrum-mode 1) )
+
   (use-package selectrum-prescient
     :ensure t
     :init (message "Use-package: selectrum-prescient")
     :after (prescient selectrum)
     :config
     (selectrum-prescient-mode 1) )
-  (marginalia-cycle)
 #+END_SRC
 
 ** Avy                                                           :untangled:
@@ -406,61 +390,6 @@ isn't it. *Currently not in the configuration.*
     (message "Use-package: Undo-tree")
     (global-undo-tree-mode) )
 #+END_SRC
-
-** Ivy                                                           :untangled:
-
-Here for historical reasons, but not used anymore -- I've switched from IVY.
-*Currently not in the configuration.*
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package ivy
-    :ensure t
-    :delight "Iv"
-    :init
-    (message "Use-package: Ivy")
-    :config
-    (setq ivy-use-virtual-buffers t
-          ivy-count-format "%d/%d ")
-    (ivy-mode 1)
-    :bind (("C-S-s" . isearch-forward)  ;; Keep simpler isearch-forward on Shift-Ctrl-s
-           ("C-s" . swiper)             ;; Use more intrusive swiper for search and reverse search
-           ("C-S-r" . isearch-backward) ;; Keep simpler isearch-backward on Shift-Ctrl-r 
-           ("C-r" . swiper)             ;; Use more intrusive swiper for search and reverse search
-           ("C-y" . counsel-yank-pop)   ;; Use more intrusive pop-up list to yank
-           ("M-x" . counsel-M-x)        ;; More descriptive M-x
-           ("C-h v" . counsel-describe-variable) ;; Slightly fancier lookup
-           ("C-h f" . counsel-describe-function) ;; Slightly fancier lookup
-           ("C-h o" . counsel-describe-symbol)   ;; Slightly fancier lookup
-           )    )
-
-  ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
-  (use-package ivy-posframe
-    :ensure t
-    :after ivy
-    :delight 
-    :config
-    (ivy-posframe-mode 1)
-    (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-center)))
-    (setq ivy-posframe-height-alist '((t . 20))
-          ivy-posframe-parameters '((internal-border-width . 10)))
-    (setq ivy-posframe-parameters
-          '((left-fringe . 5)
-            (right-fringe . 5))) )
-
-  ;; ivy enhancements to add more information to buffer list
-  (use-package ivy-rich
-    :ensure t
-    :after ivy
-    :init
-    (ivy-rich-mode 1) )
-
-  ;; adds icons to buffer list
-  (use-package all-the-icons-ivy-rich
-    :ensure t
-    :after ivy-rich
-    :init
-    (all-the-icons-ivy-rich-mode 1) )
-#+END_SRC 
 
 
 
@@ -499,13 +428,14 @@ use key-seq, which requires the "chord" to be in the right order.
     :init
     (progn
       (message "Use-package: Key-chord" )
-      ;; Max time delay between two key presses to be considered a key chord
-      (setq key-chord-two-keys-delay 0.1) ; default 0.1
-      ;; Max time delay between two presses of the same key to be considered a key chord.
-      ;; Should normally be a little longer than `key-chord-two-keys-delay'.
-      (setq key-chord-one-key-delay 0.2) ; default 0.2    
-      (key-chord-mode 1)
-      )  )
+      )
+    :config
+    ;; Max time delay between two key presses to be considered a key chord
+    (setq key-chord-two-keys-delay 0.1) ; default 0.1
+    ;; Max time delay between two presses of the same key to be considered a key chord.
+    ;; Should normally be a little longer than `key-chord-two-keys-delay'.
+    (setq key-chord-one-key-delay 0.2) ; default 0.2    
+    (key-chord-mode 1) )
 
   ;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
   ;; instead key-seq checks the order -- but relies on key-chord-mode still
@@ -604,25 +534,37 @@ Expand roots to standard text snippets with M-].
 
 * Coding environment
 
-Code completion and on-the-fly check/make. I've tested both lsp-mode and eglot.
-I find eglot to be simpler and more responsive. lsp-mode has a bit too much pop-up
-clutter for my use case.
+Code completion and on-the-fly check/make.
 
-On my Ubuntu 20.04 LTS installation I had to apt install g++ with a version that matched
-the latest version of the gcc compiler as noted in the FAQ for ccls:
-"For example, if you have gcc-7, g++-7 and gcc-8 installed (note the omission of g++-8). clang may pick the gcc toolchain with the largest version number."
+- interaction with a language back-end is done via "eglot" which is an
+  alternative to lsp-mode.
+
+- IN-REGION completion is provided by Corfu (Completion Overlay Region
+  FUnction). This provides at-point completion in the main buffer
+  rather than via a mini-buffer. Completion is requested with a key
+  binding.
+
+- Note for eglot: On my Ubuntu 20.04 LTS installation I had to apt
+install g++ with a version that matched the latest version of the gcc
+compiler as noted in the FAQ for ccls: "For example, if you have
+gcc-7, g++-7 and gcc-8 installed (note the omission of g++-8). clang
+may pick the gcc toolchain with the largest version number."
 
 #+BEGIN_SRC emacs-lisp :tangle yes
+  ;; corfu
+  (use-package corfu
+  :ensure t
+  :init (message "Use-package: Corfu") )
+
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
     :ensure t
     :defer t
-    :delight (git-gutter-mode "Gg.")
+    :delight (git-gutter-mode "Gg")
     :init (message "Use-package: Git-Gutter")
-    )
-  (add-hook 'c++-mode-hook 'git-gutter-mode)
-  (add-hook 'python-mode-hook 'git-gutter-mode)
-  (add-hook 'emacs-lisp-mode-hook 'git-gutter-mode)
+    :hook
+    (prog-mode . git-gutter-mode)
+    (org-mode . git-gutter-mode) )
 
   ;; eglot is a simpler alternative to LSP-mode
   (use-package eglot
@@ -631,71 +573,30 @@ the latest version of the gcc compiler as noted in the FAQ for ccls:
     :init
     (message "Use-package: Eglot")
     (add-hook 'c++-mode-hook 'eglot-ensure)
-    (add-hook 'latex-mode-hook 'eglot-ensure)  )
+    (add-hook 'latex-mode-hook 'eglot-ensure) 
+    :custom
+    (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
+    (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
-  (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
-  (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
-
-  ;;  (use-package flycheck
-  ;;      :ensure t )
-
-  ;; company gives the selection front end for code completion
-  ;; but not the C++-aware backend
-  (use-package company
-    :ensure t
-    :delight (company-mode "Co")
-    :bind ("M-/" . company-complete)
-    :init
-    (progn
-      (message "Use-package: Company")
-      (add-hook 'after-init-hook 'global-company-mode))
-    :config
-    (require 'yasnippet)
-    ;;(setq company-idle-delay 1)
-    (setq company-minimum-prefix-length 3)
-    (setq company-idle-delay 0)
-    (setq company-selection-wrap-around t)
-    (setq company-tooltip-align-annotations t)
-    (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-                              company-echo-metadata-frontend) ) )
-#+END_SRC
-
-
-* Projectile :untangled:
-
-I've yet not quite got into the habit of projectile yet.
-*Currently not in the configuration.*
-
-#+BEGIN_SRC emacs-lisp :tangle no
-(use-package projectile
-  :ensure t
-  ; shorten project names in the modeline
-  :delight '(:eval (concat "P:" (substring (projectile-project-name) 0 4 ) "." ))
-  :defer t
-  :init
-  (message "Use-package: Projectile")
-  :config
-  ;(setq projectile-project-search-path '("~/CURRENT/Projects/CppNoddy"
-  ;	 "~/Sync/Org" 
-  ;	 "~/CURRENT/dot.emacs.d"
-  ;	 "~/CURRENT/Projects/Research/2020/Big_VWI")
-  ;	)
-  (setq projectile-global-mode       t
-        projectile-enable-caching    t )
-  projectile-globally-ignored-directories
-  (append '("build"
-	    ".git"
-	    ".OLD"
-	    "DATA" )
-	  projectile-globally-ignored-directories )
-  projectile-globally-ignored-files
-  (append '(".cpp~"
-            ".h~"
-            "~")
-          projectile-globally-ignored-files)
-  (define-key projectile-mode-map (kbd "C-x p") 'projectile-command-map)
-  (projectile-mode +1)
-  )
+  ;; ;; company gives the selection front end for code completion
+  ;; ;; but not the C++-aware backend
+  ;; (use-package company
+  ;;   :ensure t
+  ;;   :delight (company-mode "Co")
+  ;;   :bind ("M-/" . company-complete)
+  ;;   :init
+  ;;   (progn
+  ;;     (message "Use-package: Company")
+  ;;     (add-hook 'after-init-hook 'global-company-mode))
+  ;;   :config
+  ;;   (require 'yasnippet)
+  ;;   ;;(setq company-idle-delay 1)
+  ;;   (setq company-minimum-prefix-length 3)
+  ;;   (setq company-idle-delay 0)
+  ;;   (setq company-selection-wrap-around t)
+  ;;   (setq company-tooltip-align-annotations t)
+  ;;   (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
+  ;;                             company-echo-metadata-frontend) ) )
 #+END_SRC
 
 
@@ -713,7 +614,6 @@ I've dabbled with magit, but again not quite got into the habit yet.
   ("C-x g" . magit-status)
   :init
   (message "Use-package: Magit installed")
-  ;(setq magit-completing-read-function 'ivy-completing-read)
   )
 #+END_SRC
 
@@ -721,10 +621,10 @@ I've dabbled with magit, but again not quite got into the habit yet.
 * Org mode
 ** Basics of Org mode
 
-
 #+BEGIN_SRC  emacs-lisp :tangle yes
   (use-package org
     :ensure t
+    :delight "OM"
     :init
     (message "Use-package: Org") )
 
@@ -769,21 +669,6 @@ I've dabbled with magit, but again not quite got into the habit yet.
 
   ;; syntax highlight latex in org files
   (setq org-highlight-latex-and-related '(latex script entities))
-
-  ;; org-latex-export quotes are nasty, so replace them here
-  ;(setq org-export-with-smart-quotes t)
-  ;(add-to-list 'org-export-smart-quotes-alist 
-  ;           '("am"
-  ;             (primary-opening   :utf-8 "“" :html "&ldquo;" :latex "\\enquote{"  :texinfo "``")
-  ;             (primary-closing   :utf-8 "”" :html "&rdquo;" :latex "}"           :texinfo "''")
-  ;             (secondary-opening :utf-8 "‘" :html "&lsquo;" :latex "\\enquote*{" :texinfo "`")
-  ;             (secondary-closing :utf-8 "’" :html "&rsquo;" :latex "}"           :texinfo "'")
-  ;             (apostrophe        :utf-8 "’" :html "&rsquo;")))
-
-  ;; highlight the current line in the agenda
-  ;(add-hook 'org-agenda-mode-hook
-  ;          '(lambda () (hl-line-mode 1))
-  ;          'append)
 
   ;; define the number of days to show in the agenda
   (setq org-agenda-span 14
@@ -864,11 +749,10 @@ I've dabbled with magit, but again not quite got into the habit yet.
 Reproducible research aide.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-(use-package gnuplot
-  :ensure t
-  :init
-  (message "Use-package: gnuplot for babel installed")
-  )
+  (use-package gnuplot
+    :ensure t
+    :init
+    (message "Use-package: gnuplot for babel installed") )
   ;; languages I work in via babel
   (org-babel-do-load-languages
    'org-babel-load-languages
@@ -885,7 +769,7 @@ Org-journal is installed together with org-roam-server at localhost:8080.
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package org-roam
     :ensure t
-    :delight "Or"
+    :delight "OR"
     :after org
     :init
     (message "Use-package: Org-roam")
@@ -901,9 +785,11 @@ Org-journal is installed together with org-roam-server at localhost:8080.
         :head "#+title: ${title}\n"
         :unnarrowed t) )
         )  )
+
   ; doesn't start by default
   (use-package org-roam-server
     :ensure t
+    :defer
     :after org-roam
     :init
     (message "Use-package: Org-roam-server")
