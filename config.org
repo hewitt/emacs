@@ -78,7 +78,7 @@ Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all back
   ;; this stops the cursor recentering on leaving the page
   ;; ie. stop scrolling by 0.5 page
   (setq scroll-conservatively 101 )
-  ;; replace annoying yes/no
+  ;; replace annoying yes/no with y/n
   (fset 'yes-or-no-p 'y-or-n-p)
   ;; don't end sentences with a single space
   (setq sentence-end-double-space nil)
@@ -88,8 +88,8 @@ Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all back
   ;; warn when opening files bigger than 50MB
   (setq large-file-warning-threshold 50000000)
   ;; always follow the symlink
-  (setq vc-follow-symlinks nil)
-#+END_SRC
+  (setq vc-follow-symlinks t)
+  #+END_SRC
 
 ** Update buffer contents when file changes on "disk"
 
@@ -158,7 +158,6 @@ Dashboard is the startup screen for quick access to previously used material.
                             (bookmarks . 5)
                             (agenda . 4)))
     (dashboard-setup-startup-hook) )
-
   (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
 #+END_SRC
 
@@ -173,7 +172,6 @@ I've switched away from doom-themes to the more systematic & consistent modus-* 
                       :family "Iosevka" :height 1.0 :weight 'normal)
   (set-face-attribute 'fixed-pitch nil
                       :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
-  ;;
   (use-package modus-themes
     :ensure t
     :init
@@ -199,7 +197,7 @@ I've switched away from doom-themes to the more systematic & consistent modus-* 
           modus-themes-scale-5 1.3)      
     ;; allow for color changes : so far I've only lifted bg-main up slightly
     (setq modus-themes-vivendi-color-overrides
-          '((bg-main . "#1a1f26")
+          '((bg-main . "#1a1f26") ; I've lifted this slightly
             (bg-dim . "#161129")
             (bg-alt . "#181732")
             (bg-hl-line . "#282a36")
@@ -278,15 +276,16 @@ Colorised brackets to make matching easier.
 Popup a description of key combinations after a delay.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-(use-package which-key
-  :ensure t
-  :delight 
-  :init 
-  (message "Use-package: Which-key mode")
-  :config
-  (which-key-mode) )
+  (use-package which-key
+    :ensure t
+    :delight 
+    :init 
+    (message "Use-package: Which-key mode")
+    :config
+    (setq which-key-idle-delay 0.25)
+    (which-key-mode) )
 #+END_SRC
- 
+
 ** Appearance hooks for modes
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; defaullt to spelll check in latex
@@ -302,7 +301,7 @@ Popup a description of key combinations after a delay.
 
 Prescient keeps track of narrowing selections bubbling the common selections to the top of the narrowing list.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package prescient
     :ensure t
     :init
@@ -313,22 +312,24 @@ Prescient keeps track of narrowing selections bubbling the common selections to 
 
 ** Narrowing and completion
 
-- Selectrum is a better solution for incremental narrowing in Emacs,
-replacing Helm, Ivy, and Ido.
-
+- I'm now using Vertico (with Orderless) as a "smaller" solution for
+  incremental completion in Emacs. In the past I've moved down the
+  complexity stack by moving from Helm -> Ivy -> Selectrum and now
+  finally -> Vertico.
+  
 - This package provides marginalia-mode which adds marginalia to the
-minibuffer completions. Marginalia can only add annotations to be
-displayed with the completion candidates.
+  minibuffer completions. Marginalia can only add annotations to
+  bedisplayed with the completion candidates.
 
-- Consult provides various practical commands based on the Emacs
-completion function completing-read, which allows to quickly select an
-item from a list of candidates with completion. Consult offers in
-particular an advanced buffer switching command consult-buffer to
-switch between buffers and recently opened files. Multiple search
-commands are provided, an asynchronous consult-grep and
-consult-ripgrep, and consult-line, which resembles Swiper.
+- Consult provides various practical commands based on the
+  Emacscompletion function completing-read, which allows to quickly
+  select an item from a list of candidates with completion. Consult
+  offers in particular an advanced buffer switching command
+  consult-buffer to switch between buffers and recently opened files.
+  Multiple search commands are provided, an asynchronous consult-grep
+  and consult-ripgrep, and consult-line, which resembles Swiper.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package marginalia
     :ensure t
     :init
@@ -361,6 +362,47 @@ consult-ripgrep, and consult-line, which resembles Swiper.
     (selectrum-prescient-mode 1) )
 #+END_SRC
 
+   
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package consult
+    :ensure t
+    :init
+    (message "Use-package: consult")
+    :bind
+    ("C-x b" . consult-buffer)
+    ("M-g g" . consult-goto-line)
+    ("M-y"   . consult-yank-pop)
+    ("C-y"   . consult-yank)
+    ("C-s"   . consult-line)
+    ("M-g o" . consult-outline))
+
+  (use-package vertico
+    :ensure t
+    :custom
+    (vertico-cycle t)
+    :init
+    (message "Use-package: vertico")
+    (vertico-mode))
+
+  (use-package savehist
+    :init
+    (savehist-mode))
+
+ (use-package orderless
+  :ensure t
+  :custom (completion-styles '(orderless)))
+
+  (use-package marginalia
+    :after vertico
+    :ensure t
+    :custom
+    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+    :init
+    (message "Use-package: marginalia")
+    (marginalia-mode))
+#+END_SRC
+
+
 ** Avy                                                           :untangled:
 
 Searching for text in the current view. I feel like I should use this more, but somehow
@@ -377,21 +419,6 @@ it just doesn't seem to stick. *Currently not in the configuration.*
   (setq avy-background t) )
 #+END_SRC
 
-** Undo-tree                                                     :untangled:
-
-I find Emacs undo counter-intuitive. I need to fund something simpler, but undo-tree
-isn't it. *Currently not in the configuration.*
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  ;; Better undo
-  (use-package undo-tree
-    :ensure t
-    :init
-    (message "Use-package: Undo-tree")
-    (global-undo-tree-mode) )
-#+END_SRC
-
-
 
 * Interaction
 ** Cut and paste
@@ -399,20 +426,20 @@ isn't it. *Currently not in the configuration.*
 I run on Wayland, and this interacts with wl-copy.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; cut and paste in Wayland environmen
-(setq x-select-enable-clipboard t)
-(defun txt-cut-function (text &optional push)
-  (with-temp-buffer
-    (insert text)
-    (call-process-region (point-min) (point-max) "wl-copy" ))
-  )
-;; (defun txt-paste-function()
-;;   (let ((xsel-output (shell-command-to-string "wl-paste")))
-;;     (unless (string= (car kill-ring) xsel-output)
-;;       xsel-output ))
-;;   )
-(setq interprogram-cut-function 'txt-cut-function)
-;; (setq interprogram-paste-function 'txt-paste-function)
+  ;; cut and paste in Wayland environmen
+  (setq x-select-enable-clipboard t)
+  (defun txt-cut-function (text &optional push)
+    (with-temp-buffer
+      (insert text)
+      (call-process-region (point-min) (point-max) "wl-copy" ))
+    )
+  ;; (defun txt-paste-function()
+  ;;   (let ((xsel-output (shell-command-to-string "wl-paste")))
+  ;;     (unless (string= (car kill-ring) xsel-output)
+  ;;       xsel-output ))
+  ;;   )
+  (setq interprogram-cut-function 'txt-cut-function)
+  ;; (setq interprogram-paste-function 'txt-paste-function)
 #+END_SRC
 
 ** Key-chord and key-seq
@@ -554,8 +581,12 @@ may pick the gcc toolchain with the largest version number."
   ;; corfu
   (use-package corfu
   :ensure t
-  :init (message "Use-package: Corfu") )
-
+  :init (message "Use-package: Corfu")
+  :hook
+  (prog-mode . corfu-mode)
+  (latex-mode . corfu-mode)
+  (org-mode . corfu-mode)
+  )
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
     :ensure t
@@ -624,7 +655,6 @@ I've dabbled with magit, but again not quite got into the habit yet.
 #+BEGIN_SRC  emacs-lisp :tangle yes
   (use-package org
     :ensure t
-    :delight "OM"
     :init
     (message "Use-package: Org") )
 
@@ -825,7 +855,7 @@ Org-journal is installed together with org-roam-server at localhost:8080.
   (add-hook 'after-init-hook 'org-roam-mode)
 #+END_SRC
 
-** Search for Org directory via Deft
+** Search through the Org directory via Deft
 
 Allows direct searching of my org-roam files.
 

@@ -61,7 +61,7 @@
 ;; warn when opening files bigger than 50MB
 (setq large-file-warning-threshold 50000000)
 ;; always follow the symlink
-(setq vc-follow-symlinks nil)
+(setq vc-follow-symlinks t)
 
 ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
 ;; This COMMAND will load a buffer if it changes on disk, which is
@@ -102,7 +102,6 @@
                           (bookmarks . 5)
                           (agenda . 4)))
   (dashboard-setup-startup-hook) )
-
 (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
 
 (set-face-attribute 'default nil
@@ -111,7 +110,6 @@
                     :family "Iosevka" :height 1.0 :weight 'normal)
 (set-face-attribute 'fixed-pitch nil
                     :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
-;;
 (use-package modus-themes
   :ensure t
   :init
@@ -137,7 +135,7 @@
         modus-themes-scale-5 1.3)      
   ;; allow for color changes : so far I've only lifted bg-main up slightly
   (setq modus-themes-vivendi-color-overrides
-        '((bg-main . "#1a1f26")
+        '((bg-main . "#1a1f26") ; I've lifted this slightly
           (bg-dim . "#161129")
           (bg-alt . "#181732")
           (bg-hl-line . "#282a36")
@@ -204,6 +202,7 @@
   :init 
   (message "Use-package: Which-key mode")
   :config
+  (setq which-key-idle-delay 0.25)
   (which-key-mode) )
 
 ;; defaullt to spelll check in latex
@@ -213,43 +212,42 @@
 (add-hook 'org-mode-hook 'hl-line-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 
-(use-package prescient
-  :ensure t
-  :init
-  (message "Use-package: prescient")
-  :config  ; store across restarts
-  (prescient-persist-mode 1) )
-
-(use-package marginalia
-  :ensure t
-  :init
-  (message "Use-package: marginalia")
-  (marginalia-mode) )
-
 (use-package consult
-  :ensure t
-  :init
-  (message "Use-package: consult")
-  :bind
-  ("C-x b" . consult-buffer)
-  ("M-g g" . consult-goto-line)
-  ("M-y"   . consult-yank-pop)
-  ("C-y"   . consult-yank)
-  ("C-s"   . consult-line)
-  ("M-g o" . consult-outline) )
+   :ensure t
+   :init
+   (message "Use-package: consult")
+   :bind
+   ("C-x b" . consult-buffer)
+   ("M-g g" . consult-goto-line)
+   ("M-y"   . consult-yank-pop)
+   ("C-y"   . consult-yank)
+   ("C-s"   . consult-line)
+   ("M-g o" . consult-outline))
 
-(use-package selectrum
-  :ensure t
-  :init (message "Use-package: selectrum")
-  :config
-  (selectrum-mode 1) )
+ (use-package vertico
+   :ensure t
+   :custom
+   (vertico-cycle t)
+   :init
+   (message "Use-package: vertico")
+   (vertico-mode))
 
-(use-package selectrum-prescient
-  :ensure t
-  :init (message "Use-package: selectrum-prescient")
-  :after (prescient selectrum)
-  :config
-  (selectrum-prescient-mode 1) )
+ (use-package savehist
+   :init
+   (savehist-mode))
+
+(use-package orderless
+ :ensure t
+ :custom (completion-styles '(orderless)))
+
+ (use-package marginalia
+   :after vertico
+   :ensure t
+   :custom
+   (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+   :init
+   (message "Use-package: marginalia")
+   (marginalia-mode))
 
 ;; cut and paste in Wayland environmen
 (setq x-select-enable-clipboard t)
@@ -359,8 +357,12 @@
 ;; corfu
 (use-package corfu
 :ensure t
-:init (message "Use-package: Corfu") )
-
+:init (message "Use-package: Corfu")
+:hook
+(prog-mode . corfu-mode)
+(latex-mode . corfu-mode)
+(org-mode . corfu-mode)
+)
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
   :ensure t
@@ -405,7 +407,6 @@
 
 (use-package org
   :ensure t
-  :delight "OM"
   :init
   (message "Use-package: Org") )
 
