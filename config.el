@@ -51,7 +51,7 @@
 ;; this stops the cursor recentering on leaving the page
 ;; ie. stop scrolling by 0.5 page
 (setq scroll-conservatively 101 )
-;; replace annoying yes/no
+;; replace annoying yes/no with y/n
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; don't end sentences with a single space
 (setq sentence-end-double-space nil)
@@ -627,7 +627,9 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
      ("http://feeds.bbci.co.uk/news/technology/rss.xml" news tech)
      ("http://feeds.bbci.co.uk/sport/rss.xml" news sport)
      ("https://www.theverge.com/rss/index.xml" news tech)
-     ("https://emacsredux.com/atom.xml" emacs tech )
+     ("https://emacsredux.com/atom.xml" emacs tech)
+     ("https://www.phoronix.com/rss.php" tech)
+     ("https://www.techradar.com/uk/rss/news/computing" tech)
      ))
   ;; see https://protesilaos.com/dotemacs/
   (defun prot/elfeed-show-eww (&optional link)

@@ -297,18 +297,6 @@ Popup a description of key combinations after a delay.
 #+END_SRC
 
 * Narrowing and completion
-** Prescient
-
-Prescient keeps track of narrowing selections bubbling the common selections to the top of the narrowing list.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package prescient
-    :ensure t
-    :init
-    (message "Use-package: prescient")
-    :config  ; store across restarts
-    (prescient-persist-mode 1) )
-#+END_SRC
 
 ** Narrowing and completion
 
@@ -328,40 +316,6 @@ Prescient keeps track of narrowing selections bubbling the common selections to 
   consult-buffer to switch between buffers and recently opened files.
   Multiple search commands are provided, an asynchronous consult-grep
   and consult-ripgrep, and consult-line, which resembles Swiper.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package marginalia
-    :ensure t
-    :init
-    (message "Use-package: marginalia")
-    (marginalia-mode) )
-
-  (use-package consult
-    :ensure t
-    :init
-    (message "Use-package: consult")
-    :bind
-    ("C-x b" . consult-buffer)
-    ("M-g g" . consult-goto-line)
-    ("M-y"   . consult-yank-pop)
-    ("C-y"   . consult-yank)
-    ("C-s"   . consult-line)
-    ("M-g o" . consult-outline) )
-
-  (use-package selectrum
-    :ensure t
-    :init (message "Use-package: selectrum")
-    :config
-    (selectrum-mode 1) )
-
-  (use-package selectrum-prescient
-    :ensure t
-    :init (message "Use-package: selectrum-prescient")
-    :after (prescient selectrum)
-    :config
-    (selectrum-prescient-mode 1) )
-#+END_SRC
-
    
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package consult
@@ -901,7 +855,9 @@ RSS reader. The feed list can be setq below.
        ("http://feeds.bbci.co.uk/news/technology/rss.xml" news tech)
        ("http://feeds.bbci.co.uk/sport/rss.xml" news sport)
        ("https://www.theverge.com/rss/index.xml" news tech)
-       ("https://emacsredux.com/atom.xml" emacs tech )
+       ("https://emacsredux.com/atom.xml" emacs tech)
+       ("https://www.phoronix.com/rss.php" tech)
+       ("https://www.techradar.com/uk/rss/news/computing" tech)
        ))
     ;; see https://protesilaos.com/dotemacs/
     (defun prot/elfeed-show-eww (&optional link)
