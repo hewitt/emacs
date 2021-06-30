@@ -135,7 +135,8 @@
         modus-themes-scale-5 1.3)      
   ;; allow for color changes : so far I've only lifted bg-main up slightly
   (setq modus-themes-vivendi-color-overrides
-        '((bg-main . "#1a1f26") ; I've lifted this slightly
+        ;'((bg-main . "#1a1f26") ; I've lifted this slightly
+	    '((bg-main . "#181a26") ; I've lifted this a lot
           (bg-dim . "#161129")
           (bg-alt . "#181732")
           (bg-hl-line . "#282a36")
@@ -405,6 +406,16 @@
 ;;   (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
 ;;                             company-echo-metadata-frontend) ) )
 
+;; MAGIT
+(use-package magit
+  :ensure t
+  :defer t
+  :bind
+  ("C-x g" . magit-status)
+  :init
+  (message "Use-package: Magit installed")
+  )
+
 (use-package org
   :ensure t
   :init
@@ -625,7 +636,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
      ("http://feeds.feedburner.com/XahsEmacsBlog" emacs tech)
      ("http://pragmaticemacs.com/feed/" emacs tech)
      ("http://feeds.bbci.co.uk/news/technology/rss.xml" news tech)
-     ("http://feeds.bbci.co.uk/sport/rss.xml" news sport)
      ("https://www.theverge.com/rss/index.xml" news tech)
      ("https://emacsredux.com/atom.xml" emacs tech)
      ("https://www.phoronix.com/rss.php" tech)
