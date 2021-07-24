@@ -57,7 +57,7 @@
 (setq sentence-end-double-space nil)
 ;; From Prelude: reduce the frequency of garbage collection by making it happen on
 ;; each 5MB of allocated data (the default is on every 0.76MB)
-(setq gc-cons-threshold 5000000)
+;;(setq gc-cons-threshold 5000000)
 ;; warn when opening files bigger than 50MB
 (setq large-file-warning-threshold 50000000)
 ;; always follow the symlink
@@ -315,6 +315,12 @@
   (other-window 1))
 (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 
+(use-package perspective
+  :bind
+  ("C-x C-b" . persp-list-buffers)   ; or use a nicer switcher, see below
+  :config
+  (persp-mode))
+
 ;; editorconfig allows specification of tab/space/indent
 (use-package editorconfig
   :ensure t
@@ -552,6 +558,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :delight "OR"
   :after org
   :init
+  (setq org-roam-v2-ack t) ; yes I've migrated from v1 of Roam
   (message "Use-package: Org-roam")
   :config
   (setq org-roam-directory "~/Sync/Org/Roam")
@@ -566,54 +573,51 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
       :unnarrowed t) )
       )  )
 
-; doesn't start by default
-(use-package org-roam-server
-  :ensure t
-  :defer
-  :after org-roam
-  :init
-  (message "Use-package: Org-roam-server")
-  :config
-  (setq org-roam-server-host "127.0.0.1"
-        org-roam-server-port 8080
-        org-roam-server-authenticate nil
-        org-roam-server-export-inline-images t
-        org-roam-server-serve-files nil
-        org-roam-server-served-file-extensions '("pdf" "doc" "docx" "mp4")
-        org-roam-server-network-poll t
-        org-roam-server-network-arrows nil
-        org-roam-server-network-label-truncate t
-        org-roam-server-network-label-truncate-length 60
-        org-roam-server-network-label-wrap-length 20
-        org-roam-server-mode nil) )
-(use-package org-journal
-  :ensure t
-  :init
-  (message "Use-package: Org-journal")
-  :config
-  (setq org-journal-dir "~/Sync/Org/Roam/Journal/"
-        org-journal-date-format "%A, %d %B %Y"
-        org-journal-file-format "%Y_%m_%d"
-        org-journal-time-prefix "  - "
-        org-journal-time-format nil
-        org-journal-file-type 'monthly)  )
+; removed
+;; (use-package org-roam-server
+;;   :ensure t
+;;   :defer
+;;   :after org-roam
+;;   :init
+;;   (message "Use-package: Org-roam-server")
+;;   :config
+;;   (setq org-roam-server-host "127.0.0.1"
+;;         org-roam-server-port 8080
+;;         org-roam-server-authenticate nil
+;;         org-roam-server-export-inline-images t
+;;         org-roam-server-serve-files nil
+;;         org-roam-server-served-file-extensions '("pdf" "doc" "docx" "mp4")
+;;         org-roam-server-network-poll t
+;;         org-roam-server-network-arrows nil
+;;         org-roam-server-network-label-truncate t
+;;         org-roam-server-network-label-truncate-length 60
+;;         org-roam-server-network-label-wrap-length 20
+;;         org-roam-server-mode nil) )
 
-;;
-;; custom faces/colours are in custom-setting.el
-;;
-;(add-hook 'org-mode-hook 'variable-pitch-mode)
-(add-hook 'after-init-hook 'org-roam-mode)
+(use-package org-journal
+   :ensure t
+   :init
+   (message "Use-package: Org-journal")
+   :config
+   (setq org-journal-dir "~/Sync/Org/Roam/Journal/"
+         org-journal-date-format "%A, %d %B %Y"
+         org-journal-file-format "%Y_%m_%d"
+         org-journal-time-prefix "  - "
+         org-journal-time-format nil
+         org-journal-file-type 'monthly)  )
 
 (use-package deft
-   :ensure t
-   :after org
-   :init
-   (message "Use-package: Deft")
-   :config
-   (setq deft-recursive t)
-   (setq deft-default-extension "org")
-   (setq deft-directory "~/Sync/Org/Roam")
-   )
+  :ensure t
+  :after org
+  :init
+  (message "Use-package: Deft")
+  :config
+  (setq deft-recursive t)
+  ;; Org-Roam v2 now stores :properties: on line 1, so below uses the filename in deft list
+  (setq deft-use-filename-as-title t)
+  (setq deft-default-extension "org")
+  (setq deft-directory "~/Sync/Org/Roam")
+  )
 
 (use-package elfeed
   :ensure t
