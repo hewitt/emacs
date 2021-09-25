@@ -24,11 +24,6 @@ Standard content to configure ELPA and MELPA for packages.
         ("MELPA"        . 5 )))
   (package-initialize)
 
-  ;;;; 
-  ;;;; any MANUAL (non-elpa/melpa) PACKAGES are installed here
-  ;;;;
-  ;; (add-to-list 'load-path "~/.emacs.d/manual")
-
   ;;;;
   ;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
   ;;;;
@@ -82,11 +77,13 @@ Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all back
   (fset 'yes-or-no-p 'y-or-n-p)
   ;; don't end sentences with a single space
   (setq sentence-end-double-space nil)
-  ;; From Prelude: reduce the frequency of garbage collection by making it happen on
-  ;; each 5MB of allocated data (the default is on every 0.76MB)
-  ;;(setq gc-cons-threshold 5000000)
-  ;; warn when opening files bigger than 50MB
-  (setq large-file-warning-threshold 50000000)
+  ;; the frequency of garbage collection by making it happen on
+  ;; each 8MB of allocated data (the default is on every 0.8MB)
+  (setq gc-cons-threshold 8000000)
+  ;; report GC events
+  (setq garbage-collection-messages t)
+  ;; warn when opening files bigger than 80MB
+  (setq large-file-warning-threshold 80000000)
   ;; always follow the symlink
   (setq vc-follow-symlinks t)
   #+END_SRC
@@ -251,7 +248,7 @@ Doom modeline is my default choice, just to add a bit of usability to the standa
   ;; The maximum displayed length of the branch name of version control.
   (setq doom-modeline-vcs-max-length 6)
   ;; Whether display perspective name or not. Non-nil to display in mode-line.
-  (setq doom-modeline-persp-name t)
+  ;(setq doom-modeline-persp-name t)
   ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
   (setq doom-modeline-lsp t)  )
 #+END_SRC
@@ -299,17 +296,49 @@ Popup a description of key combinations after a delay.
 
 
 * Narrowing and completion
+** overview
+A useful overview from: https://www.reddit.com/r/emacs/comments/k3c0u7/consult_counselswiper_alternative_for/
 
-** Narrowing and completion
+The minibuffer completion uses:
 
-- I'm now using Vertico (with Orderless) as a "smaller" solution for
-  incremental completion in Emacs. In the past I've moved down the
-  complexity stack by moving from Helm -> Ivy -> Selectrum and now
-  finally -> Vertico.
++ "completing-read" to define what the completion UI looks like and how it behaves.
+
++ "completing-styles" to define how completion filter/sorts results (e.g. does typing "fi fil" match "find-file").
+
+In terms of packages:
+
++ "icomplete", "fido" and "Selectrum" all just set the "completing-read" function and implement continuous completion on each key press (not technically true for "icomplete" for close enough). 
+
++ "Orderless", "Prescient", and the built-in "flex" are completion-styles to allow convenient filters like regex, and sorting by frequency/recency.
+
++ "icomplete-vertical" is a minor mode to make "icomplete" vertical.
+
++ "Consult" is a set of functions to use various Emacs facilities via completing-read.
+
++ "Embark" is a minor mode to allow each minibuffer entry to have multiple actions.
+
+All of the above try to use the minibuffer's existing hooks and extension mechanisms, and benefit from large parts of the rest of Emacs using those mechanisms too. Consequently, they all interoperate with each other and other parts of the Emacs ecosystem. You can pick which you want.
+
+Modes that don't attempt to interop (and thus I avoid):
+
++ "Ido" performs the same role as "completing-read", but doesn't set "completing-read" and so only works for functions that use Ido's own completing function. "ido-ubiquitious" sets ido to be completing-read. ido appears to be considered somewhat deprecated on emacs-devel, in favour of icomplete.
+
++ "Ivy" doesn't use completing-read at all, and does its own filtering (rather than use completion-styles). 
+
++ "Swiper" uses Ivy. I replace with just `C-s`.
+
++ "Counsel" is a set of functions to use various parts of Emacs via minibuffer completion. Very convenient, but only works if you also have "Ivy/Swiper". "Consult" is like "Counsel" but uses the built-in minibuffer completion.
+
++ "Helm" doesn't use "completing-read", but does add multiple actions on each selection. I would use "embark" if I wanted this functionality, but I don't.
+
+
+** Implementation 1 : everything done using standard completing-read interface
+- Use Vertico (with Orderless) as a smaller solution for
+  incremental completion in Emacs. 
   
-- This package provides marginalia-mode which adds marginalia to the
-  minibuffer completions. Marginalia can only add annotations to
-  bedisplayed with the completion candidates.
+- marginalia-mode adds marginalia to the minibuffer completions.
+  Marginalia can only add annotations to be displayed with the
+  completion candidates.
 
 - Consult provides various practical commands based on the
   Emacscompletion function completing-read, which allows to quickly
@@ -319,61 +348,125 @@ Popup a description of key combinations after a delay.
   Multiple search commands are provided, an asynchronous consult-grep
   and consult-ripgrep, and consult-line, which resembles Swiper.
    
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package consult
     :ensure t
+    :after key-seq
     :init
     (message "Use-package: consult")
     :bind
+    ;; see also key-chords elsewhere
     ("C-x b" . consult-buffer)
     ("M-g g" . consult-goto-line)
     ("M-y"   . consult-yank-pop)
-    ("C-y"   . consult-yank)
+    ("C-y"   . yank)
     ("C-s"   . consult-line)
-    ("M-g o" . consult-outline))
+    ("M-g o" . consult-outline)
+    :config
+    (progn
+      (key-seq-define-global "qq"     'consult-buffer)
+      (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
+      (key-seq-define-global "ql"     'consult-goto-line) 
+      ))
+    
+    (use-package vertico
+      :ensure t
+      :custom
+      (vertico-cycle t)
+      :init
+      (message "Use-package: vertico")
+      (vertico-mode))
 
-  (use-package vertico
-    :ensure t
-    :custom
-    (vertico-cycle t)
-    :init
-    (message "Use-package: vertico")
-    (vertico-mode))
+    (use-package savehist
+      :init
+      (savehist-mode))
 
-  (use-package savehist
-    :init
-    (savehist-mode))
+    (use-package orderless
+      :ensure t
+      :custom (completion-styles '(orderless)))
 
- (use-package orderless
-  :ensure t
-  :custom (completion-styles '(orderless)))
-
-  (use-package marginalia
-    :after vertico
-    :ensure t
-    :custom
-    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-    :init
-    (message "Use-package: marginalia")
-    (marginalia-mode))
+    (use-package marginalia
+      :after vertico
+      :ensure t
+      :custom
+      (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+      :init
+      (message "Use-package: marginalia")
+      (marginalia-mode))
 #+END_SRC
 
 
-** Avy                                                           :untangled:
+** Implementation 2 : customised via Ivy+Counsel+Swiper
+- has the (big!) advantage of ivy-posframe, which I like!
+- disadvantage of it being monolithic
 
-Searching for text in the current view. I feel like I should use this more, but somehow
-it just doesn't seem to stick. *Currently not in the configuration.*
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package swiper
+    :ensure t
+    :config
+    :bind
+    ("C-s" . swiper)             ;; Use swiper for search 
+    )
 
-#+BEGIN_SRC emacs-lisp :tangle no
-;; AVY is used to jump around within a buffer see key-chords
-(use-package avy
-  :ensure t
-  :defer t
-  :init
-  (message "Use-package: Avy")
-  :config
-  (setq avy-background t) )
+  (use-package counsel
+    :ensure t
+    :after key-seq
+    :bind
+    ("M-x" . counsel-M-x)
+    ("C-x C-f" . counsel-find-file)
+    ("C-y" . counsel-yank-pop)
+    :config
+    (progn
+      (key-seq-define-global "qq"     'counsel-switch-buffer)
+      (key-seq-define-global "qb"     'counsel-bookmark) ; set or jump
+      (key-seq-define-global "qo"     'counsel-imenu) 
+      (key-seq-define-global "qc"     'counsel-org-capture)
+    ))
+
+  (use-package ivy
+    :ensure t
+    :delight
+    :config
+    (setq ivy-use-virtual-buffers t
+          ivy-count-format "%d/%d ")
+    (ivy-mode 1) )
+
+  (use-package ivy-prescient
+    :ensure t
+    :config
+    (ivy-prescient-mode 1) )
+
+  ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
+  (use-package ivy-posframe
+    :ensure t
+    :after ivy
+    :delight 
+    :custom-face
+    (ivy-posframe-border ((t (:background "#ffffff"))))
+    :config
+    (ivy-posframe-mode 1)
+    (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-top-center)))
+    (setq ivy-posframe-height-alist '((t . 10))
+          ivy-posframe-parameters '((internal-border-width . 10)))
+    (setq ivy-posframe-parameters
+          '((left-fringe . 10)
+            (right-fringe . 10)))
+    ;;(setq ivy-posframe-parameters '((alpha . 0.95)))
+    )
+
+  ;; ivy alternative to marginalia
+  (use-package ivy-rich
+    :ensure t
+    :init
+    (ivy-rich-mode 1) )
+
+  ;; adds icons to buffer list
+  (use-package all-the-icons-ivy-rich
+    :ensure t
+    :init
+    (all-the-icons-ivy-rich-mode 1) )
 #+END_SRC
+
 
 
 * Interaction
@@ -422,21 +515,18 @@ use key-seq, which requires the "chord" to be in the right order.
 
   ;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
   ;; instead key-seq checks the order -- but relies on key-chord-mode still
+  ;;
+  ;; NOTE: additional key-chords are defined within other use-package declarations herein.
   (use-package key-seq
     :ensure t
     :after key-chord
     :init
     (progn
       (message "Use-package: Key-seq" )
-      ;(key-seq-define-global "qd" 'dired)
       (key-seq-define-global "kk"     'kill-whole-line)
       (key-seq-define-global "qs"     'deft) ; search org files
-      (key-seq-define-global "qp"     'prot/elfeed-show-eww) 
-      (key-seq-define-global "qq"     'consult-buffer)
-      (key-seq-define-global "qb"     'bookmark-set) 
-      (key-seq-define-global "qj"     'bookmark-jump)
-      (key-seq-define-global "qo"     'other-window)
-      (key-seq-define-global "qc"     'org-capture)
+      (key-seq-define-global "qi"     'ibuffer-bs-show) 
+      (key-seq-define-global "qw"     'other-window)
       (key-seq-define-global "qt"     'org-babel-tangle)
       (key-seq-define-global "qd"     'org-journal-new-entry)  ) )
 #+END_SRC
@@ -462,15 +552,6 @@ Global keys to split the window AND follow by moving point to the new window.
 (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 #+END_SRC
 
-** Perspective
-Grouping buffers together into logical collections.
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package perspective
-    :bind
-    ("C-x C-b" . persp-list-buffers)   ; or use a nicer switcher, see below
-    :config
-    (persp-mode))
-#+END_SRC
 ** Editorconfig
 
 Set configuration on a per directory basis via .editorconfig.
@@ -500,12 +581,13 @@ Expand roots to standard text snippets with M-].
     :init
     (message "Use-package: YASnippet")
     :config
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ;;;; hooks for YASnippet in Latex and C++;;
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;; hooks for YASnippet in Latex, C++, elisp & org ;;
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     (add-hook 'c++-mode-hook 'yas-minor-mode)  
     (add-hook 'latex-mode-hook 'yas-minor-mode)
     (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
+    (add-hook 'org-mode-hook 'yas-minor-mode)
     ;; remove default keybinding
     (define-key yas-minor-mode-map (kbd "<tab>") nil)
     (define-key yas-minor-mode-map (kbd "TAB") nil)
@@ -634,7 +716,7 @@ may pick the gcc toolchain with the largest version number."
 
   ;; custom capture
   (require 'org-capture)
-  (define-key global-map "\C-cc" 'org-capture)
+  ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
   (setq org-capture-templates
         '(
           ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
@@ -768,18 +850,23 @@ just search the Roam files via Deft.
     :init
     (setq org-roam-v2-ack t) ; yes I've migrated from v1 of Roam
     (message "Use-package: Org-roam")
-    :config
-    (setq org-roam-directory "~/Sync/Org/Roam")
-    (setq org-roam-graph-viewer "/usr/bin/eog")
-    (setq org-ellipsis "▾")
-    (setq org-roam-ref-capture-templates
-      '(
-        ("d" "default" plain (function org-roam--capture-get-point)
+    :custom
+    (org-roam-directory "~/Sync/Org/Roam")
+    (org-roam-graph-viewer "/usr/bin/eog")
+    (org-ellipsis "▾")
+    (org-roam-capture-templates
+     '(("d" "default" plain
         "%?"
-        :file-name "${slug}"
-        :head "#+title: ${title}\n"
-        :unnarrowed t) )
-        )  )
+        :if-new (file+head "${slug}.org" "#+title: ${title}\n")
+        :unnarrowed t)))
+    :bind (("C-c n l" . org-roam-buffer-toggle)
+           ("C-c n f" . org-roam-node-find)
+           ("C-c n i" . org-roam-node-insert)
+           :map org-mode-map
+           ("C-M-i" . completion-at-point))
+    :config
+    (org-roam-setup)
+    )
 
   ; removed
   ;; (use-package org-roam-server
@@ -1018,6 +1105,5 @@ Let's put some general shortcuts into one place for the moment.
     (interactive)
     (load-file (expand-file-name "~/.emacs.d/init.el")) )
   (global-set-key (kbd "C-c r") 'config-reload)
-#+END_SRC
+  #+END_SRC
 
- 

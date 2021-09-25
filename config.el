@@ -10,11 +10,6 @@
       ("MELPA"        . 5 )))
 (package-initialize)
 
-;;;; 
-;;;; any MANUAL (non-elpa/melpa) PACKAGES are installed here
-;;;;
-;; (add-to-list 'load-path "~/.emacs.d/manual")
-
 ;;;;
 ;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
 ;;;;
@@ -55,11 +50,13 @@
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; don't end sentences with a single space
 (setq sentence-end-double-space nil)
-;; From Prelude: reduce the frequency of garbage collection by making it happen on
-;; each 5MB of allocated data (the default is on every 0.76MB)
-;;(setq gc-cons-threshold 5000000)
-;; warn when opening files bigger than 50MB
-(setq large-file-warning-threshold 50000000)
+;; the frequency of garbage collection by making it happen on
+;; each 8MB of allocated data (the default is on every 0.8MB)
+(setq gc-cons-threshold 8000000)
+;; report GC events
+(setq garbage-collection-messages t)
+;; warn when opening files bigger than 80MB
+(setq large-file-warning-threshold 80000000)
 ;; always follow the symlink
 (setq vc-follow-symlinks t)
 
@@ -183,7 +180,7 @@
   ;; The maximum displayed length of the branch name of version control.
   (setq doom-modeline-vcs-max-length 6)
   ;; Whether display perspective name or not. Non-nil to display in mode-line.
-  (setq doom-modeline-persp-name t)
+  ;(setq doom-modeline-persp-name t)
   ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
   (setq doom-modeline-lsp t)  )
 
@@ -213,42 +210,70 @@
 (add-hook 'org-mode-hook 'hl-line-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 
-(use-package consult
-   :ensure t
-   :init
-   (message "Use-package: consult")
-   :bind
-   ("C-x b" . consult-buffer)
-   ("M-g g" . consult-goto-line)
-   ("M-y"   . consult-yank-pop)
-   ("C-y"   . consult-yank)
-   ("C-s"   . consult-line)
-   ("M-g o" . consult-outline))
+(use-package swiper
+  :ensure t
+  :config
+  :bind
+  ("C-s" . swiper)             ;; Use swiper for search 
+  )
 
- (use-package vertico
-   :ensure t
-   :custom
-   (vertico-cycle t)
-   :init
-   (message "Use-package: vertico")
-   (vertico-mode))
+(use-package counsel
+  :ensure t
+  :after key-seq
+  :bind
+  ("M-x" . counsel-M-x)
+  ("C-x C-f" . counsel-find-file)
+  ("C-y" . counsel-yank-pop)
+  :config
+  (progn
+    (key-seq-define-global "qq"     'counsel-switch-buffer)
+    (key-seq-define-global "qb"     'counsel-bookmark) ; set or jump
+    (key-seq-define-global "qo"     'counsel-imenu) 
+    (key-seq-define-global "qc"     'counsel-org-capture)
+  ))
 
- (use-package savehist
-   :init
-   (savehist-mode))
+(use-package ivy
+  :ensure t
+  :delight
+  :config
+  (setq ivy-use-virtual-buffers t
+        ivy-count-format "%d/%d ")
+  (ivy-mode 1) )
 
-(use-package orderless
- :ensure t
- :custom (completion-styles '(orderless)))
+(use-package ivy-prescient
+  :ensure t
+  :config
+  (ivy-prescient-mode 1) )
 
- (use-package marginalia
-   :after vertico
-   :ensure t
-   :custom
-   (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-   :init
-   (message "Use-package: marginalia")
-   (marginalia-mode))
+;; popup ivy completion in a separate frame top centre instead of in the minibuffer
+(use-package ivy-posframe
+  :ensure t
+  :after ivy
+  :delight 
+  :custom-face
+  (ivy-posframe-border ((t (:background "#ffffff"))))
+  :config
+  (ivy-posframe-mode 1)
+  (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-top-center)))
+  (setq ivy-posframe-height-alist '((t . 10))
+        ivy-posframe-parameters '((internal-border-width . 10)))
+  (setq ivy-posframe-parameters
+        '((left-fringe . 10)
+          (right-fringe . 10)))
+  ;;(setq ivy-posframe-parameters '((alpha . 0.95)))
+  )
+
+;; ivy alternative to marginalia
+(use-package ivy-rich
+  :ensure t
+  :init
+  (ivy-rich-mode 1) )
+
+;; adds icons to buffer list
+(use-package all-the-icons-ivy-rich
+  :ensure t
+  :init
+  (all-the-icons-ivy-rich-mode 1) )
 
 ;; cut and paste in Wayland environmen
 (setq x-select-enable-clipboard t)
@@ -282,21 +307,18 @@
 
 ;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
 ;; instead key-seq checks the order -- but relies on key-chord-mode still
+;;
+;; NOTE: additional key-chords are defined within other use-package declarations herein.
 (use-package key-seq
   :ensure t
   :after key-chord
   :init
   (progn
     (message "Use-package: Key-seq" )
-    ;(key-seq-define-global "qd" 'dired)
     (key-seq-define-global "kk"     'kill-whole-line)
     (key-seq-define-global "qs"     'deft) ; search org files
-    (key-seq-define-global "qp"     'prot/elfeed-show-eww) 
-    (key-seq-define-global "qq"     'consult-buffer)
-    (key-seq-define-global "qb"     'bookmark-set) 
-    (key-seq-define-global "qj"     'bookmark-jump)
-    (key-seq-define-global "qo"     'other-window)
-    (key-seq-define-global "qc"     'org-capture)
+    (key-seq-define-global "qi"     'ibuffer-bs-show) 
+    (key-seq-define-global "qw"     'other-window)
     (key-seq-define-global "qt"     'org-babel-tangle)
     (key-seq-define-global "qd"     'org-journal-new-entry)  ) )
 
@@ -314,12 +336,6 @@
   (balance-windows)
   (other-window 1))
 (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
-
-(use-package perspective
-  :bind
-  ("C-x C-b" . persp-list-buffers)   ; or use a nicer switcher, see below
-  :config
-  (persp-mode))
 
 ;; editorconfig allows specification of tab/space/indent
 (use-package editorconfig
@@ -339,12 +355,13 @@
   :init
   (message "Use-package: YASnippet")
   :config
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;; hooks for YASnippet in Latex and C++;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;; hooks for YASnippet in Latex, C++, elisp & org ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (add-hook 'c++-mode-hook 'yas-minor-mode)  
   (add-hook 'latex-mode-hook 'yas-minor-mode)
   (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
+  (add-hook 'org-mode-hook 'yas-minor-mode)
   ;; remove default keybinding
   (define-key yas-minor-mode-map (kbd "<tab>") nil)
   (define-key yas-minor-mode-map (kbd "TAB") nil)
@@ -441,7 +458,7 @@
 
 ;; custom capture
 (require 'org-capture)
-(define-key global-map "\C-cc" 'org-capture)
+;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
 (setq org-capture-templates
       '(
         ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
@@ -560,18 +577,23 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :init
   (setq org-roam-v2-ack t) ; yes I've migrated from v1 of Roam
   (message "Use-package: Org-roam")
-  :config
-  (setq org-roam-directory "~/Sync/Org/Roam")
-  (setq org-roam-graph-viewer "/usr/bin/eog")
-  (setq org-ellipsis "▾")
-  (setq org-roam-ref-capture-templates
-    '(
-      ("d" "default" plain (function org-roam--capture-get-point)
+  :custom
+  (org-roam-directory "~/Sync/Org/Roam")
+  (org-roam-graph-viewer "/usr/bin/eog")
+  (org-ellipsis "▾")
+  (org-roam-capture-templates
+   '(("d" "default" plain
       "%?"
-      :file-name "${slug}"
-      :head "#+title: ${title}\n"
-      :unnarrowed t) )
-      )  )
+      :if-new (file+head "${slug}.org" "#+title: ${title}\n")
+      :unnarrowed t)))
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         :map org-mode-map
+         ("C-M-i" . completion-at-point))
+  :config
+  (org-roam-setup)
+  )
 
 ; removed
 ;; (use-package org-roam-server
