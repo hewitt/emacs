@@ -2,14 +2,18 @@
 #+AUTHOR: Rich Hewitt
 #+EMAIL: richard.hewitt@manchester.ac.uk
 #+STARTUP: indent
-#+PROPERTY: header-args :results silent :tangle "./config.el"
+#+PROPERTY: header-args :results silent
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
-* Basic
-** Package archives: ELPA/MELPA
 
+* Basic setup
+** Package archives: ELPA/MELPA
 Standard content to configure ELPA and MELPA for packages.
+
+Custom settings points to ~/.emacs.d/custom-settings.el but this is
+not controlled by home-manager in my NixOS configuration so these
+custom settings should be treated as transient.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;;;;
@@ -36,16 +40,17 @@ Standard content to configure ELPA and MELPA for packages.
     (require 'use-package) )
 
   ;; Keep custom settings in a separate file to not pollute this one
-  (setq custom-file "~/.emacs.d/custom-settings.el")
+  (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
   (load custom-file t)
 #+END_SRC
 
 ** Identify which machine I'm running on
+There used to be some minor things I wanted to run, but only on some
+of the machines I use. So here we define a quick function to check the
+machine based on the system name. Retained here mostly for future
+reference.
 
-There are some minor things I want to run, but only on one of the machines I use.
-So here we define a quick function to check the machine based on the system name.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (defun system-is-Blasius ()
     (interactive)
     "True for Blasius laptop"
@@ -57,8 +62,9 @@ So here we define a quick function to check the machine based on the system name
 #+END_SRC
 
 ** Change some of the default emacs variables
-
-Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all backups to a single folder. Minor tweaks to garbage collection.
+Some random minor tweaks. Turn off scroll bar, tool bar, menu bar.
+Move all backups to a single folder. Minor tweaks to garbage
+collection.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; move backups to stop *~ proliferation
@@ -77,9 +83,8 @@ Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all back
   (fset 'yes-or-no-p 'y-or-n-p)
   ;; don't end sentences with a single space
   (setq sentence-end-double-space nil)
-  ;; the frequency of garbage collection by making it happen on
-  ;; each 8MB of allocated data (the default is on every 0.8MB)
-  (setq gc-cons-threshold 8000000)
+  ;; the frequency of garbage collection
+  (setq gc-cons-threshold 100000000) ; i.e., every ~100MB
   ;; report GC events
   (setq garbage-collection-messages t)
   ;; warn when opening files bigger than 80MB
@@ -89,7 +94,6 @@ Some random minor tweaks. Turn off scroll bar, tool bar, menu bar. Move all back
   #+END_SRC
 
 ** Update buffer contents when file changes on "disk"
-
 When editing the same file on a shared drive/remote machine, make sure
 that we update any open buffers to show the on-file current status.
 
@@ -105,10 +109,9 @@ that we update any open buffers to show the on-file current status.
 #+END_SRC
 
 ** Add custom file extensions to set major modes
-
-I use "m4" to update headers/footers/dates in LaTeX files for teaching material.
-So here we default to latex-mode for .m4 extensions. In addition ".gnu" for Gnuplot
-and ".m" for Octave.
+I use "m4" to update headers/footers/dates in LaTeX files for teaching
+material. So here we default to latex-mode for .m4 extensions. In
+addition ".gnu" for Gnuplot and ".m" for Octave.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; setup files ending in “.m4” to open in LaTeX-mode
@@ -122,13 +125,13 @@ and ".m" for Octave.
 
 
 * Appearance
+  
 ** Delight
-
 Delight declutters the modeline by reducing the amount of mode information.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package delight
-    :ensure t
+    ;;ensure t
     :init (message "Use-package: Delight") )
   ;; delight some basic modes to get rid of modeline content
   (delight 'eldoc-mode "" 'eldoc)
@@ -136,96 +139,210 @@ Delight declutters the modeline by reducing the amount of mode information.
 #+END_SRC
 
 ** Dashboard
-
 Dashboard is the startup screen for quick access to previously used material.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+*On going issue* Dashboard is currently turned off because it causes
+issues with "emacs --daemon" on NixOS. See:
+https://github.com/emacs-dashboard/emacs-dashboard/issues/373
+
+#+BEGIN_SRC emacs-lisp :tangle no
   ;; dashboard runs at startup by default
   (use-package dashboard
-    :ensure t
+    ;;ensure t
     :delight "Dash"
     :init
     (message "Use-package: Dashboard")
     :config
     (setq dashboard-banner-logo-title "Go!")
-    (setq dashboard-startup-banner 'logo) ; 1,2,3 are the text banners
+    (setq dashboard-startup-banner '2) ; 1,2,3 are the text banners
     (setq dashboard-set-heading-icons t)
     (setq dashboard-set-file-icons t)
     (setq dashboard-items '((recents  . 10)
                             (bookmarks . 5)
                             (agenda . 4)))
-    (dashboard-setup-startup-hook) )
-  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) ; show dashboard on startup for emacsclients when running the daemon
+    (dashboard-setup-startup-hook)
+    ;;(dashboard-refresh-buffer)
+    )
+  ; show dashboard on startup for emacsclients when running the daemon
+  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) 
 #+END_SRC
 
-** Modus theme choices
+** Prot's themes 
+I've switched away from doom-themes to the more systematic & consistent modus-* themes from Protesilaos Stavrou and more recently his ef-themes.
 
-I've switched away from doom-themes to the more systematic & consistent modus-* themes from Protesilaos Stavrou.
+Fonts: in their infinite wisdom Dell decided that Linux editions of the XPS dev-edition laptop needed a hi-dpi panel (despite only being 13" diagonal). I run SwayWM and scale the panel display up by a factor of 2 for it to be readable, but when coupled with a more modest (1920x1200) external monitor the text on the lower resolution external display looks (admittedly only slightly) blurry. Eventually this annoyed me enough to swith to a bitmap font so I can relive the 80s but this time in a non-CRT focus. Font is now set via custom-settings.el.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (set-face-attribute 'default nil
-                      :family "Iosevka SS05" :height 130 :weight 'normal :width 'expanded )
-  (set-face-attribute 'variable-pitch nil
-                      :family "Iosevka" :height 1.0 :weight 'normal)
-  (set-face-attribute 'fixed-pitch nil
-                      :family "Iosevka Fixed" :height 1.0 :weight 'normal :width 'expanded)
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;; My typical font on hi-dpi displays
+  ;;(set-face-attribute 'default nil
+  ;;                    :family "Iosevka Term SS05" :height 110 :weight 'regular :width 'regular )
+  ;;(set-face-attribute 'variable-pitch nil
+  ;;                    :family "Iosevka" :height 1.0 :weight 'regular)
+  ;;(set-face-attribute 'fixed-pitch nil
+  ;;                    :family "Iosevka Term SS05" :height 1.0 :weight 'regular :width 'regular )
+
+  ;; for non-hi-dpi displays, below is now set via custom-settings.el
+  ;;(set-face-attribute 'default nil
+  ;;                     :family "Terminus" :height 120 :weight 'medium :width 'normal )
+  ;;(set-face-attribute 'fixed-pitch nil
+  ;;                     :family "Terminus" :height 120 :weight 'medium :width 'normal )
+  (setq-default line-spacing 0.2) 
   (use-package modus-themes
-    :ensure t
+    ;;ensure t
     :init
-    (message "Use-package: modus-theme")
     ;; Add all your customizations prior to loading the themes
-    (setq modus-themes-slanted-constructs t ; allow italics
-          modus-themes-bold-constructs t ; allow bold font use
-          modus-themes-syntax 'yellow-comments-green-strings ; highlighting
-          modus-themes-mode-line 'borderless ; add vertical separators
-          modus-themes-prompts 'intense-accented
-          modus-themes-lang-checkers 'colored-background
-          modus-themes-completions 'opinionated ; {nil,'moderate,'opinionated}
-          ;modus-themes-intense-hl-line t ; v.1.2.x
-          modus-themes-hl-line 'intense-background ; v.1.3.0
-          modus-themes-org-blocks 'rainbow ; {nil,'greyscale,'rainbow}
-          modus-themes-paren-match 'intense-bold ;
-          modus-themes-scale-headings t ; scale heading text
-          modus-themes-rainbow-headings t
-          modus-themes-scale-1 1.05
-          modus-themes-scale-2 1.1
-          modus-themes-scale-3 1.15
-          modus-themes-scale-4 1.2
-          modus-themes-scale-5 1.3)      
-    ;; allow for color changes : so far I've only lifted bg-main up slightly
-    (setq modus-themes-vivendi-color-overrides
-          ;'((bg-main . "#1a1f26") ; I've lifted this slightly
-	      '((bg-main . "#181a26") ; I've lifted this a lot
-            (bg-dim . "#161129")
-            (bg-alt . "#181732")
-            (bg-hl-line . "#282a36")
-            (bg-active . "#282e46")
-            (bg-inactive . "#1a1e39")
-            (bg-region . "#393a53")
-            (bg-header . "#202037")
-            (bg-tab-bar . "#262b41")
-            (bg-tab-active . "#120f18")
-            (bg-tab-inactive . "#3a3a5a")
-            (fg-unfocused . "#9a9aab")))
-    (setq global-hl-line-mode t)
+    (setq modus-themes-italic-constructs t
+          modus-themes-bold-constructs nil
+          modus-themes-mixed-fonts nil
+          modus-themes-subtle-line-numbers nil
+          modus-themes-intense-mouseovers nil
+          modus-themes-deuteranopia nil
+          modus-themes-tabs-accented t
+          modus-themes-variable-pitch-ui nil
+          modus-themes-inhibit-reload t ; only applies to `customize-set-variable' and related
+          modus-themes-fringes 'intense ; {nil,'subtle,'intense}
+
+          ;; Options for `modus-themes-lang-checkers' are either nil (the
+          ;; default), or a list of properties that may include any of those
+          ;; symbols: `straight-underline', `text-also', `background',
+          ;; `intense' OR `faint'.          
+          modus-themes-lang-checkers nil
+
+          ;; Options for `modus-themes-mode-line' are either nil, or a list
+          ;; that can combine any of `3d' OR `moody', `borderless',
+          ;; `accented', a natural number for extra padding (or a cons cell
+          ;; of padding and NATNUM), and a floating point for the height of
+          ;; the text relative to the base font size (or a cons cell of
+          ;; height and FLOAT)
+          modus-themes-mode-line '(accented borderless (padding . 2) (height . 1.0))
+
+          ;; Same as above
+          ;; modus-themes-mode-line '(accented borderless 4 0.9)
+
+          ;; Options for `modus-themes-markup' are either nil, or a list
+          ;; that can combine any of `bold', `italic', `background',
+          ;; `intense'.
+          modus-themes-markup '(background italic)
+
+          ;; Options for `modus-themes-syntax' are either nil (the default),
+          ;; or a list of properties that may include any of those symbols:
+          ;; `faint', `yellow-comments', `green-strings', `alt-syntax'
+          modus-themes-syntax '(yellow-comments green-strings alt-syntax)
+
+          ;; Options for `modus-themes-hl-line' are either nil (the default),
+          ;; or a list of properties that may include any of those symbols:
+          ;; `accented', `underline', `intense'
+          modus-themes-hl-line '(intense accented)
+
+          ;; Options for `modus-themes-paren-match' are either nil (the
+          ;; default), or a list of properties that may include any of those
+          ;; symbols: `bold', `intense', `underline'
+          modus-themes-paren-match '(bold intense)
+
+          ;; Options for `modus-themes-links' are either nil (the default),
+          ;; or a list of properties that may include any of those symbols:
+          ;; `neutral-underline' OR `no-underline', `faint' OR `no-color',
+          ;; `bold', `italic', `background'
+          modus-themes-links '(neutral-underline background)
+
+          ;; Options for `modus-themes-box-buttons' are either nil (the
+          ;; default), or a list that can combine any of `flat', `accented',
+          ;; `faint', `variable-pitch', `underline', `all-buttons', the
+          ;; symbol of any font weight as listed in `modus-themes-weights',
+          ;; and a floating point number (e.g. 0.9) for the height of the
+          ;; button's text.
+          modus-themes-box-buttons '(variable-pitch flat faint 0.9)
+
+          ;; Options for `modus-themes-prompts' are either nil (the
+          ;; default), or a list of properties that may include any of those
+          ;; symbols: `background', `bold', `gray', `intense', `italic'
+          modus-themes-prompts '(intense bold)
+
+          ;; The `modus-themes-completions' is an alist that reads three
+          ;; keys: `matches', `selection', `popup'.  Each accepts a nil
+          ;; value (or empty list) or a list of properties that can include
+          ;; any of the following (for WEIGHT read further below)
+          ;;
+          ;; `matches' - `background', `intense', `underline', `italic', WEIGHT
+          ;; `selection' - `accented', `intense', `underline', `italic', `text-also' WEIGHT
+          ;; `popup' - same as `selected'
+          ;; `t' - applies to any key not explicitly referenced (check docs)
+          ;;
+          ;; WEIGHT is a symbol such as `semibold', `light', or anything
+          ;; covered in `modus-themes-weights'.  Bold is used in the absence
+          ;; of an explicit WEIGHT.
+          modus-themes-completions '((matches . (extrabold))
+                                     (selection . (semibold accented))
+                                     (popup . (accented intense)))
+
+          modus-themes-mail-citations nil ; {nil,'intense,'faint,'monochrome}
+
+          ;; Options for `modus-themes-region' are either nil (the default),
+          ;; or a list of properties that may include any of those symbols:
+          ;; `no-extend', `bg-only', `accented'
+          modus-themes-region '(bg-only no-extend)
+
+          ;; Options for `modus-themes-diffs': nil, 'desaturated, 'bg-only
+          modus-themes-diffs 'desaturated
+
+          modus-themes-org-blocks 'gray-background ; {nil,'gray-background,'tinted-background}
+          )
+
     ;; Load the theme files before enabling a theme
-    (modus-themes-load-themes)
+    ;;(modus-themes-load-themes)
     :config
-    ;; Load the theme of your choice:
-    ;;(modus-themes-load-operandi) ;; OR 
-    (modus-themes-load-vivendi)
-    :bind 
-    ("<f5>" . modus-themes-toggle) )
+    ;; allow for color changes 
+    ;; so far I've only lifted bg-main up slightly
+    (setq modus-themes-vivendi-color-overrides ; dark
+          '((bg-main . "#282828") ; I've lifted this bg to match foot.ini, breaking contrast levels
+            (bg-hl-line . "#484848")
+            ))
+    ;;(setq modus-themes-operandi-color-overrides ; light
+    ;;      '((bg-main . "#fbf3db") ; lowered contrast of fg vs bg
+    ;;        (fg-main . "#53676d")))
+
+    ;;Load the theme of your choice:
+    ;; (modus-themes-load-vivendi) ;; OR (modus-themes-load-vivendi)
+    :bind ("<f5>" . modus-themes-toggle))
   #+END_SRC
 
-** Modeline (doom)
+#+BEGIN_SRC emacs-lisp :tangle yes
+    ;; Disable all other themes to avoid awkward blending:    
+  (use-package ef-themes
+    :init
+    (mapc #'disable-theme custom-enabled-themes)
+    ;; Make customisations that affect Emacs faces BEFORE loading a theme
+    ;; (any change needs a theme re-load to take effect).
+    (setq ef-themes-headings ; read the manual's entry of the doc string
+          '((0 . (variable-pitch light 1.9))
+            (1 . (variable-pitch light 1.8))
+            (2 . (variable-pitch regular 1.7))
+            (3 . (variable-pitch regular 1.6))
+            (4 . (variable-pitch regular 1.5))
+            (5 . (variable-pitch 1.4)) ; absence of weight means `bold'
+            (6 . (variable-pitch 1.3))
+            (7 . (variable-pitch 1.2))
+            (t . (variable-pitch 1.1))))
+    (setq-default line-spacing 0.2)
+    (setq ef-themes-to-toggle '(ef-day ef-winter))
+    ;;:config
+    ;; Load the theme of choice:
+    ;;(load-theme 'ef-summer :no-confirm)
+    ;; Light: `ef-day', `ef-light', `ef-spring', `ef-summer'.
+    ;; Dark:  `ef-autumn', `ef-dark', `ef-night', `ef-winter'.
 
+    ;; I set the theme at the end of this configuration because of
+    ;; some minor issues with code comments showing as underlined
+    )
+#+END_SRC
+  
+** Modeline (doom)
 Doom modeline is my default choice, just to add a bit of usability to the standard mode line. 
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; modeline
 (use-package doom-modeline
-  :ensure t
+  ;;ensure t
   :init (message "Use-package: Doom-modeline")
   :hook (after-init . doom-modeline-mode)
   :config
@@ -254,13 +371,12 @@ Doom modeline is my default choice, just to add a bit of usability to the standa
 #+END_SRC
 
 ** Rainbow-delimiters
-
 Colorised brackets to make matching easier.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; colourise those brackets
   (use-package rainbow-delimiters
-    :ensure t
+    ;;ensure t
     :init
     (message "Use-package: Rainbow delimiters")
     :config
@@ -270,12 +386,11 @@ Colorised brackets to make matching easier.
 #+END_SRC
 
 ** Which-key
-
 Popup a description of key combinations after a delay.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package which-key
-    :ensure t
+    ;;ensure t
     :delight 
     :init 
     (message "Use-package: Which-key mode")
@@ -285,6 +400,7 @@ Popup a description of key combinations after a delay.
 #+END_SRC
 
 ** Appearance hooks for modes
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; defaullt to spelll check in latex
   (add-hook 'latex-mode-hook 'flyspell-mode)
@@ -296,45 +412,70 @@ Popup a description of key combinations after a delay.
 
 
 * Narrowing and completion
-** overview
+** Overview
 A useful overview from: https://www.reddit.com/r/emacs/comments/k3c0u7/consult_counselswiper_alternative_for/
 
 The minibuffer completion uses:
 
-+ "completing-read" to define what the completion UI looks like and how it behaves.
++ "completing-read" to define what the completion UI looks like and
+  how it behaves.
 
-+ "completing-styles" to define how completion filter/sorts results (e.g. does typing "fi fil" match "find-file").
++ "completing-styles" to define how completion filter/sorts results
+  (e.g. does typing "fi fil" match "find-file").
 
 In terms of packages:
 
-+ "icomplete", "fido" and "Selectrum" all just set the "completing-read" function and implement continuous completion on each key press (not technically true for "icomplete" for close enough). 
++ "icomplete", "fido" and "Selectrum" all just set the
+  "completing-read" function and implement continuous completion on
+  each key press (not technically true for "icomplete" for close
+  enough).
 
-+ "Orderless", "Prescient", and the built-in "flex" are completion-styles to allow convenient filters like regex, and sorting by frequency/recency.
++ "Orderless", "Prescient", and the built-in "flex" are
+  completion-styles to allow convenient filters like regex, and
+  sorting by frequency/recency.
 
 + "icomplete-vertical" is a minor mode to make "icomplete" vertical.
 
-+ "Consult" is a set of functions to use various Emacs facilities via completing-read.
++ "Consult" is a set of functions to use various Emacs facilities via
+  completing-read.
 
-+ "Embark" is a minor mode to allow each minibuffer entry to have multiple actions.
++ "Embark" is a minor mode to allow each minibuffer entry to have
+  multiple actions.
 
-All of the above try to use the minibuffer's existing hooks and extension mechanisms, and benefit from large parts of the rest of Emacs using those mechanisms too. Consequently, they all interoperate with each other and other parts of the Emacs ecosystem. You can pick which you want.
+All of the above try to use the minibuffer's existing hooks and
+extension mechanisms, and benefit from large parts of the rest of
+Emacs using those mechanisms too. Consequently, they all interoperate
+with each other and other parts of the Emacs ecosystem. You can pick
+which you want.
 
-Modes that don't attempt to interop (and thus I avoid):
+Modes that don't attempt to interoperate (and I avoid):
 
-+ "Ido" performs the same role as "completing-read", but doesn't set "completing-read" and so only works for functions that use Ido's own completing function. "ido-ubiquitious" sets ido to be completing-read. ido appears to be considered somewhat deprecated on emacs-devel, in favour of icomplete.
++ "Ido" performs the same role as "completing-read", but doesn't set
+  "completing-read" and so only works for functions that use Ido's own
+  completing function. "ido-ubiquitious" sets ido to be
+  completing-read. ido appears to be considered somewhat deprecated on
+  emacs-devel, in favour of icomplete.
 
-+ "Ivy" doesn't use completing-read at all, and does its own filtering (rather than use completion-styles). 
++ "Ivy" doesn't use completing-read at all, and does its own filtering
+  (rather than use completion-styles).
 
 + "Swiper" uses Ivy. I replace with just `C-s`.
 
-+ "Counsel" is a set of functions to use various parts of Emacs via minibuffer completion. Very convenient, but only works if you also have "Ivy/Swiper". "Consult" is like "Counsel" but uses the built-in minibuffer completion.
++ "Counsel" is a set of functions to use various parts of Emacs via
+  minibuffer completion. Very convenient, but only works if you also
+  have "Ivy/Swiper". "Consult" is like "Counsel" but uses the built-in
+  minibuffer completion.
 
-+ "Helm" doesn't use "completing-read", but does add multiple actions on each selection. I would use "embark" if I wanted this functionality, but I don't.
++ "Helm" doesn't use "completing-read", but does add multiple actions
+  on each selection. I would use "embark" if I wanted this
+  functionality, but I don't.
 
 
 ** Implementation 1 : everything done using standard completing-read interface
 - Use Vertico (with Orderless) as a smaller solution for
-  incremental completion in Emacs. 
+  incremental completion in Emacs.
+
+- I like vertico-posframe. I'm not sure if I should.
   
 - marginalia-mode adds marginalia to the minibuffer completions.
   Marginalia can only add annotations to be displayed with the
@@ -348,9 +489,9 @@ Modes that don't attempt to interop (and thus I avoid):
   Multiple search commands are provided, an asynchronous consult-grep
   and consult-ripgrep, and consult-line, which resembles Swiper.
    
-#+BEGIN_SRC emacs-lisp :tangle no
+#+BEGIN_SRC emacs-lisp :tangle yes
   (use-package consult
-    :ensure t
+    ;;ensure t
     :after key-seq
     :init
     (message "Use-package: consult")
@@ -361,55 +502,61 @@ Modes that don't attempt to interop (and thus I avoid):
     ("M-y"   . consult-yank-pop)
     ("C-y"   . yank)
     ("C-s"   . consult-line)
-    ("M-g o" . consult-outline)
-    :config
-    (progn
-      (key-seq-define-global "qq"     'consult-buffer)
-      (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
-      (key-seq-define-global "ql"     'consult-goto-line) 
-      ))
-    
-    (use-package vertico
-      :ensure t
-      :custom
-      (vertico-cycle t)
-      :init
-      (message "Use-package: vertico")
-      (vertico-mode))
+    ("M-g o" . consult-outline))
 
-    (use-package savehist
-      :init
-      (savehist-mode))
+    ;; define some related chords
+    (key-seq-define-global "qq"     'consult-buffer)
+    (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
+    (key-seq-define-global "ql"     'consult-goto-line)
 
-    (use-package orderless
-      :ensure t
-      :custom (completion-styles '(orderless)))
+  (use-package vertico
+    ;;ensure t
+    :custom
+    (vertico-cycle t)
+    :init
+    (message "Use-package: vertico")
+    (vertico-mode))
 
-    (use-package marginalia
-      :after vertico
-      :ensure t
-      :custom
-      (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-      :init
-      (message "Use-package: marginalia")
-      (marginalia-mode))
+  (use-package savehist
+    :init
+    (savehist-mode))
+
+  ;; (use-package vertico-posframe
+  ;;   ;;ensure t
+  ;;   :init
+  ;;   (message "Use-package: vertico-posframe")
+  ;;   (vertico-posframe-mode))
+
+  (use-package orderless
+    ;;ensure t
+    :custom (completion-styles '(orderless)))
+
+  (use-package marginalia
+    :after vertico
+    ;;ensure t
+    :custom
+    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+    :init
+    (message "Use-package: marginalia")
+    (marginalia-mode))
 #+END_SRC
 
 
 ** Implementation 2 : customised via Ivy+Counsel+Swiper
-- has the (big!) advantage of ivy-posframe, which I like!
-- disadvantage of it being monolithic
+- has ivy-posframe, which I like!
+- vertico (above) now has a posframe version. 
+- disadvantage of it being monolithic.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package swiper
-    :ensure t
+    ;;ensure t
     :config
     :bind
     ("C-s" . swiper)             ;; Use swiper for search 
     )
 
   (use-package counsel
-    :ensure t
+    ;;ensure t
     :after key-seq
     :bind
     ("M-x" . counsel-M-x)
@@ -424,7 +571,7 @@ Modes that don't attempt to interop (and thus I avoid):
     ))
 
   (use-package ivy
-    :ensure t
+    ;;ensure t
     :delight
     :config
     (setq ivy-use-virtual-buffers t
@@ -432,13 +579,13 @@ Modes that don't attempt to interop (and thus I avoid):
     (ivy-mode 1) )
 
   (use-package ivy-prescient
-    :ensure t
+    ;;ensure t
     :config
     (ivy-prescient-mode 1) )
 
   ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
   (use-package ivy-posframe
-    :ensure t
+    ;;ensure t
     :after ivy
     :delight 
     :custom-face
@@ -456,26 +603,24 @@ Modes that don't attempt to interop (and thus I avoid):
 
   ;; ivy alternative to marginalia
   (use-package ivy-rich
-    :ensure t
+    ;;ensure t
     :init
     (ivy-rich-mode 1) )
 
   ;; adds icons to buffer list
   (use-package all-the-icons-ivy-rich
-    :ensure t
+    ;;ensure t
     :init
     (all-the-icons-ivy-rich-mode 1) )
 #+END_SRC
 
 
-
 * Interaction
 ** Cut and paste
+I run exclusively via Wayland (no X11), and this interacts with wl-copy.
 
-I run on Wayland, and this interacts with wl-copy.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-  ;; cut and paste in Wayland environmen
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;; cut and paste in Wayland environment
   (setq x-select-enable-clipboard t)
   (defun txt-cut-function (text &optional push)
     (with-temp-buffer
@@ -492,7 +637,6 @@ I run on Wayland, and this interacts with wl-copy.
 #+END_SRC
 
 ** Key-chord and key-seq
-
 Keyboard shortcuts based on double pressing of low-frequency keys (e.g. 'qq').
 Key-chord doesn't take account of order (e.g. 'qa'='aq') so instead I prefer to
 use key-seq, which requires the "chord" to be in the right order.
@@ -500,7 +644,7 @@ use key-seq, which requires the "chord" to be in the right order.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; rapid-double press to activate key chords
   (use-package key-chord
-    :ensure t
+    ;;ensure t
     :init
     (progn
       (message "Use-package: Key-chord" )
@@ -518,7 +662,7 @@ use key-seq, which requires the "chord" to be in the right order.
   ;;
   ;; NOTE: additional key-chords are defined within other use-package declarations herein.
   (use-package key-seq
-    :ensure t
+    ;;ensure t
     :after key-chord
     :init
     (progn
@@ -528,11 +672,11 @@ use key-seq, which requires the "chord" to be in the right order.
       (key-seq-define-global "qi"     'ibuffer-bs-show) 
       (key-seq-define-global "qw"     'other-window)
       (key-seq-define-global "qt"     'org-babel-tangle)
-      (key-seq-define-global "qd"     'org-journal-new-entry)  ) )
+      (key-seq-define-global "qd"     'org-journal-new-entry)
+      (key-seq-define-global "qc"     'org-capture) ) )
 #+END_SRC
 
 ** Splitting window behaviour
-
 Global keys to split the window AND follow by moving point to the new window.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -553,31 +697,30 @@ Global keys to split the window AND follow by moving point to the new window.
 #+END_SRC
 
 ** Editorconfig
-
 Set configuration on a per directory basis via .editorconfig.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; editorconfig allows specification of tab/space/indent
   (use-package editorconfig
-    :ensure t
+    ;;ensure t
     :delight (editorconfig-mode "Ec")
     :init
     (message "Use-package: EditorConfig")
     :config
     (editorconfig-mode 1) )
+(setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
 #+END_SRC
 
 ** Yasnippet
-
 Expand roots to standard text snippets with M-].
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; location of my snippets -- has to go before yas-reload-all
-  (setq-default yas-snippet-dirs '("/home/hewitt/CURRENT/dot.config/emacs.d/my_snippets"))
+  (setq-default yas-snippet-dirs '("/home/hewitt/.emacs.d/my_snippets"))
   ;; include yansippet and snippets
   (use-package yasnippet
     :delight (yas-minor-mode "YaS")
-    :ensure t
+    ;;ensure t
     :init
     (message "Use-package: YASnippet")
     :config
@@ -619,24 +762,23 @@ Code completion and on-the-fly check/make.
   binding.
 
 - Note for eglot: On my Ubuntu 20.04 LTS installation I had to apt
-install g++ with a version that matched the latest version of the gcc
-compiler as noted in the FAQ for ccls: "For example, if you have
-gcc-7, g++-7 and gcc-8 installed (note the omission of g++-8). clang
-may pick the gcc toolchain with the largest version number."
+  install g++ with a version that matched the latest version of the
+  gcc compiler as noted in the FAQ for ccls: "For example, if you have
+  gcc-7, g++-7 and gcc-8 installed (note the omission of g++-8). clang
+  may pick the gcc toolchain with the largest version number."
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; corfu
   (use-package corfu
-  :ensure t
-  :init (message "Use-package: Corfu")
-  :hook
-  (prog-mode . corfu-mode)
-  (latex-mode . corfu-mode)
-  (org-mode . corfu-mode)
-  )
+    ;;ensure t
+    :init (message "Use-package: Corfu")
+    :hook
+    (prog-mode . corfu-mode)
+    (latex-mode . corfu-mode)
+    (org-mode . corfu-mode) )
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
-    :ensure t
+    ;;ensure t
     :defer t
     :delight (git-gutter-mode "Gg")
     :init (message "Use-package: Git-Gutter")
@@ -646,7 +788,7 @@ may pick the gcc toolchain with the largest version number."
 
   ;; eglot is a simpler alternative to LSP-mode
   (use-package eglot
-    :ensure t
+    ;;ensure t
     :delight (eglot "Eglot")
     :init
     (message "Use-package: Eglot")
@@ -656,34 +798,35 @@ may pick the gcc toolchain with the largest version number."
     (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
     (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
-  ;; ;; company gives the selection front end for code completion
-  ;; ;; but not the C++-aware backend
-  ;; (use-package company
-  ;;   :ensure t
-  ;;   :delight (company-mode "Co")
-  ;;   :bind ("M-/" . company-complete)
-  ;;   :init
-  ;;   (progn
-  ;;     (message "Use-package: Company")
-  ;;     (add-hook 'after-init-hook 'global-company-mode))
-  ;;   :config
-  ;;   (require 'yasnippet)
-  ;;   ;;(setq company-idle-delay 1)
-  ;;   (setq company-minimum-prefix-length 3)
-  ;;   (setq company-idle-delay 0)
-  ;;   (setq company-selection-wrap-around t)
-  ;;   (setq company-tooltip-align-annotations t)
-  ;;   (setq company-frontends '(company-pseudo-tooltip-frontend ; show tooltip even for single candidate
-  ;;                             company-echo-metadata-frontend) ) )
+  ;; company gives the selection front end for code completion
+  ;; but not the C++-aware backend
+  (use-package company
+    ;;ensure t
+    :delight (company-mode "Co")
+    :bind ("M-/" . company-complete)
+    :init
+    (progn
+      (message "Use-package: Company")
+      (add-hook 'after-init-hook 'global-company-mode) )
+    :config
+    (require 'yasnippet)
+    (setq company-idle-delay 1)
+    (setq company-minimum-prefix-length 3)
+    (setq company-idle-delay 0)
+    (setq company-selection-wrap-around t)
+    (setq company-tooltip-align-annotations t)
+    (setq company-frontends '(company-pseudo-tooltip-frontend 
+                              company-echo-metadata-frontend) ) )
 #+END_SRC
 
 
 * Magit
+I'm told it is great, but just haven't got into it yet. Maybe soon?
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
 ;; MAGIT
 (use-package magit
-  :ensure t
+  ;;ensure t
   :defer t
   :bind
   ("C-x g" . magit-status)
@@ -695,127 +838,166 @@ may pick the gcc toolchain with the largest version number."
 
 * Org mode
 ** Basics of Org mode
+A fairly standard Org mode configuration. Some minor tweaks to
+colourise bold/italic/underline for use with bitmap fonts.
 
 #+BEGIN_SRC  emacs-lisp :tangle yes
   (use-package org
-    :ensure t
+    ;;ensure t
+    :after key-seq
     :init
     (message "Use-package: Org") )
 
   ;; fancy replace of *** etc
   (use-package org-bullets
-    :ensure t
+    ;;ensure t
     :after org
     :init
     (add-hook 'org-mode-hook 'org-bullets-mode)
     (message "Use-package: Org-bullets") )
 
-  ;; ORG link to mu4e -- see mu from https://github.com/djcb/mu
-  (require 'org-mu4e)
-  (setq org-mu4e-link-query-in-headers-mode nil)
+  ;; replace emphasis with colors in Org files
+  (setq org-emphasis-alist
+         '(("*" my-org-emphasis-bold)
+           ("/" my-org-emphasis-italic)
+           ("_" underline)
+           ("=" org-verbatim verbatim)
+           ("~" org-code verbatim)
+           ("+" (:strike-through t))))
 
-  ;; custom capture
-  (require 'org-capture)
-  ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
-  (setq org-capture-templates
-        '(
-          ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-           "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-          ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-           "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-           :empty-lines 1)) )
+   (defface my-org-emphasis-bold
+     '((default :inherit bold)
+       (((class color) (min-colors 88) (background light))
+        :foreground "#a60000")
+       (((class color) (min-colors 88) (background dark))
+        :foreground "#ff8059"))
+     "My bold emphasis for Org.")
 
-  ;; Agenda is constructed from org files in ONE directory
-  (setq org-agenda-files '("~/Sync/Org"))
+   (defface my-org-emphasis-italic
+     '((default :inherit italic)
+       (((class color) (min-colors 88) (background light))
+        :foreground "#005e00")
+       (((class color) (min-colors 88) (background dark))
+        :foreground "#44bc44"))
+     "My italic emphasis for Org.")
 
-  ;; refile to targets defined by the org-agenda-files list above
-  (setq org-refile-targets '((nil :maxlevel . 3)
-                             (org-agenda-files :maxlevel . 3)))
-  (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
-  (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+   (defface my-org-emphasis-underline
+     '((default :inherit underline)
+       (((class color) (min-colors 88) (background light))
+        :foreground "#813e00")
+       (((class color) (min-colors 88) (background dark))
+        :foreground "#d0bc00"))
+     "My underline emphasis for Org.")
 
-  ;; store DONE time in the drawer
-  (setq org-log-done (quote time))
-  (setq org-log-into-drawer t)
 
-  ;; Ask and store note if rescheduling
-  (setq org-log-reschedule (quote note))
+     ;; ORG link to mu4e emails -- see mu from https://github.com/djcb/mu
+     ;(require 'org-mu4e)
+     ;(setq org-mu4e-link-query-in-headers-mode nil)
 
-  ;; syntax highlight latex in org files
-  (setq org-highlight-latex-and-related '(latex script entities))
+     ;; custom capture
+     (require 'org-capture)
+     ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
+     (setq org-capture-templates
+           '(
+             ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+              "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+             ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+              "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+              :empty-lines 1)) )
 
-  ;; define the number of days to show in the agenda
-  (setq org-agenda-span 14
-        org-agenda-start-on-weekday nil
-        org-agenda-start-day "-3d")
+     ;; Agenda is constructed from org files in ONE directory
+     (setq org-agenda-files '("~/Sync/Org"))
 
-  ;; default duration of events
-  (setq org-agenda-default-appointment-duration 60)
+     ;; refile to targets defined by the org-agenda-files list above
+     (setq org-refile-targets '((nil :maxlevel . 3)
+                                (org-agenda-files :maxlevel . 3)))
+     (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+     (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
 
-  ;; function for below
-  (defun air-org-skip-subtree-if-priority (priority)
-    "Skip an agenda subtree if it has a priority of PRIORITY.
+     ;; store DONE time in the drawer
+     (setq org-log-done (quote time))
+     (setq org-log-into-drawer t)
 
-  PRIORITY may be one of the characters ?A, ?B, or ?C."
-    (let ((subtree-end (save-excursion (org-end-of-subtree t)))
-          (pri-value (* 1000 (- org-lowest-priority priority)))
-          (pri-current (org-get-priority (thing-at-point 'line t))))
-      (if (= pri-value pri-current)
-          subtree-end
-        nil)) )
+     ;; Ask and store note if rescheduling
+     (setq org-log-reschedule (quote note))
 
-  ;; custom agenda view
-  (setq org-agenda-custom-commands
-        '(("c" "Simple agenda view"
-           ((tags "PRIORITY=\"A\""
-                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                   (org-agenda-overriding-header "High-priority unfinished tasks:")))
-            (agenda "")
-            (alltodo ""
-                     ((org-agenda-skip-function
-                       '(or (air-org-skip-subtree-if-priority ?A)
-                            (org-agenda-skip-if nil '(scheduled deadline))))))))))
+     ;; syntax highlight latex in org files
+     (setq org-highlight-latex-and-related '(latex script entities))
 
-  ;; calendar export
-  (setq org-icalendar-alarm-time 45)
-  ;; This makes sure to-do items as a category can show up on the calendar
-  (setq org-icalendar-include-todo nil)
-  ;; dont include the body
-  (setq org-icalendar-include-body nil)
-  ;; This ensures all org "deadlines" show up, and show up as due dates
-  ;; (setq org-icalendar-use-deadline '(event-if-todo event-if-not-todo todo-due))
-  ;; This ensures "scheduled" org items show up, and show up as start times
-  (setq org-icalendar-use-scheduled '(todo-start event-if-todo event-if-not-todo))
-  (setq org-icalendar-categories '(all-tags))
-  ;; this makes repeated scheduled tasks NOT show after the deadline is passed
-  (setq org-agenda-skip-scheduled-if-deadline-is-shown 'repeated-after-deadline)
+     ;; define the number of days to show in the agenda
+     (setq org-agenda-span 14
+           org-agenda-start-on-weekday nil
+           org-agenda-start-day "-3d")
 
-  ;; my own function to export to .ics
-  (defun reh/export-to-ics ()
-    "Routine that dumps Todo.org to Todo.ics in Syncthing"
-    (interactive)
-    ;(shell-command "rm /home/hewitt/Sync/Org/Todo.ics")
-    (with-current-buffer (find-file-noselect "/home/hewitt/Sync/Org/Todo.org")
-      (rename-file (org-icalendar-export-to-ics)
-                   "/home/hewitt/Sync/Org/Todo.ics" t)
-      (message "Exported Todo.org to Todo.ics"))
-    )
+     ;; used for org timers?
+     (key-seq-define-global "qp"     'org-timer-set-timer)
+     ;; default duration of events
+     (setq org-agenda-default-appointment-duration 60)
 
-  ;; Annoying output littered with S
-  (defun reh/replaceS ()
-    (interactive)
-    (shell-command "sed -i -e \'s/SUMMARY:S:/SUMMARY:/g\' /home/hewitt/Sync/Org/Todo.ics")
-    )
+     ;; function for below
+     (defun air-org-skip-subtree-if-priority (priority)
+       "Skip an agenda subtree if it has a priority of PRIORITY.
 
-  (if (system-is-Orthanc)
-  ;; ONLY RUN THIS ON THE OFFICE MACHINE -- to avoid conflicted copies of .ics file
-      ( progn (message "Machine is Orthanc" )
-              (message "Writing Org calendar to ics every 30 minutes" )
-              (run-with-timer 60 1800 'reh/export-to-ics)
-              (run-with-timer 90 1800 'reh/replaceS) ) )
-  ;(if (system-is-Blasius)
-  ;    ( progn (message "Machine is Blasius" )
-  ;            (message "Not running the .ics generator" ) ) )
+     PRIORITY may be one of the characters ?A, ?B, or ?C."
+       (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+             (pri-value (* 1000 (- org-lowest-priority priority)))
+             (pri-current (org-get-priority (thing-at-point 'line t))))
+         (if (= pri-value pri-current)
+             subtree-end
+           nil)) )
+
+     ;; custom agenda view
+     (setq org-agenda-custom-commands
+           '(("c" "Simple agenda view"
+              ((tags "PRIORITY=\"A\""
+                     ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                      (org-agenda-overriding-header "High-priority unfinished tasks:")))
+               (agenda "")
+               (alltodo ""
+                        ((org-agenda-skip-function
+                          '(or (air-org-skip-subtree-if-priority ?A)
+                               (org-agenda-skip-if nil '(scheduled deadline))))))))))
+
+     ;; calendar export
+     (setq org-icalendar-alarm-time 45)
+     ;; This makes sure to-do items as a category can show up on the calendar
+     (setq org-icalendar-include-todo nil)
+     ;; dont include the body
+     (setq org-icalendar-include-body nil)
+     ;; This ensures all org "deadlines" show up, and show up as due dates
+     ;; (setq org-icalendar-use-deadline '(event-if-todo event-if-not-todo todo-due))
+     ;; This ensures "scheduled" org items show up, and show up as start times
+     (setq org-icalendar-use-scheduled '(todo-start event-if-todo event-if-not-todo))
+     (setq org-icalendar-categories '(all-tags))
+     ;; this makes repeated scheduled tasks NOT show after the deadline is passed
+     (setq org-agenda-skip-scheduled-if-deadline-is-shown 'repeated-after-deadline)
+
+     ;; BELOW is not included anymore -- I've stopped trying to link Org mode to
+     ;; calendars and just rely on Orgzly on my phone to show a "calendar".
+
+     ;; (defun reh/export-to-ics ()
+     ;;   "Routine that dumps Todo.org to Todo.ics in Syncthing"
+     ;;   (interactive)
+     ;;   ;(shell-command "rm /home/hewitt/Sync/Org/Todo.ics")
+     ;;   (with-current-buffer (find-file-noselect "/home/hewitt/Sync/Org/Todo.org")
+     ;;     (rename-file (org-icalendar-export-to-ics)
+     ;;                  "/home/hewitt/Sync/Org/Todo.ics" t)
+     ;;     (message "Exported Todo.org to Todo.ics"))
+     ;;   )
+
+     ;; ;; Annoying output littered with S
+     ;; (defun reh/replaceS ()
+     ;;   (interactive)
+     ;;   (shell-command "sed -i -e \'s/SUMMARY:S:/SUMMARY:/g\' /home/hewitt/Sync/Org/Todo.ics")
+     ;;   )
+
+     ;; (if (system-is-Orthanc)
+     ;; ;; ONLY RUN THIS ON THE OFFICE MACHINE -- to avoid conflicted copies of .ics file
+     ;;     ( progn (message "Machine is Orthanc" )
+     ;;             (message "Writing Org calendar to ics every 30 minutes" )
+     ;;             (run-with-timer 60 1800 'reh/export-to-ics)
+     ;;             (run-with-timer 90 1800 'r
+     ;;                            eh/replaceS) ) )
 #+END_SRC
 
 ** Org-babel
@@ -823,16 +1005,25 @@ may pick the gcc toolchain with the largest version number."
 Reproducible research aide.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package gnuplot
-    :ensure t
-    :init
-    (message "Use-package: gnuplot for babel installed") )
-  ;; languages I work in via babel
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
-  ;; stop it asking if I'm sure about evaluation
-  (setq org-confirm-babel-evaluate nil)
+    (use-package gnuplot
+        :ensure t
+        :init
+        (message "Use-package: gnuplot for babel installed") )
+      ;; languages I work in via babel
+      (org-babel-do-load-languages
+       'org-babel-load-languages
+       '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
+      ;; stop it asking if I'm sure about evaluation
+      (setq org-confirm-babel-evaluate nil)
+
+    (defun my-tab-related-stuff ()
+       (setq indent-tabs-mode nil)
+       ;(setq tab-stop-list (number-sequence 4 200 4))
+       (setq tab-width 2)
+       ;(setq indent-line-function 'insert-tab)
+       )
+
+    (add-hook 'org-mode-hook 'my-tab-related-stuff)
 #+END_SRC
 
 ** Org-Roam
@@ -843,34 +1034,35 @@ I've taken out org-roam-server, I find that I never use it and instead
 just search the Roam files via Deft.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package org-roam
-    :ensure t
-    :delight "OR"
-    :after org
-    :init
-    (setq org-roam-v2-ack t) ; yes I've migrated from v1 of Roam
-    (message "Use-package: Org-roam")
-    :custom
-    (org-roam-directory "~/Sync/Org/Roam")
-    (org-roam-graph-viewer "/usr/bin/eog")
-    (org-ellipsis "▾")
-    (org-roam-capture-templates
-     '(("d" "default" plain
-        "%?"
-        :if-new (file+head "${slug}.org" "#+title: ${title}\n")
-        :unnarrowed t)))
-    :bind (("C-c n l" . org-roam-buffer-toggle)
-           ("C-c n f" . org-roam-node-find)
-           ("C-c n i" . org-roam-node-insert)
-           :map org-mode-map
-           ("C-M-i" . completion-at-point))
-    :config
-    (org-roam-setup)
-    )
+  ;; (use-package org-roam
+  ;;   ;;ensure t
+  ;;   :delight "OR"
+  ;;   :after org
+  ;;   :init
+  ;;   (setq org-roam-v2-ack t) ; yes I've migrated from v1 of Roam
+  ;;   (message "Use-package: Org-roam")
+  ;;   :custom
+  ;;   (org-roam-directory "~/Sync/Org/Roam")
+  ;;   (org-roam-graph-viewer "/usr/bin/eog")
+  ;;   (org-ellipsis "▾")
+  ;;   (org-roam-capture-templates
+  ;;    '(("d" "default" plain
+  ;;       "%?"
+  ;;       :if-new (file+head "${slug}.org" "#+title: ${title}\n")
+  ;;       :unnarrowed t)))
+  ;;   :bind (("C-c n l" . org-roam-buffer-toggle)
+  ;;          ("C-c n f" . org-roam-node-find)
+  ;;          ("C-c n i" . org-roam-node-insert)
+  ;;          :map org-mode-map
+  ;;          ("C-M-i" . completion-at-point))
+  ;;   :config
+  ;;   (org-roam-setup)
+  ;;   )
 
-  ; removed
-  ;; (use-package org-roam-server
-  ;;   :ensure t
+  ;; ; removed
+  ;; ;; (use-package org-roam-server
+  ;; ;;   
+  ;;ensure t
   ;;   :defer
   ;;   :after org-roam
   ;;   :init
@@ -890,50 +1082,134 @@ just search the Roam files via Deft.
   ;;         org-roam-server-mode nil) )
 
   (use-package org-journal
-     :ensure t
+     ;;ensure t
      :init
      (message "Use-package: Org-journal")
      :config
-     (setq org-journal-dir "~/Sync/Org/Roam/Journal/"
+     (setq org-journal-dir "~/Sync/Org/Journal/"
            org-journal-date-format "%A, %d %B %Y"
            org-journal-file-format "%Y_%m_%d"
            org-journal-time-prefix "  - "
            org-journal-time-format nil
            org-journal-file-type 'monthly)  )
 
+
 #+END_SRC
 
+** Denote
+This is an Org-roam alternative. It appeals to me because of its
+simplicity, focus, spectacular documentation and its from an author
+who writes great content.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'denote)
+
+  ;; Remember to check the doc strings of those variables.
+  (setq denote-directory (expand-file-name "~/Sync/Org/Denote/"))
+  (setq denote-known-keywords '("research" "admin" "industry" "teaching" "home" "attachment"))
+  (setq denote-infer-keywords t)
+  (setq denote-sort-keywords t)
+  (setq denote-file-type nil) ; Org is the default, set others here
+  (setq denote-prompts '(title keywords))
+
+  ;; We allow multi-word keywords by default.  The author's personal
+  ;; preference is for single-word keywords for a more rigid workflow.
+  (setq denote-allow-multi-word-keywords t)
+  
+  (setq denote-date-format nil) ; read doc string
+
+  ;; You will not need to `require' all those individually once the
+  ;; package is available.
+  ;;(require 'denote-retrieve)
+  ;;(require 'denote-link)
+
+  ;; By default, we fontify backlinks in their bespoke buffer.
+  (setq denote-link-fontify-backlinks t)
+
+  ;; Also see `denote-link-backlinks-display-buffer-action' which is a bit
+  ;; advanced.
+
+  ;; If you use Markdown or plain text files (Org renders links as buttons
+  ;; right away)
+  (add-hook 'find-file-hook #'denote-link-buttonize-buffer)
+
+  ;;(require 'denote-dired)
+  (setq denote-dired-rename-expert nil)
+
+  ;; We use different ways to specify a path for demo purposes.
+  ;;(setq denote-dired-directories
+  ;;      (list denote-directory
+  ;;            (thread-last denote-directory (expand-file-name "attachments"))
+  ;;            (expand-file-name "~/Documents/books")))
+
+  ;; Generic (great if you rename files Denote-style in lots of places):
+  ;; (add-hook 'dired-mode-hook #'denote-dired-mode)
+  ;;
+  ;; OR if only want it in `denote-dired-directories':
+  (add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
+
+  ;; Denote does not define any key bindings.  This is for the user to
+  ;; decide.  For example:
+  (let ((map global-map))
+    (define-key map (kbd "C-c n n") #'denote)
+    (define-key map (kbd "C-c n N") #'denote-type)
+    (define-key map (kbd "C-c n d") #'denote-date)
+    (define-key map (kbd "C-c n s") #'denote-subdirectory)
+    ;; If you intend to use Denote with a variety of file types, it is
+    ;; easier to bind the link-related commands to the `global-map', as
+    ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
+    ;; `markdown-mode-map', and/or `text-mode-map'.
+    (define-key map (kbd "C-c n i") #'denote-link) ; "insert" mnemonic
+    (define-key map (kbd "C-c n I") #'denote-link-add-links)
+    (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
+    (define-key map (kbd "C-c n b") #'denote-link-backlinks)
+    ;; Note that `denote-dired-rename-file' can work from any context, not
+    ;; just Dired bufffers.  That is why we bind it here to the
+    ;; `global-map'.
+    (define-key map (kbd "C-c n r") #'denote-dired-rename-file))
+
+  (with-eval-after-load 'org-capture    
+    (setq denote-org-capture-specifiers "%l\n%i\n%?")
+    (add-to-list 'org-capture-templates
+                 '("n" "New note (with denote.el)" plain
+                   (file denote-last-path)
+                   #'denote-org-capture
+                   :no-save t
+                   :immediate-finish nil
+                   :kill-buffer t
+                   :jump-to-captured t)))
+#+END_SRC 
+                 
 ** Search through the Org directory via Deft
 
 Allows direct searching of my org-roam files.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package deft
-    :ensure t
-    :after org
+    ;;ensure t
     :init
     (message "Use-package: Deft")
     :config
     (setq deft-recursive t)
     ;; Org-Roam v2 now stores :properties: on line 1, so below uses the filename in deft list
-    (setq deft-use-filename-as-title t)
+    ;; (setq deft-use-filename-as-title t)
+    ;; Prot's "denote" doesn't need above
     (setq deft-default-extension "org")
-    (setq deft-directory "~/Sync/Org/Roam")
+    (setq deft-directory "/home/hewitt/Sync/Org/Denote")
     )
 #+END_SRC
 
 
 * Elfeed
-
 RSS reader. The feed list can be setq below.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package elfeed
-    :ensure t
+    ;;ensure t
     :config
     (setq elfeed-use-curl t)
     (setq elfeed-curl-max-connections 10)
-    (setq elfeed-db-directory "~/CURRENT/dot.config/emacs.d/elfeed/")
+    (setq elfeed-db-directory "~/.emacs.d/elfeed/")
     (setq elfeed-enclosure-default-dir "~/Downloads/")
     (setq elfeed-search-filter "@1-week-ago +unread")
     (setq elfeed-sort-order 'descending)
@@ -977,25 +1253,24 @@ RSS reader. The feed list can be setq below.
  
 
 * PDF tools
-
-This is a great tool if you have to comment on or otherwise annotate PDFs.
-The standard method for adding a text comment is much faster than trying to
-scribble a hadnwritten note via other methods.
+This is a great tool if you have to comment on or otherwise annotate
+PDFs. The standard method for adding a text comment is much faster
+than trying to scribble a hadnwritten note via other methods.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; pdf tools for organising and annotating PDF
   (use-package pdf-tools
-    :ensure t
+    ;;ensure t
     :config
     (pdf-tools-install) )
 #+END_SRC
  
 
 * Email/mu4e
-
 You need the "mu" package and also "mbsync" (also called "isync").
-Existing solution was broken by move to Oauth2 in O365. Now I run "davmail"
-as an intermediary, with IMAP/SMTP on localhost which seems to run well.
+Existing solution was broken by move to Oauth2 in O365. Now I run
+"davmail" as an intermediary, with IMAP/SMTP on localhost which seems
+to run well.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; mu4e is part of the "mu" package and sometimes doesn't get
@@ -1006,7 +1281,7 @@ as an intermediary, with IMAP/SMTP on localhost which seems to run well.
 
   ;; used for outgoing mail send
   (use-package smtpmail
-    :ensure t
+    ;;ensure t
     :defer t
     :init
     (message "Use-package: SMTPmail")
@@ -1030,15 +1305,15 @@ as an intermediary, with IMAP/SMTP on localhost which seems to run well.
   (setq mu4e-headers-show-thread nil)
   (setq mu4e-headers-include-related nil)
   (setq mu4e-headers-results-limit 200)
-  (setq mu4e-mu-binary "/home/hewitt/local/bin/mu")
+  (setq mu4e-mu-binary (executable-find "mu"))
   ;; stop mail draft/sent appearing in the recent files list of the dashboard
-  (add-to-list 'recentf-exclude "\\mbsyncmail\\")
+  ;;(add-to-list 'recentf-exclude "\\mbsyncmail\\")
   ;; how to get mail
-  (setq mu4e-get-mail-command "~/local/bin/mbsync Work"
-        ;mu4e-html2text-command "w3m -T text/html"
-        mu4e-html2text-command "html2markdown --body-width=72" 
-        mu4e-update-interval 300
-        mu4e-headers-auto-update t
+  (setq mu4e-get-mail-command "mbsync Work"
+        mu4e-html2text-command "w3m -T text/html"
+        ;mu4e-html2text-command "html2markdown --body-width=72" 
+        ;mu4e-update-interval 300
+        ;mu4e-headers-auto-update t
         mu4e-compose-signature-auto-include t)
 
   ;; the headers to show 
@@ -1048,9 +1323,9 @@ as an intermediary, with IMAP/SMTP on localhost which seems to run well.
   ;; These are the defaults:
   (setq mu4e-headers-fields
       '((:human-date    .  15)    ;; alternatively, use :date
-         (:flags         .   6)
-         (:from          .  22)
-         (:subject       .  nil))  ;; alternatively, use :thread-subject
+         (:flags        .   6)
+         (:from         .  22)
+         (:subject      .  nil))  ;; alternatively, use :thread-subject
       )
   (setq mu4e-maildir-shortcuts
         '( ("/INBOX"          . ?i)
@@ -1085,25 +1360,30 @@ as an intermediary, with IMAP/SMTP on localhost which seems to run well.
 #+END_SRC
 
 
-* Shortcut keys
-
-Let's put some general shortcuts into one place for the moment.
+* Wrap up
+Wrap up the config with some shortcut definitions and select the theme
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; simple prefix key launcher
-  (global-set-key (kbd "C-c h l") 'elfeed)
   (global-set-key (kbd "C-c h m") 'mu4e)
-  (global-set-key (kbd "C-c h r") 'org-roam)
   (global-set-key (kbd "C-c h a") 'org-agenda)
+  ;; cheap hackery alert:
+  ;; for when auto-encryption-mode (I think) overwrites my
+  ;; epa-file-encrypt-to variable local to any newly opened buffer
+  (defun gpg-key-define ()
+    (interactive)
+    (setq-local epa-file-encrypt-to "richard.hewitt@manchester.ac.uk") )
+  ;;(setq epa-file-encrypt-to "richard.hewitt@manchester.ac.uk")
+  (add-hook 'buffer-list-update-hook 'gpg-key-define)
+  ;;
   ;; C-c e : edit the init.el configuration file
   (defun config-visit ()
     (interactive)
-    (find-file "~/CURRENT/dot.config/emacs.d/config.org") )
+    (find-file "~/CURRENT/NixConfig/dotFiles/.emacs.d/config.org") )
   (global-set-key (kbd "C-c e") 'config-visit)
-  ;; C-c r : reload the configuration file
-  (defun config-reload ()
-    (interactive)
-    (load-file (expand-file-name "~/.emacs.d/init.el")) )
-  (global-set-key (kbd "C-c r") 'config-reload)
+
+  ;; load default theme last.
+  (load-theme 'ef-day :no-confirm)
+  ;(set-cursor-color "yellow")
   #+END_SRC
 

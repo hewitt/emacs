@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: red
+# key: red
+# --
+\begin{mdframed}[backgroundcolor=red!20]
+  
+\end{mdframed}

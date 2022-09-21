@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: green
+# key: green
+# --
+\begin{mdframed}[backgroundcolor=green!20]
+  
+\Q{$0}
+
+\end{mdframed}
