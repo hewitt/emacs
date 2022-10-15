@@ -305,6 +305,7 @@
   (prog-mode . corfu-mode)
   (latex-mode . corfu-mode)
   (org-mode . corfu-mode) )
+
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
   ;;ensure t
@@ -326,6 +327,10 @@
   :custom
   (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
   (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
+
+;; NIX language mode
+(use-package nix-mode
+  :mode "\\.nix\\'")
 
 ;; company gives the selection front end for code completion
 ;; but not the C++-aware backend
@@ -773,7 +778,6 @@
 (defun gpg-key-define ()
   (interactive)
   (setq-local epa-file-encrypt-to "richard.hewitt@manchester.ac.uk") )
-;;(setq epa-file-encrypt-to "richard.hewitt@manchester.ac.uk")
 (add-hook 'buffer-list-update-hook 'gpg-key-define)
 ;;
 ;; C-c e : edit the init.el configuration file
@@ -783,5 +787,5 @@
 (global-set-key (kbd "C-c e") 'config-visit)
 
 ;; load default theme last.
-(load-theme 'ef-day :no-confirm)
+(load-theme 'ef-trio-dark :no-confirm)
 ;(set-cursor-color "yellow")

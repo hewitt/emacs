@@ -141,7 +141,7 @@ Delight declutters the modeline by reducing the amount of mode information.
 ** Dashboard
 Dashboard is the startup screen for quick access to previously used material.
 
-*On going issue* Dashboard is currently turned off because it causes
+*Ongoing issue* Dashboard is currently turned off because it causes
 issues with "emacs --daemon" on NixOS. See:
 https://github.com/emacs-dashboard/emacs-dashboard/issues/373
 
@@ -168,9 +168,9 @@ https://github.com/emacs-dashboard/emacs-dashboard/issues/373
 #+END_SRC
 
 ** Prot's themes 
-I've switched away from doom-themes to the more systematic & consistent modus-* themes from Protesilaos Stavrou and more recently his ef-themes.
+I've switched away from doom-themes to the more systematic themes from Protesilaos Stavrou, most recently his ef-themes.
 
-Fonts: in their infinite wisdom Dell decided that Linux editions of the XPS dev-edition laptop needed a hi-dpi panel (despite only being 13" diagonal). I run SwayWM and scale the panel display up by a factor of 2 for it to be readable, but when coupled with a more modest (1920x1200) external monitor the text on the lower resolution external display looks (admittedly only slightly) blurry. Eventually this annoyed me enough to swith to a bitmap font so I can relive the 80s but this time in a non-CRT focus. Font is now set via custom-settings.el.
+Fonts: Font is now set via custom-settings.el since it is machine specific given each has its own DPI settings.
 
 #+BEGIN_SRC emacs-lisp :tangle no
   ;; My typical font on hi-dpi displays
@@ -180,7 +180,6 @@ Fonts: in their infinite wisdom Dell decided that Linux editions of the XPS dev-
   ;;                    :family "Iosevka" :height 1.0 :weight 'regular)
   ;;(set-face-attribute 'fixed-pitch nil
   ;;                    :family "Iosevka Term SS05" :height 1.0 :weight 'regular :width 'regular )
-
   ;; for non-hi-dpi displays, below is now set via custom-settings.el
   ;;(set-face-attribute 'default nil
   ;;                     :family "Terminus" :height 120 :weight 'medium :width 'normal )
@@ -307,7 +306,7 @@ Fonts: in their infinite wisdom Dell decided that Linux editions of the XPS dev-
   #+END_SRC
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-    ;; Disable all other themes to avoid awkward blending:    
+  ;; Disable all other themes to avoid awkward blending:    
   (use-package ef-themes
     :init
     (mapc #'disable-theme custom-enabled-themes)
@@ -776,6 +775,7 @@ Code completion and on-the-fly check/make.
     (prog-mode . corfu-mode)
     (latex-mode . corfu-mode)
     (org-mode . corfu-mode) )
+
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
     ;;ensure t
@@ -797,6 +797,10 @@ Code completion and on-the-fly check/make.
     :custom
     (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
     (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
+
+  ;; NIX language mode
+  (use-package nix-mode
+    :mode "\\.nix\\'")
 
   ;; company gives the selection front end for code completion
   ;; but not the C++-aware backend
@@ -1373,7 +1377,6 @@ Wrap up the config with some shortcut definitions and select the theme
   (defun gpg-key-define ()
     (interactive)
     (setq-local epa-file-encrypt-to "richard.hewitt@manchester.ac.uk") )
-  ;;(setq epa-file-encrypt-to "richard.hewitt@manchester.ac.uk")
   (add-hook 'buffer-list-update-hook 'gpg-key-define)
   ;;
   ;; C-c e : edit the init.el configuration file
@@ -1383,7 +1386,7 @@ Wrap up the config with some shortcut definitions and select the theme
   (global-set-key (kbd "C-c e") 'config-visit)
 
   ;; load default theme last.
-  (load-theme 'ef-day :no-confirm)
+  (load-theme 'ef-trio-dark :no-confirm)
   ;(set-cursor-color "yellow")
   #+END_SRC
 
