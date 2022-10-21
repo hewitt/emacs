@@ -6,13 +6,12 @@
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
-
 * Basic setup
 ** Package archives: ELPA/MELPA
 Standard content to configure ELPA and MELPA for packages.
 
 Custom settings points to ~/.emacs.d/custom-settings.el but this is
-not controlled by home-manager in my NixOS configuration so these
+not controlled by "home-manager" in my NixOS configuration so these
 custom settings should be treated as transient.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -21,11 +20,11 @@ custom settings should be treated as transient.
   ;;;;
   (require 'package)
   (setq package-archives
-      '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
-        ("MELPA"        . "https://melpa.org/packages/"))
-      package-archive-priorities ; prefer ELPA to MELPA
-      '(("GNU ELPA"     . 10)
-        ("MELPA"        . 5 )))
+        '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
+          ("MELPA"        . "https://melpa.org/packages/"))
+        package-archive-priorities ; prefer ELPA to MELPA
+        '(("GNU ELPA"     . 10)
+          ("MELPA"        . 5 )))
   (package-initialize)
 
   ;;;;
@@ -42,23 +41,6 @@ custom settings should be treated as transient.
   ;; Keep custom settings in a separate file to not pollute this one
   (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
   (load custom-file t)
-#+END_SRC
-
-** Identify which machine I'm running on
-There used to be some minor things I wanted to run, but only on some
-of the machines I use. So here we define a quick function to check the
-machine based on the system name. Retained here mostly for future
-reference.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (defun system-is-Blasius ()
-    (interactive)
-    "True for Blasius laptop"
-    (string-equal system-name "Blasius"))
-  (defun system-is-Orthanc ()
-    (interactive)
-    "True for Orthanc desktop"
-    (string-equal system-name "Orthanc"))
 #+END_SRC
 
 ** Change some of the default emacs variables
@@ -81,10 +63,10 @@ collection.
   (setq scroll-conservatively 101 )
   ;; replace annoying yes/no with y/n
   (fset 'yes-or-no-p 'y-or-n-p)
-  ;; don't end sentences with a single space
+  ;; don't end sentences with a double space
   (setq sentence-end-double-space nil)
   ;; the frequency of garbage collection
-  (setq gc-cons-threshold 100000000) ; i.e., every ~100MB
+  (setq gc-cons-threshold 8000000 ) ; i.e., every ~8MB
   ;; report GC events
   (setq garbage-collection-messages t)
   ;; warn when opening files bigger than 80MB
@@ -121,13 +103,16 @@ addition ".gnu" for Gnuplot and ".m" for Octave.
   (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
   ;; Octave/Matlab
   (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
+  ;; Nix language
+  (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 #+END_SRC
 
 
 * Appearance
   
 ** Delight
-Delight declutters the modeline by reducing the amount of mode information.
+Delight declutters the modeline by reducing the amount of mode
+information.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package delight
@@ -139,7 +124,8 @@ Delight declutters the modeline by reducing the amount of mode information.
 #+END_SRC
 
 ** Dashboard
-Dashboard is the startup screen for quick access to previously used material.
+Dashboard is the startup screen for quick access to previously used
+material.
 
 *Ongoing issue* Dashboard is currently turned off because it causes
 issues with "emacs --daemon" on NixOS. See:
@@ -163,14 +149,16 @@ https://github.com/emacs-dashboard/emacs-dashboard/issues/373
     (dashboard-setup-startup-hook)
     ;;(dashboard-refresh-buffer)
     )
-  ; show dashboard on startup for emacsclients when running the daemon
+  ;; show dashboard on startup for emacsclients when running the daemon
   (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*"))) 
 #+END_SRC
 
 ** Prot's themes 
-I've switched away from doom-themes to the more systematic themes from Protesilaos Stavrou, most recently his ef-themes.
+I've switched away from doom-themes to the more systematic themes from
+Protesilaos Stavrou, and most recently his ef-themes.
 
-Fonts: Font is now set via custom-settings.el since it is machine specific given each has its own DPI settings.
+Fonts: The defailt font is now set via custom-settings.el since it is machine
+specific given each has its own DPI settings.
 
 #+BEGIN_SRC emacs-lisp :tangle no
   ;; My typical font on hi-dpi displays
@@ -336,7 +324,8 @@ Fonts: Font is now set via custom-settings.el since it is machine specific given
 #+END_SRC
   
 ** Modeline (doom)
-Doom modeline is my default choice, just to add a bit of usability to the standard mode line. 
+Doom modeline is my default choice, just to add a bit of usability to
+the standard mode line.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 ;; modeline
@@ -800,7 +789,8 @@ Code completion and on-the-fly check/make.
 
   ;; NIX language mode
   (use-package nix-mode
-    :mode "\\.nix\\'")
+    :delight (nix-mode "Nx")
+    :mode "\\.nix\\'" ) 
 
   ;; company gives the selection front end for code completion
   ;; but not the C++-aware backend
@@ -825,9 +815,9 @@ Code completion and on-the-fly check/make.
 
 
 * Magit
-I'm told it is great, but just haven't got into it yet. Maybe soon?
+Trying to use it!
 
-#+BEGIN_SRC emacs-lisp :tangle no
+#+BEGIN_SRC emacs-lisp :tangle yes
 ;; MAGIT
 (use-package magit
   ;;ensure t
@@ -1030,80 +1020,12 @@ Reproducible research aide.
     (add-hook 'org-mode-hook 'my-tab-related-stuff)
 #+END_SRC
 
-** Org-Roam
-
-Sets up org-roam as a personal wiki using Deft as an Org search tool.
-Org-journal is installed together with org-roam-server at localhost:8080.
-I've taken out org-roam-server, I find that I never use it and instead
-just search the Roam files via Deft.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-  ;; (use-package org-roam
-  ;;   ;;ensure t
-  ;;   :delight "OR"
-  ;;   :after org
-  ;;   :init
-  ;;   (setq org-roam-v2-ack t) ; yes I've migrated from v1 of Roam
-  ;;   (message "Use-package: Org-roam")
-  ;;   :custom
-  ;;   (org-roam-directory "~/Sync/Org/Roam")
-  ;;   (org-roam-graph-viewer "/usr/bin/eog")
-  ;;   (org-ellipsis "▾")
-  ;;   (org-roam-capture-templates
-  ;;    '(("d" "default" plain
-  ;;       "%?"
-  ;;       :if-new (file+head "${slug}.org" "#+title: ${title}\n")
-  ;;       :unnarrowed t)))
-  ;;   :bind (("C-c n l" . org-roam-buffer-toggle)
-  ;;          ("C-c n f" . org-roam-node-find)
-  ;;          ("C-c n i" . org-roam-node-insert)
-  ;;          :map org-mode-map
-  ;;          ("C-M-i" . completion-at-point))
-  ;;   :config
-  ;;   (org-roam-setup)
-  ;;   )
-
-  ;; ; removed
-  ;; ;; (use-package org-roam-server
-  ;; ;;   
-  ;;ensure t
-  ;;   :defer
-  ;;   :after org-roam
-  ;;   :init
-  ;;   (message "Use-package: Org-roam-server")
-  ;;   :config
-  ;;   (setq org-roam-server-host "127.0.0.1"
-  ;;         org-roam-server-port 8080
-  ;;         org-roam-server-authenticate nil
-  ;;         org-roam-server-export-inline-images t
-  ;;         org-roam-server-serve-files nil
-  ;;         org-roam-server-served-file-extensions '("pdf" "doc" "docx" "mp4")
-  ;;         org-roam-server-network-poll t
-  ;;         org-roam-server-network-arrows nil
-  ;;         org-roam-server-network-label-truncate t
-  ;;         org-roam-server-network-label-truncate-length 60
-  ;;         org-roam-server-network-label-wrap-length 20
-  ;;         org-roam-server-mode nil) )
-
-  (use-package org-journal
-     ;;ensure t
-     :init
-     (message "Use-package: Org-journal")
-     :config
-     (setq org-journal-dir "~/Sync/Org/Journal/"
-           org-journal-date-format "%A, %d %B %Y"
-           org-journal-file-format "%Y_%m_%d"
-           org-journal-time-prefix "  - "
-           org-journal-time-format nil
-           org-journal-file-type 'monthly)  )
-
-
-#+END_SRC
-
 ** Denote
 This is an Org-roam alternative. It appeals to me because of its
 simplicity, focus, spectacular documentation and its from an author
 who writes great content.
+
+Searching the Denote files is done via Deft. 
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (require 'denote)
@@ -1119,7 +1041,7 @@ who writes great content.
   ;; We allow multi-word keywords by default.  The author's personal
   ;; preference is for single-word keywords for a more rigid workflow.
   (setq denote-allow-multi-word-keywords t)
-  
+
   (setq denote-date-format nil) ; read doc string
 
   ;; You will not need to `require' all those individually once the
@@ -1182,11 +1104,25 @@ who writes great content.
                    :immediate-finish nil
                    :kill-buffer t
                    :jump-to-captured t)))
+
+  ;; I still like "org-journal" rather than using "denote".
+  (use-package org-journal
+    ;;ensure t
+    :init
+    (message "Use-package: Org-journal")
+    :config
+    (setq org-journal-dir "~/Sync/Org/Journal/"
+          org-journal-date-format "%A, %d %B %Y"
+          org-journal-file-format "%Y_%m_%d"
+          org-journal-time-prefix "  - "
+          org-journal-time-format nil
+          org-journal-file-type 'monthly)  )
+
 #+END_SRC 
                  
-** Search through the Org directory via Deft
+** Search through the Org/Denote directory via Deft
 
-Allows direct searching of my org-roam files.
+Allows direct searching of my Denote notes.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package deft
@@ -1205,6 +1141,9 @@ Allows direct searching of my org-roam files.
 
 
 * Elfeed
+
+2022: taken out.
+
 RSS reader. The feed list can be setq below.
 
 #+BEGIN_SRC emacs-lisp :tangle no
@@ -1378,7 +1317,7 @@ Wrap up the config with some shortcut definitions and select the theme
     (interactive)
     (setq-local epa-file-encrypt-to "richard.hewitt@manchester.ac.uk") )
   (add-hook 'buffer-list-update-hook 'gpg-key-define)
-  ;;
+  
   ;; C-c e : edit the init.el configuration file
   (defun config-visit ()
     (interactive)
@@ -1387,6 +1326,5 @@ Wrap up the config with some shortcut definitions and select the theme
 
   ;; load default theme last.
   (load-theme 'ef-trio-dark :no-confirm)
-  ;(set-cursor-color "yellow")
-  #+END_SRC
+    #+END_SRC
 

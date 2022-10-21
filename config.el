@@ -3,11 +3,11 @@
 ;;;;
 (require 'package)
 (setq package-archives
-    '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
-      ("MELPA"        . "https://melpa.org/packages/"))
-    package-archive-priorities ; prefer ELPA to MELPA
-    '(("GNU ELPA"     . 10)
-      ("MELPA"        . 5 )))
+      '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
+        ("MELPA"        . "https://melpa.org/packages/"))
+      package-archive-priorities ; prefer ELPA to MELPA
+      '(("GNU ELPA"     . 10)
+        ("MELPA"        . 5 )))
 (package-initialize)
 
 ;;;;
@@ -39,10 +39,10 @@
 (setq scroll-conservatively 101 )
 ;; replace annoying yes/no with y/n
 (fset 'yes-or-no-p 'y-or-n-p)
-;; don't end sentences with a single space
+;; don't end sentences with a double space
 (setq sentence-end-double-space nil)
 ;; the frequency of garbage collection
-(setq gc-cons-threshold 100000000) ; i.e., every ~100MB
+(setq gc-cons-threshold 8000000 ) ; i.e., every ~8MB
 ;; report GC events
 (setq garbage-collection-messages t)
 ;; warn when opening files bigger than 80MB
@@ -66,6 +66,8 @@
 (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
 ;; Octave/Matlab
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
+;; Nix language
+(add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 
 (use-package delight
   ;;ensure t
@@ -330,7 +332,8 @@
 
 ;; NIX language mode
 (use-package nix-mode
-  :mode "\\.nix\\'")
+  :delight (nix-mode "Nx")
+  :mode "\\.nix\\'" ) 
 
 ;; company gives the selection front end for code completion
 ;; but not the C++-aware backend
@@ -351,6 +354,16 @@
   (setq company-tooltip-align-annotations t)
   (setq company-frontends '(company-pseudo-tooltip-frontend 
                             company-echo-metadata-frontend) ) )
+
+;; MAGIT
+(use-package magit
+  ;;ensure t
+  :defer t
+  :bind
+  ("C-x g" . magit-status)
+  :init
+  (message "Use-package: Magit installed")
+  )
 
 (use-package org
   ;;ensure t
@@ -529,65 +542,6 @@
 
 (add-hook 'org-mode-hook 'my-tab-related-stuff)
 
-;; (use-package org-roam
-;;   ;;ensure t
-;;   :delight "OR"
-;;   :after org
-;;   :init
-;;   (setq org-roam-v2-ack t) ; yes I've migrated from v1 of Roam
-;;   (message "Use-package: Org-roam")
-;;   :custom
-;;   (org-roam-directory "~/Sync/Org/Roam")
-;;   (org-roam-graph-viewer "/usr/bin/eog")
-;;   (org-ellipsis "▾")
-;;   (org-roam-capture-templates
-;;    '(("d" "default" plain
-;;       "%?"
-;;       :if-new (file+head "${slug}.org" "#+title: ${title}\n")
-;;       :unnarrowed t)))
-;;   :bind (("C-c n l" . org-roam-buffer-toggle)
-;;          ("C-c n f" . org-roam-node-find)
-;;          ("C-c n i" . org-roam-node-insert)
-;;          :map org-mode-map
-;;          ("C-M-i" . completion-at-point))
-;;   :config
-;;   (org-roam-setup)
-;;   )
-
-;; ; removed
-;; ;; (use-package org-roam-server
-;; ;;   
-;;ensure t
-;;   :defer
-;;   :after org-roam
-;;   :init
-;;   (message "Use-package: Org-roam-server")
-;;   :config
-;;   (setq org-roam-server-host "127.0.0.1"
-;;         org-roam-server-port 8080
-;;         org-roam-server-authenticate nil
-;;         org-roam-server-export-inline-images t
-;;         org-roam-server-serve-files nil
-;;         org-roam-server-served-file-extensions '("pdf" "doc" "docx" "mp4")
-;;         org-roam-server-network-poll t
-;;         org-roam-server-network-arrows nil
-;;         org-roam-server-network-label-truncate t
-;;         org-roam-server-network-label-truncate-length 60
-;;         org-roam-server-network-label-wrap-length 20
-;;         org-roam-server-mode nil) )
-
-(use-package org-journal
-   ;;ensure t
-   :init
-   (message "Use-package: Org-journal")
-   :config
-   (setq org-journal-dir "~/Sync/Org/Journal/"
-         org-journal-date-format "%A, %d %B %Y"
-         org-journal-file-format "%Y_%m_%d"
-         org-journal-time-prefix "  - "
-         org-journal-time-format nil
-         org-journal-file-type 'monthly)  )
-
 (require 'denote)
 
 ;; Remember to check the doc strings of those variables.
@@ -664,6 +618,19 @@
                  :immediate-finish nil
                  :kill-buffer t
                  :jump-to-captured t)))
+
+;; I still like "org-journal" rather than using "denote".
+(use-package org-journal
+  ;;ensure t
+  :init
+  (message "Use-package: Org-journal")
+  :config
+  (setq org-journal-dir "~/Sync/Org/Journal/"
+        org-journal-date-format "%A, %d %B %Y"
+        org-journal-file-format "%Y_%m_%d"
+        org-journal-time-prefix "  - "
+        org-journal-time-format nil
+        org-journal-file-type 'monthly)  )
 
 (use-package deft
   ;;ensure t
@@ -779,7 +746,7 @@
   (interactive)
   (setq-local epa-file-encrypt-to "richard.hewitt@manchester.ac.uk") )
 (add-hook 'buffer-list-update-hook 'gpg-key-define)
-;;
+
 ;; C-c e : edit the init.el configuration file
 (defun config-visit ()
   (interactive)
@@ -788,4 +755,3 @@
 
 ;; load default theme last.
 (load-theme 'ef-trio-dark :no-confirm)
-;(set-cursor-color "yellow")
