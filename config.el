@@ -25,6 +25,14 @@
 (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
 (load custom-file t)
 
+;; quelpa set up to allow 'age to be used below
+;; currently not required as everything is in (M)ELPA [Jan 2023]
+;; (quelpa
+;;  '(quelpa-use-package
+;;    :fetcher git
+;;    :url "https://github.com/quelpa/quelpa-use-package.git"))
+;; (require 'quelpa-use-package)
+
 ;; move backups to stop *~ proliferation
 (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
 ;; have mouse input in the terminal
@@ -52,18 +60,18 @@
 
 ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
 ;; This COMMAND will load a buffer if it changes on disk, which is
-;; super handy if editing from multiple machines over long periods.
+;; key if editing from multiple machines over long periods.
 (defun revert-buffer-no-confirm ()
   "Revert buffer without confirmation."
   (interactive)
   (revert-buffer :ignore-auto :noconfirm))
-(global-auto-revert-mode 1)
+(global-auto-revert-mode)
 
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
 (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
 ;; my default gnuplot extension
-(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+;;(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
 ;; Octave/Matlab
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
 ;; Nix language
@@ -82,17 +90,6 @@
   (mapc #'disable-theme custom-enabled-themes)
   ;; Make customisations that affect Emacs faces BEFORE loading a theme
   ;; (any change needs a theme re-load to take effect).
-  (setq ef-themes-headings ; read the manual's entry of the doc string
-        '((0 . (variable-pitch light 1.9))
-          (1 . (variable-pitch light 1.8))
-          (2 . (variable-pitch regular 1.7))
-          (3 . (variable-pitch regular 1.6))
-          (4 . (variable-pitch regular 1.5))
-          (5 . (variable-pitch 1.4)) ; absence of weight means `bold'
-          (6 . (variable-pitch 1.3))
-          (7 . (variable-pitch 1.2))
-          (t . (variable-pitch 1.1))))
-  (setq-default line-spacing 0.2)
   (setq ef-themes-to-toggle '(ef-day ef-winter))
   ;;:config
   ;; Load the theme of choice:
@@ -101,10 +98,9 @@
   ;; Dark:  `ef-autumn', `ef-dark', `ef-night', `ef-winter'.
 
   ;; I set the theme at the end of this configuration because of
-  ;; some minor issues with code comments showing as underlined
+  ;; some minor issues with code comments showing as underlined [2022]
   )
 
-;; modeline
 (use-package doom-modeline
   ;;ensure t
   :init (message "Use-package: Doom-modeline")
@@ -133,7 +129,6 @@
   ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
   (setq doom-modeline-lsp t)  )
 
-;; colourise those brackets
 (use-package rainbow-delimiters
   ;;ensure t
   :init
@@ -152,11 +147,14 @@
   (setq which-key-idle-delay 0.25)
   (which-key-mode) )
 
-;; defaullt to spelll check in latex
+;; latex  
 (add-hook 'latex-mode-hook 'flyspell-mode)
 (add-hook 'latex-mode-hook 'hl-line-mode)
+;; programming
 (add-hook 'prog-mode-hook 'hl-line-mode)
+;; org-mode
 (add-hook 'org-mode-hook 'hl-line-mode)
+(add-hook 'org-mode-hook 'flyspell-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 
 (use-package consult
@@ -190,11 +188,12 @@
   :init
   (savehist-mode))
 
-;; (use-package vertico-posframe
-;;   ;;ensure t
-;;   :init
-;;   (message "Use-package: vertico-posframe")
-;;   (vertico-posframe-mode))
+(use-package vertico-posframe
+  :config
+  (setq vertico-posframe-border-width 3)
+  (setq vertico-posframe-mode t)
+  (setq vertico-posframe-poshandler 'posframe-poshandler-frame-top-center)
+  (setq vertico-posframe-width 100))
 
 (use-package orderless
   ;;ensure t
@@ -224,9 +223,6 @@
   (setq key-chord-one-key-delay 0.2) ; default 0.2    
   (key-chord-mode 1) )
 
-;; I like key-chord but the order of the keys is ignored ie. qs is equivalent to sq
-;; instead key-seq checks the order -- but relies on key-chord-mode still
-;;
 ;; NOTE: additional key-chords are defined within other use-package declarations herein.
 (use-package key-seq
   ;;ensure t
@@ -296,10 +292,8 @@
   ;; redefine my own keys
   (define-key yas-keymap (kbd "M-n") 'yas-next-field-or-maybe-expand)
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
-  (yas-reload-all)
-  )
+  (yas-reload-all) )
 
-;; corfu
 (use-package corfu
   ;;ensure t
   :init (message "Use-package: Corfu")
@@ -457,87 +451,30 @@
    ;; default duration of events
    (setq org-agenda-default-appointment-duration 60)
 
-   ;; function for below
-   (defun air-org-skip-subtree-if-priority (priority)
-     "Skip an agenda subtree if it has a priority of PRIORITY.
+   (setq org-agenda-prefix-format '(
+    ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                                    (agenda  . "  •  %-12:c%?-12t% s")
+                                    (timeline  . "  % s")
+                                    (todo  . " %i %-12:c")
+                                    (tags  . " %i %-12:c")
+                                    (search . " %i %-12:c")))
 
-   PRIORITY may be one of the characters ?A, ?B, or ?C."
-     (let ((subtree-end (save-excursion (org-end-of-subtree t)))
-           (pri-value (* 1000 (- org-lowest-priority priority)))
-           (pri-current (org-get-priority (thing-at-point 'line t))))
-       (if (= pri-value pri-current)
-           subtree-end
-         nil)) )
+;; (use-package gnuplot
+;;     :ensure t
+;;     :init
+;;     (message "Use-package: gnuplot for babel installed") )
+;;   ;; languages I work in via babel
+;;   (org-babel-do-load-languages
+;;    'org-babel-load-languages
+;;    '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
+;;   ;; stop it asking if I'm sure about evaluation
+;;   (setq org-confirm-babel-evaluate nil)
 
-   ;; custom agenda view
-   (setq org-agenda-custom-commands
-         '(("c" "Simple agenda view"
-            ((tags "PRIORITY=\"A\""
-                   ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                    (org-agenda-overriding-header "High-priority unfinished tasks:")))
-             (agenda "")
-             (alltodo ""
-                      ((org-agenda-skip-function
-                        '(or (air-org-skip-subtree-if-priority ?A)
-                             (org-agenda-skip-if nil '(scheduled deadline))))))))))
-
-   ;; calendar export
-   (setq org-icalendar-alarm-time 45)
-   ;; This makes sure to-do items as a category can show up on the calendar
-   (setq org-icalendar-include-todo nil)
-   ;; dont include the body
-   (setq org-icalendar-include-body nil)
-   ;; This ensures all org "deadlines" show up, and show up as due dates
-   ;; (setq org-icalendar-use-deadline '(event-if-todo event-if-not-todo todo-due))
-   ;; This ensures "scheduled" org items show up, and show up as start times
-   (setq org-icalendar-use-scheduled '(todo-start event-if-todo event-if-not-todo))
-   (setq org-icalendar-categories '(all-tags))
-   ;; this makes repeated scheduled tasks NOT show after the deadline is passed
-   (setq org-agenda-skip-scheduled-if-deadline-is-shown 'repeated-after-deadline)
-
-   ;; BELOW is not included anymore -- I've stopped trying to link Org mode to
-   ;; calendars and just rely on Orgzly on my phone to show a "calendar".
-
-   ;; (defun reh/export-to-ics ()
-   ;;   "Routine that dumps Todo.org to Todo.ics in Syncthing"
-   ;;   (interactive)
-   ;;   ;(shell-command "rm /home/hewitt/Sync/Org/Todo.ics")
-   ;;   (with-current-buffer (find-file-noselect "/home/hewitt/Sync/Org/Todo.org")
-   ;;     (rename-file (org-icalendar-export-to-ics)
-   ;;                  "/home/hewitt/Sync/Org/Todo.ics" t)
-   ;;     (message "Exported Todo.org to Todo.ics"))
-   ;;   )
-
-   ;; ;; Annoying output littered with S
-   ;; (defun reh/replaceS ()
-   ;;   (interactive)
-   ;;   (shell-command "sed -i -e \'s/SUMMARY:S:/SUMMARY:/g\' /home/hewitt/Sync/Org/Todo.ics")
-   ;;   )
-
-   ;; (if (system-is-Orthanc)
-   ;; ;; ONLY RUN THIS ON THE OFFICE MACHINE -- to avoid conflicted copies of .ics file
-   ;;     ( progn (message "Machine is Orthanc" )
-   ;;             (message "Writing Org calendar to ics every 30 minutes" )
-   ;;             (run-with-timer 60 1800 'reh/export-to-ics)
-   ;;             (run-with-timer 90 1800 'r
-   ;;                            eh/replaceS) ) )
-
-(use-package gnuplot
-    :ensure t
-    :init
-    (message "Use-package: gnuplot for babel installed") )
-  ;; languages I work in via babel
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
-  ;; stop it asking if I'm sure about evaluation
-  (setq org-confirm-babel-evaluate nil)
-
-(defun my-tab-related-stuff ()
+ (defun my-tab-related-stuff ()
    (setq indent-tabs-mode nil)
-   ;(setq tab-stop-list (number-sequence 4 200 4))
+   ;;(setq tab-stop-list (number-sequence 4 200 4))
    (setq tab-width 2)
-   ;(setq indent-line-function 'insert-tab)
+   ;;(setq indent-line-function 'insert-tab)
    )
 
 (add-hook 'org-mode-hook 'my-tab-related-stuff)
@@ -651,9 +588,11 @@
   :config
   (pdf-tools-install) )
 
+;; Feb 2023 : mu is not installed via Nix so no need to specialise
 ;; mu4e is part of the "mu" package and sometimes doesn't get
 ;; found auto-magically. So this points directly to it.
-(add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
+;; (add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
+
 ;; defines mu4e exists, but holds off until needed
 (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
@@ -664,20 +603,20 @@
   :init
   (message "Use-package: SMTPmail")
   (setq message-send-mail-function 'smtpmail-send-it
-    user-mail-address "richard.hewitt@manchester.ac.uk"
-    ;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
-    smtpmail-default-smtp-server "localhost"
-    smtpmail-local-domain "manchester.ac.uk"
-    smtpmail-smtp-server "localhost"
-    ;smtpmail-stream-type 'starttls
-    smtpmail-smtp-service 1025) )
+        user-mail-address "richard.hewitt@manchester.ac.uk"
+        ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+        smtpmail-default-smtp-server "localhost" ; davmail runs locally
+        smtpmail-local-domain "manchester.ac.uk"
+        smtpmail-smtp-server "localhost"
+        ;;smtpmail-stream-type 'starttls
+        smtpmail-smtp-service 1025) )
 
 ;; 2018 : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
 (setq mu4e-change-filenames-when-moving t)
 ;; general mu4e config
 (setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
 (setq mu4e-drafts-folder "/Drafts")
-(setq mu4e-sent-folder   "/Sent")
+(setq mu4e-sent-folder   "/Sent") ; they still seem to appear in O365 despite this not being "Sent Items"
 (setq mu4e-trash-folder  "/Deleted Items") ; I don't sync Deleted Items & largely do permanent delete "D" rather than move to trash "d"
 (setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
 (setq mu4e-headers-show-thread nil)
@@ -689,9 +628,9 @@
 ;; how to get mail
 (setq mu4e-get-mail-command "mbsync Work"
       mu4e-html2text-command "w3m -T text/html"
-      ;mu4e-html2text-command "html2markdown --body-width=72" 
-      ;mu4e-update-interval 300
-      ;mu4e-headers-auto-update t
+      ;;mu4e-html2text-command "html2markdown --body-width=72" 
+      ;;mu4e-update-interval 300
+      ;;mu4e-headers-auto-update t
       mu4e-compose-signature-auto-include t)
 
 ;; the headers to show 
@@ -700,11 +639,11 @@
 ;; better only use that for the last field.
 ;; These are the defaults:
 (setq mu4e-headers-fields
-    '((:human-date    .  15)    ;; alternatively, use :date
-       (:flags        .   6)
-       (:from         .  22)
-       (:subject      .  nil))  ;; alternatively, use :thread-subject
-    )
+      '((:human-date    .  15)    ;; alternatively, use :date
+        (:flags        .   6)
+        (:from         .  22)
+        (:subject      .  nil))  ;; alternatively, use :thread-subject
+      )
 (setq mu4e-maildir-shortcuts
       '( ("/INBOX"          . ?i)
          ("/Sent"           . ?s)
@@ -721,37 +660,55 @@
 ;; general emacs mail settings; used when composing e-mail
 ;; the non-mu4e-* stuff is inherited from emacs/message-mode
 (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
-    user-mail-address "richard.hewitt@manchester.ac.uk"
-    user-full-name  "Rich Hewitt")
-;;;; don't save message to Sent Messages, IMAP takes care of this
-;; 2019: emails are vanishing with below!
+      user-mail-address "richard.hewitt@manchester.ac.uk"
+      user-full-name  "Rich Hewitt")
 (setq mu4e-sent-messages-behavior 'sent)
 
 ;; spell check during compose
 (add-hook 'mu4e-compose-mode-hook
-  (defun my-do-compose-stuff ()
-  "My settings for message composition."
-  (set-fill-column 72)
-  (flyspell-mode)
-  ; turn off autosave, otherwise we end up with multiple versions of sent/draft mail being sync'd
-  (auto-save-mode -1) ) )
+          (defun my-do-compose-stuff ()
+            "My settings for message composition."
+            (set-fill-column 72)
+            (flyspell-mode)
+            ;; turn off autosave, otherwise we end up with multiple
+            ;; versions of sent/draft mail being sync'd
+            (auto-save-mode -1) ) )
+
+(use-package age
+  ;;; :quelpa (age :fetcher github :repo "anticomputer/age.el") 
+  :ensure t
+  :demand
+  :custom
+  (age-program "rage")
+  (age-default-identity "~/CURRENT/AGE/age-yubikey-identity-bb978fd1.txt")
+  (age-default-recipient
+   '("~/CURRENT/AGE/backupKey.pub"
+     "~/CURRENT/AGE/age-yubikey-identity-bb978fd1.pub"))
+  :config
+  (setq age-armor nil) ;; don't convert to ASCII so I can see the key headers
+  (age-file-enable))
 
 ;; simple prefix key launcher
 (global-set-key (kbd "C-c h m") 'mu4e)
 (global-set-key (kbd "C-c h a") 'org-agenda)
-;; cheap hackery alert:
-;; for when auto-encryption-mode (I think) overwrites my
-;; epa-file-encrypt-to variable local to any newly opened buffer
-(defun gpg-key-define ()
-  (interactive)
-  (setq-local epa-file-encrypt-to "richard.hewitt@manchester.ac.uk") )
-(add-hook 'buffer-list-update-hook 'gpg-key-define)
-
-;; C-c e : edit the init.el configuration file
+;; C-c h e : edit the init.el configuration file
 (defun config-visit ()
   (interactive)
   (find-file "~/CURRENT/NixConfig/dotFiles/.emacs.d/config.org") )
-(global-set-key (kbd "C-c e") 'config-visit)
+(global-set-key (kbd "C-c h e") 'config-visit)
+;; C-c h e : edit the init.el configuration file
+(defun todo-visit ()
+  (interactive)
+  (find-file "~/Sync/Org/Todo.org") )
+(global-set-key (kbd "C-c h t") 'todo-visit)
 
 ;; load default theme last.
-(load-theme 'ef-trio-dark :no-confirm)
+(load-theme 'ef-duo-dark :no-confirm)
+
+;; because we use daemon/client we have to initiate the posframe
+;; mode only once a frame is made
+(add-hook 'after-make-frame-functions
+  (lambda (frame)
+    (select-frame frame)
+    (when (display-graphic-p frame)
+      (vertico-posframe-mode 1))))
