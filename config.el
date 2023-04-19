@@ -59,19 +59,19 @@
 (setq vc-follow-symlinks t)
 
 ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
-;; This COMMAND will load a buffer if it changes on disk, which is
+;; This COMMAND will reload a buffer if it changes on disk, which is
 ;; key if editing from multiple machines over long periods.
-(defun revert-buffer-no-confirm ()
-  "Revert buffer without confirmation."
-  (interactive)
-  (revert-buffer :ignore-auto :noconfirm))
+;(defun revert-buffer-no-confirm ()
+;  "Revert buffer without confirmation."
+;  (interactive)
+;  (revert-buffer :ignore-auto :noconfirm))
 (global-auto-revert-mode)
 
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
 (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
 ;; my default gnuplot extension
-;;(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
 ;; Octave/Matlab
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
 ;; Nix language
@@ -83,6 +83,26 @@
 ;; delight some basic modes to get rid of modeline content
 (delight 'eldoc-mode "" 'eldoc)
 (delight 'abbrev-mode "" 'abbrev)
+
+;; dashboard runs at startup by default
+(use-package dashboard
+  ;;ensure t
+  :delight "Dash"
+  :init
+  (message "Use-package: Dashboard")
+  :config
+  (setq dashboard-banner-logo-title "Go!")
+  (setq dashboard-startup-banner '2) ; 1,2,3 are the text banners
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (setq dashboard-items '((recents  . 10)
+                          (bookmarks . 5)
+                          (agenda . 4)))
+  (dashboard-setup-startup-hook)
+  ;(dashboard-refresh-buffer)
+  )
+;; show dashboard on startup for emacsclients when running the daemon
+(setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
 
 ;; Disable all other themes to avoid awkward blending:    
 (use-package ef-themes
@@ -176,6 +196,15 @@
   (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
   (key-seq-define-global "ql"     'consult-goto-line)
 
+(use-package consult-notes
+  :commands (consult-notes consult-notes-search-in-all-notes)
+  :config
+  ;(setq consult-notes-file-dir-sources
+  ;      '(("Org"         ?o "~/Sync/Org/Denote/")
+  ;        ("Journal"      ?j "~/Sync/Org/Journal/")))    
+  ;(consult-notes-org-headings-mode)
+  (consult-notes-denote-mode))
+
 (use-package vertico
   ;;ensure t
   :custom
@@ -231,7 +260,7 @@
   (progn
     (message "Use-package: Key-seq" )
     (key-seq-define-global "kk"     'kill-whole-line)
-    (key-seq-define-global "qs"     'deft) ; search org files
+    (key-seq-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
     (key-seq-define-global "qi"     'ibuffer-bs-show) 
     (key-seq-define-global "qw"     'other-window)
     (key-seq-define-global "qt"     'org-babel-tangle)
@@ -569,19 +598,6 @@
         org-journal-time-format nil
         org-journal-file-type 'monthly)  )
 
-(use-package deft
-  ;;ensure t
-  :init
-  (message "Use-package: Deft")
-  :config
-  (setq deft-recursive t)
-  ;; Org-Roam v2 now stores :properties: on line 1, so below uses the filename in deft list
-  ;; (setq deft-use-filename-as-title t)
-  ;; Prot's "denote" doesn't need above
-  (setq deft-default-extension "org")
-  (setq deft-directory "/home/hewitt/Sync/Org/Denote")
-  )
-
 ;; pdf tools for organising and annotating PDF
 (use-package pdf-tools
   ;;ensure t
@@ -606,7 +622,7 @@
         user-mail-address "richard.hewitt@manchester.ac.uk"
         ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
         smtpmail-default-smtp-server "localhost" ; davmail runs locally
-        smtpmail-local-domain "manchester.ac.uk"
+        ;;smtpmail-local-domain "manchester.ac.uk"
         smtpmail-smtp-server "localhost"
         ;;smtpmail-stream-type 'starttls
         smtpmail-smtp-service 1025) )

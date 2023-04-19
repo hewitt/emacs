@@ -96,12 +96,12 @@ that we update any open buffers to show the on-file current status.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
-  ;; This COMMAND will load a buffer if it changes on disk, which is
+  ;; This COMMAND will reload a buffer if it changes on disk, which is
   ;; key if editing from multiple machines over long periods.
-  (defun revert-buffer-no-confirm ()
-    "Revert buffer without confirmation."
-    (interactive)
-    (revert-buffer :ignore-auto :noconfirm))
+  ;(defun revert-buffer-no-confirm ()
+  ;  "Revert buffer without confirmation."
+  ;  (interactive)
+  ;  (revert-buffer :ignore-auto :noconfirm))
   (global-auto-revert-mode)
 #+END_SRC
 
@@ -115,7 +115,7 @@ In addition ".gnu" for Gnuplot and ".m" for Octave.
   ;; for use in lecture note construction
   (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
   ;; my default gnuplot extension
-  ;;(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+  (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
   ;; Octave/Matlab
   (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
   ;; Nix language
@@ -146,7 +146,7 @@ material.
 it causes issues with "emacs --daemon" on NixOS. See:
 https://github.com/emacs-dashboard/emacs-dashboard/issues/373
 
-#+BEGIN_SRC emacs-lisp :tangle no
+#+BEGIN_SRC emacs-lisp :tangle yes
   ;; dashboard runs at startup by default
   (use-package dashboard
     ;;ensure t
@@ -484,56 +484,65 @@ Modes that don't attempt to interoperate (and I avoid):
   and consult-ripgrep, and consult-line, which resembles Swiper.
    
 #+BEGIN_SRC emacs-lisp :tangle yes
-   (use-package consult
-     ;;ensure t
-     :after key-seq
-     :init
-     (message "Use-package: consult")
-     :bind
-     ;; see also key-chords elsewhere
-     ("C-x b" . consult-buffer)
-     ("M-g g" . consult-goto-line)
-     ("M-y"   . consult-yank-pop)
-     ("C-y"   . yank)
-     ("C-s"   . consult-line)
-     ("M-g o" . consult-outline))
+    (use-package consult
+      ;;ensure t
+      :after key-seq
+      :init
+      (message "Use-package: consult")
+      :bind
+      ;; see also key-chords elsewhere
+      ("C-x b" . consult-buffer)
+      ("M-g g" . consult-goto-line)
+      ("M-y"   . consult-yank-pop)
+      ("C-y"   . yank)
+      ("C-s"   . consult-line)
+      ("M-g o" . consult-outline))
 
-     ;; define some related chords
-     (key-seq-define-global "qq"     'consult-buffer)
-     (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
-     (key-seq-define-global "ql"     'consult-goto-line)
+      ;; define some related chords
+      (key-seq-define-global "qq"     'consult-buffer)
+      (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
+      (key-seq-define-global "ql"     'consult-goto-line)
 
-   (use-package vertico
-     ;;ensure t
-     :custom
-     (vertico-cycle t)
-     :init
-     (message "Use-package: vertico")
-     (vertico-mode))
+    (use-package consult-notes
+      :commands (consult-notes consult-notes-search-in-all-notes)
+      :config
+      ;(setq consult-notes-file-dir-sources
+      ;      '(("Org"         ?o "~/Sync/Org/Denote/")
+      ;        ("Journal"      ?j "~/Sync/Org/Journal/")))    
+      ;(consult-notes-org-headings-mode)
+      (consult-notes-denote-mode))
 
-   (use-package savehist
-     :init
-     (savehist-mode))
+    (use-package vertico
+      ;;ensure t
+      :custom
+      (vertico-cycle t)
+      :init
+      (message "Use-package: vertico")
+      (vertico-mode))
 
-   (use-package vertico-posframe
-     :config
-     (setq vertico-posframe-border-width 3)
-     (setq vertico-posframe-mode t)
-     (setq vertico-posframe-poshandler 'posframe-poshandler-frame-top-center)
-     (setq vertico-posframe-width 100))
+    (use-package savehist
+      :init
+      (savehist-mode))
 
-   (use-package orderless
-     ;;ensure t
-     :custom (completion-styles '(orderless)))
+    (use-package vertico-posframe
+      :config
+      (setq vertico-posframe-border-width 3)
+      (setq vertico-posframe-mode t)
+      (setq vertico-posframe-poshandler 'posframe-poshandler-frame-top-center)
+      (setq vertico-posframe-width 100))
 
-   (use-package marginalia
-     :after vertico
-     ;;ensure t
-     :custom
-     (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-     :init
-     (message "Use-package: marginalia")
-     (marginalia-mode))
+    (use-package orderless
+      ;;ensure t
+      :custom (completion-styles '(orderless)))
+
+    (use-package marginalia
+      :after vertico
+      ;;ensure t
+      :custom
+      (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+      :init
+      (message "Use-package: marginalia")
+      (marginalia-mode))
 #+END_SRC
 
 
@@ -654,7 +663,7 @@ the "chord" to be in the right order.
     (progn
       (message "Use-package: Key-seq" )
       (key-seq-define-global "kk"     'kill-whole-line)
-      (key-seq-define-global "qs"     'deft) ; search org files
+      (key-seq-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
       (key-seq-define-global "qi"     'ibuffer-bs-show) 
       (key-seq-define-global "qw"     'other-window)
       (key-seq-define-global "qt"     'org-babel-tangle)
@@ -965,7 +974,7 @@ This is an Org-roam alternative. It appeals to me because of its
 simplicity, focus, spectacular documentation and its from an author
 who writes great content.
 
-Searching the Denote files is done via Deft. 
+Searching the Denote files is done via the "consult-notes" package. 
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (require 'denote)
@@ -1064,7 +1073,7 @@ Searching the Denote files is done via Deft.
 
 Allows direct searching of my Denote notes.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package deft
     ;;ensure t
     :init
@@ -1174,7 +1183,7 @@ intermediary, with IMAP/SMTP on localhost which seems to run well.
           user-mail-address "richard.hewitt@manchester.ac.uk"
           ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
           smtpmail-default-smtp-server "localhost" ; davmail runs locally
-          smtpmail-local-domain "manchester.ac.uk"
+          ;;smtpmail-local-domain "manchester.ac.uk"
           smtpmail-smtp-server "localhost"
           ;;smtpmail-stream-type 'starttls
           smtpmail-smtp-service 1025) )
@@ -1295,4 +1304,5 @@ Wrap up the config with some shortcut definitions and select the theme
         (when (display-graphic-p frame)
           (vertico-posframe-mode 1))))
 #+END_SRC
+
 
