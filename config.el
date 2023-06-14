@@ -13,25 +13,17 @@
 ;;;;
 ;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
 ;;;;
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package) )
+;;(unless (package-installed-p 'use-package)
+;;  (package-refresh-contents)
+;;  (package-install 'use-package) )
 
 ;; this is the standard use-package invocation if it is in ~/.emacs.d
-(eval-when-compile
-  (require 'use-package) )
+;;(eval-when-compile
+;;  (require 'use-package) )
 
 ;; Keep custom settings in a separate file to not pollute this one
 (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
 (load custom-file t)
-
-;; quelpa set up to allow 'age to be used below
-;; currently not required as everything is in (M)ELPA [Jan 2023]
-;; (quelpa
-;;  '(quelpa-use-package
-;;    :fetcher git
-;;    :url "https://github.com/quelpa/quelpa-use-package.git"))
-;; (require 'quelpa-use-package)
 
 ;; move backups to stop *~ proliferation
 (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
@@ -217,14 +209,14 @@
   :init
   (savehist-mode))
 
-(use-package vertico-posframe
-  :config
-  (setq vertico-posframe-border-width 3)
-  (setq vertico-posframe-mode t)
-  (setq vertico-posframe-poshandler 'posframe-poshandler-frame-top-center)
-  (setq vertico-posframe-width 100))
+;; (use-package vertico-posframe
+;;   :config
+;;   (setq vertico-posframe-border-width 3)
+;;   (setq vertico-posframe-mode t)
+;;   (setq vertico-posframe-poshandler 'posframe-poshandler-frame-top-center)
+;;   (setq vertico-posframe-width 100))
 
-(use-package orderless
+ (use-package orderless
   ;;ensure t
   :custom (completion-styles '(orderless)))
 
@@ -488,23 +480,23 @@
                                     (tags  . " %i %-12:c")
                                     (search . " %i %-12:c")))
 
-;; (use-package gnuplot
-;;     :ensure t
-;;     :init
-;;     (message "Use-package: gnuplot for babel installed") )
-;;   ;; languages I work in via babel
-;;   (org-babel-do-load-languages
-;;    'org-babel-load-languages
-;;    '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
-;;   ;; stop it asking if I'm sure about evaluation
-;;   (setq org-confirm-babel-evaluate nil)
+(use-package gnuplot
+     ;;:ensure t
+     :init
+     (message "Use-package: gnuplot for babel installed") )
+;; languages I work in via babel
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
+;; stop it asking if I'm sure about evaluation
+(setq org-confirm-babel-evaluate nil)
 
- (defun my-tab-related-stuff ()
-   (setq indent-tabs-mode nil)
-   ;;(setq tab-stop-list (number-sequence 4 200 4))
-   (setq tab-width 2)
-   ;;(setq indent-line-function 'insert-tab)
-   )
+(defun my-tab-related-stuff ()
+  (setq indent-tabs-mode nil)
+  ;;(setq tab-stop-list (number-sequence 4 200 4))
+  (setq tab-width 2)
+  ;;(setq indent-line-function 'insert-tab)
+  )
 
 (add-hook 'org-mode-hook 'my-tab-related-stuff)
 
@@ -710,6 +702,7 @@
    '("j" . meow-next)
    '("k" . meow-prev)
    '("<escape>" . ignore))
+
   (meow-leader-define-key
    ;; SPC j/k will run the original command in MOTION state.
    '("j" . "H-j")
@@ -727,6 +720,7 @@
    '("0" . meow-digit-argument)
    '("/" . meow-keypad-describe-key)
    '("?" . meow-cheatsheet))
+
   (meow-normal-define-key
    '("0" . meow-expand-0)
    '("9" . meow-expand-9)
@@ -740,32 +734,38 @@
    '("1" . meow-expand-1)
    '("-" . negative-argument)
    '(";" . meow-reverse)
-   '("," . meow-inner-of-thing)
+   ;; SELECTION
+   '("," . meow-inner-of-thing) 
    '("." . meow-bounds-of-thing)
+   '("g" . meow-cancel-selection)
+   '("H" . meow-left-expand)
+   '("J" . meow-next-expand)
+   '("K" . meow-prev-expand)
+   '("L" . meow-right-expand)
    '("[" . meow-beginning-of-thing)
    '("]" . meow-end-of-thing)
-   '("a" . meow-append)
-   '("A" . meow-open-below)
+   ;; MOVEMENT
    '("b" . meow-back-word)
    '("B" . meow-back-symbol)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("h" . meow-left)
+   '("j" . meow-next)
+   '("k" . meow-prev)
+   '("l" . meow-right)
+   ;; EDIT
    '("c" . meow-change)
    '("d" . meow-delete)
    '("D" . meow-backward-delete)
-   '("e" . meow-next-word)
-   '("E" . meow-next-symbol)
-   '("f" . meow-find)
-   '("g" . meow-cancel-selection)
-   '("G" . meow-grab)
-   '("h" . meow-left)
-   '("H" . meow-left-expand)
    '("i" . meow-insert)
+   '("a" . meow-append)
    '("I" . meow-open-above)
-   '("j" . meow-next)
-   '("J" . meow-next-expand)
-   '("k" . meow-prev)
-   '("K" . meow-prev-expand)
-   '("l" . meow-right)
-   '("L" . meow-right-expand)
+   '("A" . meow-open-below)
+   '("s" . meow-kill)
+   ;;
+   ;; SEARCH
+   '("f" . meow-find)
+   '("G" . meow-grab)
    '("m" . meow-join)
    '("n" . meow-search)
    '("o" . meow-block)
@@ -775,8 +775,7 @@
    '("Q" . meow-goto-line)
    '("r" . meow-replace)
    '("R" . meow-swap-grab)
-   '("s" . meow-kill)
-   '("t" . meow-till)
+   ;;'("t" . meow-till)
    '("u" . meow-undo)
    '("U" . meow-undo-in-selection)
    '("v" . meow-visit)
@@ -813,8 +812,8 @@
 
 ;; because we use daemon/client we have to initiate the posframe
 ;; mode only once a frame is made
-(add-hook 'after-make-frame-functions
-  (lambda (frame)
-    (select-frame frame)
-    (when (display-graphic-p frame)
-      (vertico-posframe-mode 1))))
+;;(add-hook 'after-make-frame-functions
+;;  (lambda (frame)
+;;    (select-frame frame)
+;;    (when (display-graphic-p frame)
+;;      (vertico-posframe-mode 1))))

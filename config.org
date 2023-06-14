@@ -6,19 +6,23 @@
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
-Note: originally packages were installed by use-packages :ensure t
-mechanism. As of 2022 this is replaced in favour of a NixOS
-home-manager configuration that manages most (but not all) of the
-packages.
+* Notes
++ Originally packages were installed by use-packages ':ensure t'
+  mechanism. As of 2022 this is replaced in favour of a NixOS
+  Home-Manager configuration that manages most packages.
++ I'm using Emacs 30.0.50 so 'use-package' (and some other things) are
+  built-in for me.
  
 * Basic setup
 ** Package archives: ELPA/MELPA
 Standard content to configure ELPA and MELPA for packages.
 
-Custom settings points to ~/.emacs.d/custom-settings.el but this is
-not controlled by "home-manager" in my NixOS configuration so these
-custom settings should be treated as both transient and machine
-specific.
+I typically do package provision via NixOS and Home-Manager, but it is
+sometimes an interactive interface is useful.
+
+Custom settings points to ~/.emacs.d/custom-settings.el. This is not
+controlled by "home-manager" in my NixOS configuration so these custom
+settings should be treated as both transient and machine specific.
 
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -34,31 +38,13 @@ specific.
           ("MELPA"        . 5 )))
   (package-initialize)
 
-  ;;;;
-  ;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
-  ;;;;
-  (unless (package-installed-p 'use-package)
-    (package-refresh-contents)
-    (package-install 'use-package) )
-
-  ;; this is the standard use-package invocation if it is in ~/.emacs.d
-  (eval-when-compile
-    (require 'use-package) )
-
   ;; Keep custom settings in a separate file to not pollute this one
   (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
   (load custom-file t)
-
-  ;; quelpa set up to allow 'age to be used below
-  ;; currently not required as everything is in (M)ELPA [Jan 2023]
-  ;; (quelpa
-  ;;  '(quelpa-use-package
-  ;;    :fetcher git
-  ;;    :url "https://github.com/quelpa/quelpa-use-package.git"))
-  ;; (require 'quelpa-use-package)
 #+END_SRC
 
 ** Change some of the default emacs variables
+
 Some random minor tweaks. Turn off scroll bar, tool bar, menu bar.
 Move all backups to a single folder. Minor tweaks to garbage
 collection.
@@ -66,8 +52,8 @@ collection.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; move backups to stop *~ proliferation
   (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
-  ;; have mouse input in the terminal
-  ;; the disadvantage is you need to SHIFT+middle mouse to paste in the terminal
+  ;; have mouse input in the terminal -- the disadvantage is you
+  ;; need to SHIFT+middle mouse to paste in the terminal
   (xterm-mouse-mode 1)
   ;; Turn off the menu/scroll/toolbar
   (menu-bar-mode -1)
@@ -89,26 +75,22 @@ collection.
   ;; always follow the symlink
   (setq vc-follow-symlinks t)
   #+END_SRC
-
+  
 ** Update buffer contents when file changes on "disk"
+
 When editing the same file on a shared drive/remote machine, make sure
 that we update any open buffers to show the on-file current status.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
-  ;; This COMMAND will reload a buffer if it changes on disk, which is
-  ;; key if editing from multiple machines over long periods.
-  ;(defun revert-buffer-no-confirm ()
-  ;  "Revert buffer without confirmation."
-  ;  (interactive)
-  ;  (revert-buffer :ignore-auto :noconfirm))
   (global-auto-revert-mode)
 #+END_SRC
 
 ** Add custom file extensions to set major modes
+
 I use "m4" to update headers/footers/dates in LaTeX files for leccture
-course material. So here we default to latex-mode for .m4 extensions.
-In addition ".gnu" for Gnuplot and ".m" for Octave.
+course material. So here we default to latex-mode for .m4 extensions
+too. In addition ".gnu" for Gnuplot, ".m" for Octave and ".nix" for
+NixOS.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; setup files ending in “.m4” to open in LaTeX-mode
@@ -126,12 +108,12 @@ In addition ".gnu" for Gnuplot and ".m" for Octave.
 * Appearance
   
 ** Delight
+
 Delight declutters the modeline by reducing the amount of mode
 information.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package delight
-    ;;ensure t
     :init (message "Use-package: Delight") )
   ;; delight some basic modes to get rid of modeline content
   (delight 'eldoc-mode "" 'eldoc)
@@ -139,17 +121,13 @@ information.
 #+END_SRC
 
 ** Dashboard
+
 Dashboard is the startup screen for quick access to previously used
 material.
-
-*Ongoing issue* [May 2022] Dashboard is currently turned off because
-it causes issues with "emacs --daemon" on NixOS. See:
-https://github.com/emacs-dashboard/emacs-dashboard/issues/373
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; dashboard runs at startup by default
   (use-package dashboard
-    ;;ensure t
     :delight "Dash"
     :init
     (message "Use-package: Dashboard")
@@ -169,144 +147,12 @@ https://github.com/emacs-dashboard/emacs-dashboard/issues/373
 #+END_SRC
 
 ** Prot's themes 
+
 I've switched to the more systematic themes from Protesilaos Stavrou,
 and most recently his ef-themes.
 
 Fonts: The defailt font is now set via custom-settings.el since it is machine
 specific given each has its own DPI settings.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  ;; My typical font on hi-dpi displays
-  ;;(set-face-attribute 'default nil
-  ;;                    :family "Iosevka Term SS05" :height 110 :weight 'regular :width 'regular )
-  ;;(set-face-attribute 'variable-pitch nil
-  ;;                    :family "Iosevka" :height 1.0 :weight 'regular)
-  ;;(set-face-attribute 'fixed-pitch nil
-  ;;                    :family "Iosevka Term SS05" :height 1.0 :weight 'regular :width 'regular )
-  ;; for non-hi-dpi displays, below is now set via custom-settings.el
-  ;;(set-face-attribute 'default nil
-  ;;                     :family "Terminus" :height 120 :weight 'medium :width 'normal )
-  ;;(set-face-attribute 'fixed-pitch nil
-  ;;                     :family "Terminus" :height 120 :weight 'medium :width 'normal )
-  (setq-default line-spacing 0.2) 
-  (use-package modus-themes
-    ;;ensure t
-    :init
-    ;; Add all your customizations prior to loading the themes
-    (setq modus-themes-italic-constructs t
-          modus-themes-bold-constructs nil
-          modus-themes-mixed-fonts nil
-          modus-themes-subtle-line-numbers nil
-          modus-themes-intense-mouseovers nil
-          modus-themes-deuteranopia nil
-          modus-themes-tabs-accented t
-          modus-themes-variable-pitch-ui nil
-          modus-themes-inhibit-reload t ; only applies to `customize-set-variable' and related
-          modus-themes-fringes 'intense ; {nil,'subtle,'intense}
-
-          ;; Options for `modus-themes-lang-checkers' are either nil (the
-          ;; default), or a list of properties that may include any of those
-          ;; symbols: `straight-underline', `text-also', `background',
-          ;; `intense' OR `faint'.          
-          modus-themes-lang-checkers nil
-
-          ;; Options for `modus-themes-mode-line' are either nil, or a list
-          ;; that can combine any of `3d' OR `moody', `borderless',
-          ;; `accented', a natural number for extra padding (or a cons cell
-          ;; of padding and NATNUM), and a floating point for the height of
-          ;; the text relative to the base font size (or a cons cell of
-          ;; height and FLOAT)
-          modus-themes-mode-line '(accented borderless (padding . 2) (height . 1.0))
-
-          ;; Same as above
-          ;; modus-themes-mode-line '(accented borderless 4 0.9)
-
-          ;; Options for `modus-themes-markup' are either nil, or a list
-          ;; that can combine any of `bold', `italic', `background',
-          ;; `intense'.
-          modus-themes-markup '(background italic)
-
-          ;; Options for `modus-themes-syntax' are either nil (the default),
-          ;; or a list of properties that may include any of those symbols:
-          ;; `faint', `yellow-comments', `green-strings', `alt-syntax'
-          modus-themes-syntax '(yellow-comments green-strings alt-syntax)
-
-          ;; Options for `modus-themes-hl-line' are either nil (the default),
-          ;; or a list of properties that may include any of those symbols:
-          ;; `accented', `underline', `intense'
-          modus-themes-hl-line '(intense accented)
-
-          ;; Options for `modus-themes-paren-match' are either nil (the
-          ;; default), or a list of properties that may include any of those
-          ;; symbols: `bold', `intense', `underline'
-          modus-themes-paren-match '(bold intense)
-
-          ;; Options for `modus-themes-links' are either nil (the default),
-          ;; or a list of properties that may include any of those symbols:
-          ;; `neutral-underline' OR `no-underline', `faint' OR `no-color',
-          ;; `bold', `italic', `background'
-          modus-themes-links '(neutral-underline background)
-
-          ;; Options for `modus-themes-box-buttons' are either nil (the
-          ;; default), or a list that can combine any of `flat', `accented',
-          ;; `faint', `variable-pitch', `underline', `all-buttons', the
-          ;; symbol of any font weight as listed in `modus-themes-weights',
-          ;; and a floating point number (e.g. 0.9) for the height of the
-          ;; button's text.
-          modus-themes-box-buttons '(variable-pitch flat faint 0.9)
-
-          ;; Options for `modus-themes-prompts' are either nil (the
-          ;; default), or a list of properties that may include any of those
-          ;; symbols: `background', `bold', `gray', `intense', `italic'
-          modus-themes-prompts '(intense bold)
-
-          ;; The `modus-themes-completions' is an alist that reads three
-          ;; keys: `matches', `selection', `popup'.  Each accepts a nil
-          ;; value (or empty list) or a list of properties that can include
-          ;; any of the following (for WEIGHT read further below)
-          ;;
-          ;; `matches' - `background', `intense', `underline', `italic', WEIGHT
-          ;; `selection' - `accented', `intense', `underline', `italic', `text-also' WEIGHT
-          ;; `popup' - same as `selected'
-          ;; `t' - applies to any key not explicitly referenced (check docs)
-          ;;
-          ;; WEIGHT is a symbol such as `semibold', `light', or anything
-          ;; covered in `modus-themes-weights'.  Bold is used in the absence
-          ;; of an explicit WEIGHT.
-          modus-themes-completions '((matches . (extrabold))
-                                     (selection . (semibold accented))
-                                     (popup . (accented intense)))
-
-          modus-themes-mail-citations nil ; {nil,'intense,'faint,'monochrome}
-
-          ;; Options for `modus-themes-region' are either nil (the default),
-          ;; or a list of properties that may include any of those symbols:
-          ;; `no-extend', `bg-only', `accented'
-          modus-themes-region '(bg-only no-extend)
-
-          ;; Options for `modus-themes-diffs': nil, 'desaturated, 'bg-only
-          modus-themes-diffs 'desaturated
-
-          modus-themes-org-blocks 'gray-background ; {nil,'gray-background,'tinted-background}
-          )
-
-    ;; Load the theme files before enabling a theme
-    ;;(modus-themes-load-themes)
-    :config
-    ;; allow for color changes 
-    ;; so far I've only lifted bg-main up slightly
-    (setq modus-themes-vivendi-color-overrides ; dark
-          '((bg-main . "#282828") ; I've lifted this bg to match foot.ini, breaking contrast levels
-            (bg-hl-line . "#484848")
-            ))
-    ;;(setq modus-themes-operandi-color-overrides ; light
-    ;;      '((bg-main . "#fbf3db") ; lowered contrast of fg vs bg
-    ;;        (fg-main . "#53676d")))
-
-    ;;Load the theme of your choice:
-    ;; (modus-themes-load-vivendi) ;; OR (modus-themes-load-vivendi)
-    :bind ("<f5>" . modus-themes-toggle))
-  #+END_SRC
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; Disable all other themes to avoid awkward blending:    
@@ -328,6 +174,7 @@ specific given each has its own DPI settings.
 #+END_SRC
   
 ** Modeline (doom)
+
 Doom modeline is my default choice, just to add a bit of usability to
 the standard mode line.
 
@@ -362,6 +209,7 @@ the standard mode line.
 #+END_SRC
 
 ** Rainbow-delimiters
+
 Colorised brackets to make matching easier.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -376,6 +224,7 @@ Colorised brackets to make matching easier.
 #+END_SRC
 
 ** Which-key
+
 Popup a description of key combinations after a delay.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -405,7 +254,9 @@ Popup a description of key combinations after a delay.
 
 
 * Narrowing and completion
+
 ** Overview
+
 A useful overview from: https://www.reddit.com/r/emacs/comments/k3c0u7/consult_counselswiper_alternative_for/
 
 The minibuffer completion uses:
@@ -464,13 +315,10 @@ Modes that don't attempt to interoperate (and I avoid):
   functionality, but I don't.
 
 
-** Implementation 1 : everything done using standard completing-read interface
+** Everything done using standard completing-read interface
 - Use Vertico (with Orderless) as a smaller solution for
   incremental completion in Emacs.
 
-- I like vertico-posframe. I'm not sure if I should. This mode is
-  started only when a frame is made (see the end of the config file).
-  
 - marginalia-mode adds marginalia to the minibuffer completions.
   Marginalia can only add annotations to be displayed with the
   completion candidates.
@@ -484,141 +332,56 @@ Modes that don't attempt to interoperate (and I avoid):
   and consult-ripgrep, and consult-line, which resembles Swiper.
    
 #+BEGIN_SRC emacs-lisp :tangle yes
-    (use-package consult
-      ;;ensure t
-      :after key-seq
-      :init
-      (message "Use-package: consult")
-      :bind
-      ;; see also key-chords elsewhere
-      ("C-x b" . consult-buffer)
-      ("M-g g" . consult-goto-line)
-      ("M-y"   . consult-yank-pop)
-      ("C-y"   . yank)
-      ("C-s"   . consult-line)
-      ("M-g o" . consult-outline))
-
-      ;; define some related chords
-      (key-seq-define-global "qq"     'consult-buffer)
-      (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
-      (key-seq-define-global "ql"     'consult-goto-line)
-
-    (use-package consult-notes
-      :commands (consult-notes consult-notes-search-in-all-notes)
-      :config
-      ;(setq consult-notes-file-dir-sources
-      ;      '(("Org"         ?o "~/Sync/Org/Denote/")
-      ;        ("Journal"      ?j "~/Sync/Org/Journal/")))    
-      ;(consult-notes-org-headings-mode)
-      (consult-notes-denote-mode))
-
-    (use-package vertico
-      ;;ensure t
-      :custom
-      (vertico-cycle t)
-      :init
-      (message "Use-package: vertico")
-      (vertico-mode))
-
-    (use-package savehist
-      :init
-      (savehist-mode))
-
-    (use-package vertico-posframe
-      :config
-      (setq vertico-posframe-border-width 3)
-      (setq vertico-posframe-mode t)
-      (setq vertico-posframe-poshandler 'posframe-poshandler-frame-top-center)
-      (setq vertico-posframe-width 100))
-
-    (use-package orderless
-      ;;ensure t
-      :custom (completion-styles '(orderless)))
-
-    (use-package marginalia
-      :after vertico
-      ;;ensure t
-      :custom
-      (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-      :init
-      (message "Use-package: marginalia")
-      (marginalia-mode))
-#+END_SRC
-
-
-** Implementation 2 : customised via Ivy+Counsel+Swiper
-- has ivy-posframe - Note: vertico (above in implementation 1) now has a posframe version. 
-- disadvantage of it being monolithic.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package swiper
-    ;;ensure t
-    :config
-    :bind
-    ("C-s" . swiper)             ;; Use swiper for search 
-    )
-
-  (use-package counsel
-    ;;ensure t
+  (use-package consult
     :after key-seq
+    :init
+    (message "Use-package: consult")
     :bind
-    ("M-x" . counsel-M-x)
-    ("C-x C-f" . counsel-find-file)
-    ("C-y" . counsel-yank-pop)
-    :config
-    (progn
-      (key-seq-define-global "qq"     'counsel-switch-buffer)
-      (key-seq-define-global "qb"     'counsel-bookmark) ; set or jump
-      (key-seq-define-global "qo"     'counsel-imenu) 
-      (key-seq-define-global "qc"     'counsel-org-capture) ))
+    ;; see also key-chords elsewhere
+    ("C-x b" . consult-buffer)
+    ("M-g g" . consult-goto-line)
+    ("M-y"   . consult-yank-pop)
+    ("C-y"   . yank)
+    ("C-s"   . consult-line)
+    ("M-g o" . consult-outline))
 
-  (use-package ivy
-    ;;ensure t
-    :delight
-    :config
-    (setq ivy-use-virtual-buffers t
-          ivy-count-format "%d/%d ")
-    (ivy-mode 1) )
+    ;; define some related chords
+    (key-seq-define-global "qq"     'consult-buffer)
+    (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
+    (key-seq-define-global "ql"     'consult-goto-line)
 
-  (use-package ivy-prescient
-    ;;ensure t
+  (use-package consult-notes
+    :commands (consult-notes consult-notes-search-in-all-notes)
     :config
-    (ivy-prescient-mode 1) )
+    (consult-notes-denote-mode))
 
-  ;; popup ivy completion in a separate frame top centre instead of in the minibuffer
-  (use-package ivy-posframe
-    ;;ensure t
-    :after ivy
-    :delight 
-    :custom-face
-    (ivy-posframe-border ((t (:background "#ffffff"))))
-    :config
-    (ivy-posframe-mode 1)
-    (setq ivy-posframe-display-functions-alist '((t . ivy-posframe-display-at-frame-top-center)))
-    (setq ivy-posframe-height-alist '((t . 10))
-          ivy-posframe-parameters '((internal-border-width . 10)))
-    (setq ivy-posframe-parameters
-          '((left-fringe . 10)
-            (right-fringe . 10)))
-    ;;(setq ivy-posframe-parameters '((alpha . 0.95)))
-    )
-
-  ;; ivy alternative to marginalia
-  (use-package ivy-rich
-    ;;ensure t
+  (use-package vertico
+    :custom
+    (vertico-cycle t)
     :init
-    (ivy-rich-mode 1) )
+    (message "Use-package: vertico")
+    (vertico-mode))
 
-  ;; adds icons to buffer list
-  (use-package all-the-icons-ivy-rich
-    ;;ensure t
+  (use-package savehist
     :init
-    (all-the-icons-ivy-rich-mode 1) )
+    (savehist-mode))
+
+   (use-package orderless
+    :custom (completion-styles '(orderless)))
+
+  (use-package marginalia
+    :after vertico
+    :custom
+    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+    :init
+    (message "Use-package: marginalia")
+    (marginalia-mode))
 #+END_SRC
 
 
 * Interaction
 ** Cut and paste
+
 I use Wayland (no X11), and this interacts with wl-copy.
 
 #+BEGIN_SRC emacs-lisp :tangle no
@@ -634,6 +397,7 @@ I use Wayland (no X11), and this interacts with wl-copy.
 #+END_SRC
 
 ** Key-chord and key-seq
+
 Keyboard shortcuts based on double pressing of low-popularity key
 combinations (e.g. 'qq'). Key-chord doesn't take account of order
 (e.g. 'qa'='aq') so instead I prefer to use key-seq, which requires
@@ -642,7 +406,6 @@ the "chord" to be in the right order.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; rapid-double press to activate key chords
   (use-package key-chord
-    ;;ensure t
     :init
     (progn
       (message "Use-package: Key-chord" )
@@ -657,7 +420,6 @@ the "chord" to be in the right order.
 
   ;; NOTE: additional key-chords are defined within other use-package declarations herein.
   (use-package key-seq
-    ;;ensure t
     :after key-chord
     :init
     (progn
@@ -672,6 +434,7 @@ the "chord" to be in the right order.
 #+END_SRC
 
 ** Splitting window behaviour
+
 Global keys to split the window AND follow by moving point to the new window.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -692,21 +455,23 @@ Global keys to split the window AND follow by moving point to the new window.
 #+END_SRC
 
 ** Editorconfig
+
 Set configuration on a per directory basis via .editorconfig.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; editorconfig allows specification of tab/space/indent
   (use-package editorconfig
-    ;;ensure t
     :delight (editorconfig-mode "Ec")
     :init
     (message "Use-package: EditorConfig")
     :config
     (editorconfig-mode 1) )
-(setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
+  
+  (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
 #+END_SRC
 
 ** Yasnippet
+
 Expand roots to standard text snippets with M-].
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -763,7 +528,6 @@ Code completion and on-the-fly check/make.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package corfu
-    ;;ensure t
     :init (message "Use-package: Corfu")
     :hook
     (prog-mode . corfu-mode)
@@ -772,7 +536,6 @@ Code completion and on-the-fly check/make.
 
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
-    ;;ensure t
     :defer t
     :delight (git-gutter-mode "Gg")
     :init (message "Use-package: Git-Gutter")
@@ -782,7 +545,6 @@ Code completion and on-the-fly check/make.
 
   ;; eglot is a simpler alternative to LSP-mode
   (use-package eglot
-    ;;ensure t
     :delight (eglot "Eglot")
     :init
     (message "Use-package: Eglot")
@@ -820,36 +582,35 @@ Code completion and on-the-fly check/make.
 
 
 * Magit
-Trying to use it!
+
+Git interface within emacs.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; MAGIT
-(use-package magit
-  ;;ensure t
-  :defer t
-  :bind
-  ("C-x g" . magit-status)
-  :init
-  (message "Use-package: Magit installed")
-  )
+  ;; MAGIT
+  (use-package magit
+    ;;ensure t
+    :defer t
+    :bind
+    ("C-x g" . magit-status)
+    :init
+    (message "Use-package: Magit installed") )
 #+END_SRC
 
 
 * Org mode
 ** Basics of Org mode
+
 A fairly standard Org mode configuration. Some minor tweaks to
 colourise bold/italic/underline for use with bitmap fonts.
 
 #+BEGIN_SRC  emacs-lisp :tangle yes
   (use-package org
-    ;;ensure t
     :after key-seq
     :init
     (message "Use-package: Org") )
 
   ;; fancy replace of *** etc
   (use-package org-bullets
-    ;;ensure t
     :after org
     :init
     (add-hook 'org-mode-hook 'org-bullets-mode)
@@ -864,6 +625,7 @@ colourise bold/italic/underline for use with bitmap fonts.
            ("~" org-code verbatim)
            ("+" (:strike-through t))))
 
+   ;; colorise text instead of changing the font weight.
    (defface my-org-emphasis-bold
      '((default :inherit bold)
        (((class color) (min-colors 88) (background light))
@@ -940,7 +702,7 @@ colourise bold/italic/underline for use with bitmap fonts.
                                       (todo  . " %i %-12:c")
                                       (tags  . " %i %-12:c")
                                       (search . " %i %-12:c")))
-    
+
 #+END_SRC
 
 ** Org-babel
@@ -948,28 +710,27 @@ colourise bold/italic/underline for use with bitmap fonts.
 Reproducible research aide.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; (use-package gnuplot
-  ;;     :ensure t
-  ;;     :init
-  ;;     (message "Use-package: gnuplot for babel installed") )
-  ;;   ;; languages I work in via babel
-  ;;   (org-babel-do-load-languages
-  ;;    'org-babel-load-languages
-  ;;    '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
-  ;;   ;; stop it asking if I'm sure about evaluation
-  ;;   (setq org-confirm-babel-evaluate nil)
+  (use-package gnuplot
+    :init
+    (message "Use-package: gnuplot for babel installed") )
+  ;; languages I work in via babel
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
+  ;; stop it asking if I'm sure about evaluation
+  (setq org-confirm-babel-evaluate nil)
 
-   (defun my-tab-related-stuff ()
-     (setq indent-tabs-mode nil)
-     ;;(setq tab-stop-list (number-sequence 4 200 4))
-     (setq tab-width 2)
-     ;;(setq indent-line-function 'insert-tab)
-     )
+  (defun my-tab-related-stuff ()
+    (setq indent-tabs-mode nil)
+    ;;(setq tab-stop-list (number-sequence 4 200 4))
+    (setq tab-width 2)
+    ;;(setq indent-line-function 'insert-tab) )
 
   (add-hook 'org-mode-hook 'my-tab-related-stuff)
 #+END_SRC
 
 ** Denote
+
 This is an Org-roam alternative. It appeals to me because of its
 simplicity, focus, spectacular documentation and its from an author
 who writes great content.
@@ -993,11 +754,6 @@ Searching the Denote files is done via the "consult-notes" package.
 
   (setq denote-date-format nil) ; read doc string
 
-  ;; You will not need to `require' all those individually once the
-  ;; package is available.
-  ;;(require 'denote-retrieve)
-  ;;(require 'denote-link)
-
   ;; By default, we fontify backlinks in their bespoke buffer.
   (setq denote-link-fontify-backlinks t)
 
@@ -1011,16 +767,6 @@ Searching the Denote files is done via the "consult-notes" package.
   ;;(require 'denote-dired)
   (setq denote-dired-rename-expert nil)
 
-  ;; We use different ways to specify a path for demo purposes.
-  ;;(setq denote-dired-directories
-  ;;      (list denote-directory
-  ;;            (thread-last denote-directory (expand-file-name "attachments"))
-  ;;            (expand-file-name "~/Documents/books")))
-
-  ;; Generic (great if you rename files Denote-style in lots of places):
-  ;; (add-hook 'dired-mode-hook #'denote-dired-mode)
-  ;;
-  ;; OR if only want it in `denote-dired-directories':
   (add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
 
   ;; Denote does not define any key bindings.  This is for the user to
@@ -1075,7 +821,6 @@ Allows direct searching of my Denote notes.
 
 #+BEGIN_SRC emacs-lisp :tangle no
   (use-package deft
-    ;;ensure t
     :init
     (message "Use-package: Deft")
     :config
@@ -1084,65 +829,9 @@ Allows direct searching of my Denote notes.
     ;; (setq deft-use-filename-as-title t)
     ;; Prot's "denote" doesn't need above
     (setq deft-default-extension "org")
-    (setq deft-directory "/home/hewitt/Sync/Org/Denote")
-    )
+    (setq deft-directory "/home/hewitt/Sync/Org/Denote") )
 #+END_SRC
 
-
-* Elfeed
-
-2022: taken out.
-
-RSS reader. The feed list can be setq below.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package elfeed
-    ;;ensure t
-    :config
-    (setq elfeed-use-curl t)
-    (setq elfeed-curl-max-connections 10)
-    (setq elfeed-db-directory "~/.emacs.d/elfeed/")
-    (setq elfeed-enclosure-default-dir "~/Downloads/")
-    (setq elfeed-search-filter "@1-week-ago +unread")
-    (setq elfeed-sort-order 'descending)
-    ;(setq elfeed-search-clipboard-type 'CLIPBOARD)
-    (setq elfeed-search-title-max-width 100)
-    (setq elfeed-search-title-min-width 30)
-    (setq elfeed-search-trailing-width 25)
-    (setq elfeed-show-truncate-long-urls t)
-    (setq elfeed-show-unique-buffers t)
-    (setq elfeed-feeds
-     '(("https://protesilaos.com/codelog.xml" emacs tech)
-       ("https://irreal.org/blog/?feed=rss2" emacs tech)
-       ("http://feeds.feedburner.com/XahsEmacsBlog" emacs tech)
-       ("http://pragmaticemacs.com/feed/" emacs tech)
-       ("http://feeds.bbci.co.uk/news/technology/rss.xml" news tech)
-       ("https://www.theverge.com/rss/index.xml" news tech)
-       ("https://emacsredux.com/atom.xml" emacs tech)
-       ("https://www.phoronix.com/rss.php" tech)
-       ("https://www.techradar.com/uk/rss/news/computing" tech)
-       ))
-    ;; see https://protesilaos.com/dotemacs/
-    (defun prot/elfeed-show-eww (&optional link)
-      "Browse current `elfeed' entry link in `eww'.
-  Only show the readable part once the website loads.  This can
-  fail on poorly-designed websites."
-      (interactive)
-      (let* ((entry (if (eq major-mode 'elfeed-show-mode)
-                        elfeed-show-entry
-                      (elfeed-search-selected :ignore-region)))
-             (link (if link link (elfeed-entry-link entry))))
-        (eww link)
-        (add-hook 'eww-after-render-hook 'eww-readable nil t))
-        ) ;close defun
-
-    :bind
-    (("C-c f" . elfeed)
-           :map elfeed-search-mode-map
-          ("e" . prot/elfeed-show-eww)
-          ) )
-#+END_SRC
- 
 
 * PDF tools
 This is a great tool if you have to comment on or otherwise annotate
@@ -1152,30 +841,24 @@ than trying to scribble a hadnwritten note via other methods.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; pdf tools for organising and annotating PDF
   (use-package pdf-tools
-    ;;ensure t
     :config
     (pdf-tools-install) )
 #+END_SRC
  
 
 * Email/mu4e
+
 You need the "mu" package and also the executable "mbsync" (the
 package that mbsync is in is called "isync"). Existing solution was
 broken by move to Oauth2 in O365. Now I run "davmail" as an
 intermediary, with IMAP/SMTP on localhost which seems to run well.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; Feb 2023 : mu is not installed via Nix so no need to specialise
-  ;; mu4e is part of the "mu" package and sometimes doesn't get
-  ;; found auto-magically. So this points directly to it.
-  ;; (add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
-
   ;; defines mu4e exists, but holds off until needed
   (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
   ;; used for outgoing mail send
   (use-package smtpmail
-    ;;ensure t
     :defer t
     :init
     (message "Use-package: SMTPmail")
@@ -1253,6 +936,7 @@ intermediary, with IMAP/SMTP on localhost which seems to run well.
 #+END_SRC
 
 * AGE
+
 Replaced GPG with simpler AGE from the end of 2022.
 Update Jan/2023: now this mode is available from MELPA so Quelpa removed below.
 
@@ -1276,101 +960,109 @@ support all the specified identities.
 #+END_SRC
 
 
-* Testing Meow
+* Meow modal editing
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-(defun meow-setup ()
-  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-  (meow-motion-overwrite-define-key
-   '("j" . meow-next)
-   '("k" . meow-prev)
-   '("<escape>" . ignore))
-  (meow-leader-define-key
-   ;; SPC j/k will run the original command in MOTION state.
-   '("j" . "H-j")
-   '("k" . "H-k")
-   ;; Use SPC (0-9) for digit arguments.
-   '("1" . meow-digit-argument)
-   '("2" . meow-digit-argument)
-   '("3" . meow-digit-argument)
-   '("4" . meow-digit-argument)
-   '("5" . meow-digit-argument)
-   '("6" . meow-digit-argument)
-   '("7" . meow-digit-argument)
-   '("8" . meow-digit-argument)
-   '("9" . meow-digit-argument)
-   '("0" . meow-digit-argument)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet))
-  (meow-normal-define-key
-   '("0" . meow-expand-0)
-   '("9" . meow-expand-9)
-   '("8" . meow-expand-8)
-   '("7" . meow-expand-7)
-   '("6" . meow-expand-6)
-   '("5" . meow-expand-5)
-   '("4" . meow-expand-4)
-   '("3" . meow-expand-3)
-   '("2" . meow-expand-2)
-   '("1" . meow-expand-1)
-   '("-" . negative-argument)
-   '(";" . meow-reverse)
-   '("," . meow-inner-of-thing)
-   '("." . meow-bounds-of-thing)
-   '("[" . meow-beginning-of-thing)
-   '("]" . meow-end-of-thing)
-   '("a" . meow-append)
-   '("A" . meow-open-below)
-   '("b" . meow-back-word)
-   '("B" . meow-back-symbol)
-   '("c" . meow-change)
-   '("d" . meow-delete)
-   '("D" . meow-backward-delete)
-   '("e" . meow-next-word)
-   '("E" . meow-next-symbol)
-   '("f" . meow-find)
-   '("g" . meow-cancel-selection)
-   '("G" . meow-grab)
-   '("h" . meow-left)
-   '("H" . meow-left-expand)
-   '("i" . meow-insert)
-   '("I" . meow-open-above)
-   '("j" . meow-next)
-   '("J" . meow-next-expand)
-   '("k" . meow-prev)
-   '("K" . meow-prev-expand)
-   '("l" . meow-right)
-   '("L" . meow-right-expand)
-   '("m" . meow-join)
-   '("n" . meow-search)
-   '("o" . meow-block)
-   '("O" . meow-to-block)
-   '("p" . meow-yank)
-   '("q" . meow-quit)
-   '("Q" . meow-goto-line)
-   '("r" . meow-replace)
-   '("R" . meow-swap-grab)
-   '("s" . meow-kill)
-   '("t" . meow-till)
-   '("u" . meow-undo)
-   '("U" . meow-undo-in-selection)
-   '("v" . meow-visit)
-   '("w" . meow-mark-word)
-   '("W" . meow-mark-symbol)
-   '("x" . meow-line)
-   '("X" . meow-goto-line)
-   '("y" . meow-save)
-   '("Y" . meow-sync-grab)
-   '("z" . meow-pop-selection)
-   '("'" . repeat)
-   '("<escape>" . ignore)))
+  (defun meow-setup ()
+    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+    (meow-motion-overwrite-define-key
+     '("j" . meow-next)
+     '("k" . meow-prev)
+     '("<escape>" . ignore))
 
-   (require 'meow)
-   (meow-setup)
-   (meow-global-mode 1)
+    (meow-leader-define-key
+     ;; SPC j/k will run the original command in MOTION state.
+     '("j" . "H-j")
+     '("k" . "H-k")
+     ;; Use SPC (0-9) for digit arguments.
+     '("1" . meow-digit-argument)
+     '("2" . meow-digit-argument)
+     '("3" . meow-digit-argument)
+     '("4" . meow-digit-argument)
+     '("5" . meow-digit-argument)
+     '("6" . meow-digit-argument)
+     '("7" . meow-digit-argument)
+     '("8" . meow-digit-argument)
+     '("9" . meow-digit-argument)
+     '("0" . meow-digit-argument)
+     '("/" . meow-keypad-describe-key)
+     '("?" . meow-cheatsheet))
+
+    (meow-normal-define-key
+     '("0" . meow-expand-0)
+     '("9" . meow-expand-9)
+     '("8" . meow-expand-8)
+     '("7" . meow-expand-7)
+     '("6" . meow-expand-6)
+     '("5" . meow-expand-5)
+     '("4" . meow-expand-4)
+     '("3" . meow-expand-3)
+     '("2" . meow-expand-2)
+     '("1" . meow-expand-1)
+     '("-" . negative-argument)
+     '(";" . meow-reverse)
+     ;; SELECTION
+     '("," . meow-inner-of-thing) 
+     '("." . meow-bounds-of-thing)
+     '("g" . meow-cancel-selection)
+     '("H" . meow-left-expand)
+     '("J" . meow-next-expand)
+     '("K" . meow-prev-expand)
+     '("L" . meow-right-expand)
+     '("[" . meow-beginning-of-thing)
+     '("]" . meow-end-of-thing)
+     ;; MOVEMENT
+     '("b" . meow-back-word)
+     '("B" . meow-back-symbol)
+     '("e" . meow-next-word)
+     '("E" . meow-next-symbol)
+     '("h" . meow-left)
+     '("j" . meow-next)
+     '("k" . meow-prev)
+     '("l" . meow-right)
+     ;; EDIT
+     '("c" . meow-change)
+     '("d" . meow-delete)
+     '("D" . meow-backward-delete)
+     '("i" . meow-insert)
+     '("a" . meow-append)
+     '("I" . meow-open-above)
+     '("A" . meow-open-below)
+     '("s" . meow-kill)
+     ;;
+     ;; SEARCH
+     '("f" . meow-find)
+     '("G" . meow-grab)
+     '("m" . meow-join)
+     '("n" . meow-search)
+     '("o" . meow-block)
+     '("O" . meow-to-block)
+     '("p" . meow-yank)
+     '("q" . meow-quit)
+     '("Q" . meow-goto-line)
+     '("r" . meow-replace)
+     '("R" . meow-swap-grab)
+     ;;'("t" . meow-till)
+     '("u" . meow-undo)
+     '("U" . meow-undo-in-selection)
+     '("v" . meow-visit)
+     '("w" . meow-mark-word)
+     '("W" . meow-mark-symbol)
+     '("x" . meow-line)
+     '("X" . meow-goto-line)
+     '("y" . meow-save)
+     '("Y" . meow-sync-grab)
+     '("z" . meow-pop-selection)
+     '("'" . repeat)
+     '("<escape>" . ignore)))
+
+     (require 'meow)
+     (meow-setup)
+     (meow-global-mode 1)
 #+END_SRC
 
 * Wrap up
+
 Wrap up the config with some shortcut definitions and select the theme
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1389,15 +1081,7 @@ Wrap up the config with some shortcut definitions and select the theme
     (global-set-key (kbd "C-c h t") 'todo-visit)
 
     ;; load default theme last.
-    (load-theme 'ef-duo-dark :no-confirm)
-
-    ;; because we use daemon/client we have to initiate the posframe
-    ;; mode only once a frame is made
-    (add-hook 'after-make-frame-functions
-      (lambda (frame)
-        (select-frame frame)
-        (when (display-graphic-p frame)
-          (vertico-posframe-mode 1))))
+    (load-theme 'ef-day :no-confirm)
 #+END_SRC
 
 
