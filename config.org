@@ -339,97 +339,111 @@ Modes that don't attempt to interoperate (and I avoid):
   consult-buffer to switch between buffers and recently opened files.
   Multiple search commands are provided, an asynchronous consult-grep
   and consult-ripgrep, and consult-line, which resembles Swiper.
-   
+
+- Corfu provide in-region (ie. in the buffer) completion candidates
+  useful for code-completion when combined with eglot and ccls (see
+  the section below). In this config I stick to the terminal mode for
+  corfu just so it works in both GUI + Terminal modes. Detecting which
+  mode we're in and starting the appropriate version is a pain when
+  using GUI+Terminal emacsclients connected to a daemon instance.
+  
 #+BEGIN_SRC emacs-lisp :tangle yes
-    (use-package consult
-      :after key-seq
-      :init
-      (message "Use-package: consult")
-      :bind
-      ;; see also key-chords elsewhere
-      ("C-x b" . consult-buffer)
-      ("M-g g" . consult-goto-line)
-      ("M-y"   . consult-yank-pop)
-      ("C-y"   . yank)
-      ("C-s"   . consult-line)
-      ("M-g o" . consult-outline))
+  (use-package consult
+    :after key-seq
+    :init
+    (message "Use-package: consult")
+    :bind
+    ;; see also key-chords elsewhere
+    ("C-x b" . consult-buffer)
+    ("M-g g" . consult-goto-line)
+    ("M-y"   . consult-yank-pop)
+    ("C-y"   . yank)
+    ("C-s"   . consult-line)
+    ("M-g o" . consult-outline))
 
-    ;; define some related chords
-    (key-seq-define-global "qq"     'consult-buffer)
-    (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
-    (key-seq-define-global "ql"     'consult-goto-line)
+  ;; define some related chords
+  (key-seq-define-global "qq"     'consult-buffer)
+  (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
+  (key-seq-define-global "ql"     'consult-goto-line)
 
-    (use-package consult-notes
-      :commands (consult-notes consult-notes-search-in-all-notes)
-      :config
-      (consult-notes-denote-mode))
+  (use-package consult-notes
+    :commands (consult-notes consult-notes-search-in-all-notes)
+    :config
+    (consult-notes-denote-mode))
 
-    (use-package vertico
-      :custom
-      (vertico-cycle t)
-      :init
-      (message "Use-package: vertico")
-      (vertico-mode))
+  (use-package vertico
+    :custom
+    (vertico-cycle t)
+    :init
+    (message "Use-package: vertico")
+    (vertico-mode))
 
-    ;; (code) completion via in-buffer pop-up choices
-    (use-package corfu
-      :init (message "Use-package: Corfu")
-      :custom
-      (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-      (corfu-auto t)                 ;; Enable auto completion
-      (corfu-separator ?\s)          ;; Orderless field separator
-      ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-      ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-      ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-      ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-      ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-      ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-      ;; Enable Corfu only for certain modes.
-      :hook ((prog-mode . corfu-mode)
-             (latex-mode . corfu-mode)
-             (shell-mode . corfu-mode)
-             (eshell-mode . corfu-mode))
-      ;; Recommended: Enable Corfu globally.
-      ;; This is recommended since Dabbrev can be used globally (M-/).
-      ;; See also `corfu-exclude-modes'.
-      :init
-      (setq tab-always-indent 'complete)
-      (global-corfu-mode)
-      (corfu-prescient-mode))
+  ;; (code) completion via in-buffer pop-up choices
+  (use-package corfu
+    :init (message "Use-package: Corfu")
+    :custom
+    (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+    (corfu-auto t)                 ;; Enable auto completion
+    (corfu-separator ?\s)          ;; Orderless field separator
+    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+    ;; Enable Corfu only for certain modes.
+    :hook ((prog-mode . corfu-mode)
+           (latex-mode . corfu-mode)
+           (shell-mode . corfu-mode)
+           (eshell-mode . corfu-mode))
+    ;; Recommended: Enable Corfu globally.
+    ;; This is recommended since Dabbrev can be used globally (M-/).
+    ;; See also `corfu-exclude-modes'.
+    :init
+    (setq tab-always-indent 'complete)
+    (global-corfu-mode)
+    (corfu-prescient-mode))
 
-    (use-package prescient
-      :init
-      (message "Use-package: prescient")
-      :config
-      ;; you have to set the completion-style(s) to be used
-      (setq completion-styles '(substring prescient basic))
-      ;; retain completion statistics over restart of emacs
-      (prescient-persist-mode))
+  (use-package corfu-terminal
+    :init
+    (message "Use-package: corfu-terminal")
+    :config
+    ;; let's default to the terminal mode
+    (corfu-terminal-mode))
 
-    (use-package vertico-prescient
-      :init
-      (message "Use-package: vertico-prescient")
-      :config
-      (vertico-prescient-mode))
+  (use-package prescient
+    :init
+    (message "Use-package: prescient")
+    :config
+    ;; you have to set the completion-style(s) to be used
+    (setq completion-styles '(substring prescient basic))
+    ;; retain completion statistics over restart of emacs
+    (prescient-persist-mode))
 
-    (use-package corfu-prescient
-      :init
-      (message "Use-package: corfu-prescient") )
+  (use-package vertico-prescient
+    :init
+    (message "Use-package: vertico-prescient")
+    :config
+    (vertico-prescient-mode))
 
-    ;;(use-package savehist
-    ;;  :init
-    ;; (savehist-mode))
+  (use-package corfu-prescient
+    :init
+    (message "Use-package: corfu-prescient") )
 
-    ;; (use-package orderless
-    ;;  :custom (completion-styles '(orderless)))
+  ;;(use-package savehist
+  ;;  :init
+  ;; (savehist-mode))
 
-    (use-package marginalia
-      :after vertico
-      :custom
-      (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-      :init
-      (message "Use-package: marginalia")
-      (marginalia-mode))
+  ;; (use-package orderless
+  ;;  :custom (completion-styles '(orderless)))
+
+  (use-package marginalia
+    :after vertico
+    :custom
+    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+    :init
+    (message "Use-package: marginalia")
+    (marginalia-mode))
 #+END_SRC
 
 
@@ -1128,22 +1142,22 @@ support all the specified identities.
 Wrap up the config with some shortcut definitions and select the theme
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; simple prefix key launcher
-  (global-set-key (kbd "C-c h m") 'mu4e)
-  (global-set-key (kbd "C-c h a") 'org-agenda)
-  ;; C-c h e : edit the init.el configuration file
-  (defun config-visit ()
-    (interactive)
-    (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
-  (global-set-key (kbd "C-c h e") 'config-visit)
-  ;; C-c h e : edit the init.el configuration file
-  (defun todo-visit ()
-    (interactive)
-    (find-file "~/Sync/Org/Todo.org") )
-  (global-set-key (kbd "C-c h t") 'todo-visit)
+    ;; simple prefix key launcher
+    (global-set-key (kbd "C-c h m") 'mu4e)
+    (global-set-key (kbd "C-c h a") 'org-agenda)
+    ;; C-c h e : edit the init.el configuration file
+    (defun config-visit ()
+      (interactive)
+      (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
+    (global-set-key (kbd "C-c h e") 'config-visit)
+    ;; C-c h e : edit the init.el configuration file
+    (defun todo-visit ()
+      (interactive)
+      (find-file "~/Sync/Org/Todo.org") )
+    (global-set-key (kbd "C-c h t") 'todo-visit)
 
-  ;; load default theme last.
-  (load-theme 'ef-dark :no-confirm)
+    ;; load default theme last.
+    (load-theme 'ef-dark :no-confirm)
 #+END_SRC
 
 

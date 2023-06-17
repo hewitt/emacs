@@ -214,6 +214,13 @@
   (global-corfu-mode)
   (corfu-prescient-mode))
 
+(use-package corfu-terminal
+  :init
+  (message "Use-package: corfu-terminal")
+  :config
+  ;; let's default to the terminal mode
+  (corfu-terminal-mode))
+
 (use-package prescient
   :init
   (message "Use-package: prescient")
