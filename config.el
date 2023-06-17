@@ -10,25 +10,14 @@
         ("MELPA"        . 5 )))
 (package-initialize)
 
-;;;;
-;;;; CONFIGURE USE-PACKAGE TO AUTOLOAD THINGS : https://github.com/jwiegley/use-package
-;;;;
-;;(unless (package-installed-p 'use-package)
-;;  (package-refresh-contents)
-;;  (package-install 'use-package) )
-
-;; this is the standard use-package invocation if it is in ~/.emacs.d
-;;(eval-when-compile
-;;  (require 'use-package) )
-
 ;; Keep custom settings in a separate file to not pollute this one
 (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
 (load custom-file t)
 
 ;; move backups to stop *~ proliferation
 (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
-;; have mouse input in the terminal
-;; the disadvantage is you need to SHIFT+middle mouse to paste in the terminal
+;; have mouse input in the terminal -- the disadvantage is you
+;; need to SHIFT+middle mouse to paste in the terminal
 (xterm-mouse-mode 1)
 ;; Turn off the menu/scroll/toolbar
 (menu-bar-mode -1)
@@ -50,13 +39,6 @@
 ;; always follow the symlink
 (setq vc-follow-symlinks t)
 
-;; Source: http://www.emacswiki.org/emacs-en/download/misc-cmds.el
-;; This COMMAND will reload a buffer if it changes on disk, which is
-;; key if editing from multiple machines over long periods.
-;(defun revert-buffer-no-confirm ()
-;  "Revert buffer without confirmation."
-;  (interactive)
-;  (revert-buffer :ignore-auto :noconfirm))
 (global-auto-revert-mode)
 
 ;; setup files ending in “.m4” to open in LaTeX-mode
@@ -70,28 +52,35 @@
 (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 
 (use-package delight
-  ;;ensure t
   :init (message "Use-package: Delight") )
 ;; delight some basic modes to get rid of modeline content
 (delight 'eldoc-mode "" 'eldoc)
 (delight 'abbrev-mode "" 'abbrev)
 
+(use-package nerd-icons
+  ;; :custom
+  ;; The Nerd Font you want to use in GUI
+  ;; "Symbols Nerd Font Mono" is the default and is recommended
+  ;; but you can use any other Nerd Font if you want
+  ;; (nerd-icons-font-family "Symbols Nerd Font Mono")
+  )
+
 ;; dashboard runs at startup by default
 (use-package dashboard
-  ;;ensure t
   :delight "Dash"
   :init
   (message "Use-package: Dashboard")
-  :config
   (setq dashboard-banner-logo-title "Go!")
   (setq dashboard-startup-banner '2) ; 1,2,3 are the text banners
+  (setq dashboard-icon-type 'nerd-icons)
   (setq dashboard-set-heading-icons t)
   (setq dashboard-set-file-icons t)
   (setq dashboard-items '((recents  . 10)
                           (bookmarks . 5)
                           (agenda . 4)))
+  :config
   (dashboard-setup-startup-hook)
-  ;(dashboard-refresh-buffer)
+  ;;(dashboard-refresh-buffer)
   )
 ;; show dashboard on startup for emacsclients when running the daemon
 (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
@@ -170,7 +159,6 @@
 (add-hook 'org-mode-hook 'visual-line-mode)
 
 (use-package consult
-  ;;ensure t
   :after key-seq
   :init
   (message "Use-package: consult")
@@ -183,55 +171,95 @@
   ("C-s"   . consult-line)
   ("M-g o" . consult-outline))
 
-  ;; define some related chords
-  (key-seq-define-global "qq"     'consult-buffer)
-  (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
-  (key-seq-define-global "ql"     'consult-goto-line)
+;; define some related chords
+(key-seq-define-global "qq"     'consult-buffer)
+(key-seq-define-global "qb"     'consult-bookmark) ; set or jump
+(key-seq-define-global "ql"     'consult-goto-line)
 
 (use-package consult-notes
   :commands (consult-notes consult-notes-search-in-all-notes)
   :config
-  ;(setq consult-notes-file-dir-sources
-  ;      '(("Org"         ?o "~/Sync/Org/Denote/")
-  ;        ("Journal"      ?j "~/Sync/Org/Journal/")))    
-  ;(consult-notes-org-headings-mode)
   (consult-notes-denote-mode))
 
 (use-package vertico
-  ;;ensure t
   :custom
   (vertico-cycle t)
   :init
   (message "Use-package: vertico")
   (vertico-mode))
 
-(use-package savehist
+;; (code) completion via in-buffer pop-up choices
+(use-package corfu
+  :init (message "Use-package: Corfu")
+  :custom
+  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  (corfu-auto t)                 ;; Enable auto completion
+  (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+  ;; Enable Corfu only for certain modes.
+  :hook ((prog-mode . corfu-mode)
+         (latex-mode . corfu-mode)
+         (shell-mode . corfu-mode)
+         (eshell-mode . corfu-mode))
+  ;; Recommended: Enable Corfu globally.
+  ;; This is recommended since Dabbrev can be used globally (M-/).
+  ;; See also `corfu-exclude-modes'.
   :init
-  (savehist-mode))
+  (setq tab-always-indent 'complete)
+  (global-corfu-mode)
+  (corfu-prescient-mode))
 
-;; (use-package vertico-posframe
-;;   :config
-;;   (setq vertico-posframe-border-width 3)
-;;   (setq vertico-posframe-mode t)
-;;   (setq vertico-posframe-poshandler 'posframe-poshandler-frame-top-center)
-;;   (setq vertico-posframe-width 100))
+(use-package prescient
+  :init
+  (message "Use-package: prescient")
+  :config
+  ;; you have to set the completion-style(s) to be used
+  (setq completion-styles '(substring prescient basic))
+  ;; retain completion statistics over restart of emacs
+  (prescient-persist-mode))
 
- (use-package orderless
-  ;;ensure t
-  :custom (completion-styles '(orderless)))
+(use-package vertico-prescient
+  :init
+  (message "Use-package: vertico-prescient")
+  :config
+  (vertico-prescient-mode))
+
+(use-package corfu-prescient
+  :init
+  (message "Use-package: corfu-prescient") )
+
+;;(use-package savehist
+;;  :init
+;; (savehist-mode))
+
+;; (use-package orderless
+;;  :custom (completion-styles '(orderless)))
 
 (use-package marginalia
   :after vertico
-  ;;ensure t
   :custom
   (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
   :init
   (message "Use-package: marginalia")
   (marginalia-mode))
 
+;; - cut and paste in Wayland environment
+;; - this puts selected text into the Wayland clipboard
+(setq x-select-enable-clipboard t)
+(defun txt-cut-function (text &optional push)
+  (with-temp-buffer
+    (insert text)
+    (call-process-region (point-min) (point-max) "wl-copy" ))
+  )
+(setq interprogram-cut-function 'txt-cut-function)
+
 ;; rapid-double press to activate key chords
 (use-package key-chord
-  ;;ensure t
   :init
   (progn
     (message "Use-package: Key-chord" )
@@ -246,7 +274,6 @@
 
 ;; NOTE: additional key-chords are defined within other use-package declarations herein.
 (use-package key-seq
-  ;;ensure t
   :after key-chord
   :init
   (progn
@@ -275,13 +302,13 @@
 (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 
 ;; editorconfig allows specification of tab/space/indent
-  (use-package editorconfig
-    ;;ensure t
-    :delight (editorconfig-mode "Ec")
-    :init
-    (message "Use-package: EditorConfig")
-    :config
-    (editorconfig-mode 1) )
+(use-package editorconfig
+  :delight (editorconfig-mode "Ec")
+  :init
+  (message "Use-package: EditorConfig")
+  :config
+  (editorconfig-mode 1) )
+
 (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
 
 ;; location of my snippets -- has to go before yas-reload-all
@@ -315,27 +342,8 @@
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all) )
 
-(use-package corfu
-  ;;ensure t
-  :init (message "Use-package: Corfu")
-  :hook
-  (prog-mode . corfu-mode)
-  (latex-mode . corfu-mode)
-  (org-mode . corfu-mode) )
-
-;; GIT-GUTTER: SHOW changes relative to git repo
-(use-package git-gutter
-  ;;ensure t
-  :defer t
-  :delight (git-gutter-mode "Gg")
-  :init (message "Use-package: Git-Gutter")
-  :hook
-  (prog-mode . git-gutter-mode)
-  (org-mode . git-gutter-mode) )
-
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
-  ;;ensure t
   :delight (eglot "Eglot")
   :init
   (message "Use-package: Eglot")
@@ -345,30 +353,51 @@
   (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
   (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
+;; GIT-GUTTER: SHOW changes relative to git repo
+(use-package git-gutter
+  :defer t
+  :delight (git-gutter-mode "Gg")
+  :init (message "Use-package: Git-Gutter")
+  :hook
+  (prog-mode . git-gutter-mode)
+  (org-mode . git-gutter-mode) )
+
 ;; NIX language mode
 (use-package nix-mode
   :delight (nix-mode "Nx")
   :mode "\\.nix\\'" ) 
 
+;; (use-package projectile
+;;   :diminish projectile-mode
+;;   :config (projectile-mode)
+;;   ;;:custom ((projectile-completion-system 'ivy))
+;;   :bind-keymap
+;;   ("C-c p" . projectile-command-map)
+;;   :init
+;;   ;; NOTE: Set this to the folder where you keep your Git repos!
+;;   (when (file-directory-p "~/Projects/Code")
+;;     (setq projectile-project-search-path '("/home/hewitt/CURRENT/Projects")))
+;;   (setq projectile-switch-project-action #'projectile-dired))
+
+;; COMPANY REPLACED WITH CORFU
 ;; company gives the selection front end for code completion
 ;; but not the C++-aware backend
-(use-package company
-  ;;ensure t
-  :delight (company-mode "Co")
-  :bind ("M-/" . company-complete)
-  :init
-  (progn
-    (message "Use-package: Company")
-    (add-hook 'after-init-hook 'global-company-mode) )
-  :config
-  (require 'yasnippet)
-  (setq company-idle-delay 1)
-  (setq company-minimum-prefix-length 3)
-  (setq company-idle-delay 0)
-  (setq company-selection-wrap-around t)
-  (setq company-tooltip-align-annotations t)
-  (setq company-frontends '(company-pseudo-tooltip-frontend 
-                            company-echo-metadata-frontend) ) )
+;; (use-package company
+;;   :delight (company-mode "Co")
+;;   :bind ("M-/" . company-complete)
+;;   :init
+;;   (progn
+;;     (message "Use-package: Company")
+;;     (add-hook 'after-init-hook 'global-company-mode) )
+;;   :config
+;;   (require 'yasnippet)
+;;   (setq company-idle-delay 1)
+;;   (setq company-minimum-prefix-length 3)
+;;   (setq company-idle-delay 0)
+;;   (setq company-selection-wrap-around t)
+;;   (setq company-tooltip-align-annotations t)
+;;   (setq company-frontends '(company-pseudo-tooltip-frontend 
+;;                             company-echo-metadata-frontend) ) )
 
 ;; MAGIT
 (use-package magit
@@ -377,18 +406,15 @@
   :bind
   ("C-x g" . magit-status)
   :init
-  (message "Use-package: Magit installed")
-  )
+  (message "Use-package: Magit installed") )
 
 (use-package org
-  ;;ensure t
   :after key-seq
   :init
   (message "Use-package: Org") )
 
 ;; fancy replace of *** etc
 (use-package org-bullets
-  ;;ensure t
   :after org
   :init
   (add-hook 'org-mode-hook 'org-bullets-mode)
@@ -403,6 +429,7 @@
          ("~" org-code verbatim)
          ("+" (:strike-through t))))
 
+ ;; colorise text instead of changing the font weight.
  (defface my-org-emphasis-bold
    '((default :inherit bold)
      (((class color) (min-colors 88) (background light))
@@ -481,9 +508,8 @@
                                     (search . " %i %-12:c")))
 
 (use-package gnuplot
-     ;;:ensure t
-     :init
-     (message "Use-package: gnuplot for babel installed") )
+  :init
+  (message "Use-package: gnuplot for babel installed") )
 ;; languages I work in via babel
 (org-babel-do-load-languages
  'org-babel-load-languages
@@ -491,14 +517,13 @@
 ;; stop it asking if I'm sure about evaluation
 (setq org-confirm-babel-evaluate nil)
 
-(defun my-tab-related-stuff ()
-  (setq indent-tabs-mode nil)
-  ;;(setq tab-stop-list (number-sequence 4 200 4))
-  (setq tab-width 2)
-  ;;(setq indent-line-function 'insert-tab)
-  )
+;; (defun my-tab-related-stuff ()
+;;   (setq indent-tabs-mode nil)
+;;   ;;(setq tab-stop-list (number-sequence 4 200 4))
+;;   (setq tab-width 2)
+;;   ;;(setq indent-line-function 'insert-tab) )
 
-(add-hook 'org-mode-hook 'my-tab-related-stuff)
+;; (add-hook 'org-mode-hook 'my-tab-related-stuff)
 
 (require 'denote)
 
@@ -516,11 +541,6 @@
 
 (setq denote-date-format nil) ; read doc string
 
-;; You will not need to `require' all those individually once the
-;; package is available.
-;;(require 'denote-retrieve)
-;;(require 'denote-link)
-
 ;; By default, we fontify backlinks in their bespoke buffer.
 (setq denote-link-fontify-backlinks t)
 
@@ -534,16 +554,6 @@
 ;;(require 'denote-dired)
 (setq denote-dired-rename-expert nil)
 
-;; We use different ways to specify a path for demo purposes.
-;;(setq denote-dired-directories
-;;      (list denote-directory
-;;            (thread-last denote-directory (expand-file-name "attachments"))
-;;            (expand-file-name "~/Documents/books")))
-
-;; Generic (great if you rename files Denote-style in lots of places):
-;; (add-hook 'dired-mode-hook #'denote-dired-mode)
-;;
-;; OR if only want it in `denote-dired-directories':
 (add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
 
 ;; Denote does not define any key bindings.  This is for the user to
@@ -592,21 +602,14 @@
 
 ;; pdf tools for organising and annotating PDF
 (use-package pdf-tools
-  ;;ensure t
   :config
   (pdf-tools-install) )
-
-;; Feb 2023 : mu is not installed via Nix so no need to specialise
-;; mu4e is part of the "mu" package and sometimes doesn't get
-;; found auto-magically. So this points directly to it.
-;; (add-to-list 'load-path "/home/hewitt/local/share/emacs/site-lisp/mu4e")
 
 ;; defines mu4e exists, but holds off until needed
 (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
 ;; used for outgoing mail send
 (use-package smtpmail
-  ;;ensure t
   :defer t
   :init
   (message "Use-package: SMTPmail")
@@ -808,12 +811,4 @@
 (global-set-key (kbd "C-c h t") 'todo-visit)
 
 ;; load default theme last.
-(load-theme 'ef-duo-dark :no-confirm)
-
-;; because we use daemon/client we have to initiate the posframe
-;; mode only once a frame is made
-;;(add-hook 'after-make-frame-functions
-;;  (lambda (frame)
-;;    (select-frame frame)
-;;    (when (display-graphic-p frame)
-;;      (vertico-posframe-mode 1))))
+(load-theme 'ef-dark :no-confirm)

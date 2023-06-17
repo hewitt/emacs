@@ -126,24 +126,33 @@ Dashboard is the startup screen for quick access to previously used
 material.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; dashboard runs at startup by default
-  (use-package dashboard
-    :delight "Dash"
-    :init
-    (message "Use-package: Dashboard")
-    :config
-    (setq dashboard-banner-logo-title "Go!")
-    (setq dashboard-startup-banner '2) ; 1,2,3 are the text banners
-    (setq dashboard-set-heading-icons t)
-    (setq dashboard-set-file-icons t)
-    (setq dashboard-items '((recents  . 10)
-                            (bookmarks . 5)
-                            (agenda . 4)))
-    (dashboard-setup-startup-hook)
-    ;(dashboard-refresh-buffer)
-    )
-  ;; show dashboard on startup for emacsclients when running the daemon
-  (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*"))) 
+    (use-package nerd-icons
+      ;; :custom
+      ;; The Nerd Font you want to use in GUI
+      ;; "Symbols Nerd Font Mono" is the default and is recommended
+      ;; but you can use any other Nerd Font if you want
+      ;; (nerd-icons-font-family "Symbols Nerd Font Mono")
+      )
+
+    ;; dashboard runs at startup by default
+    (use-package dashboard
+      :delight "Dash"
+      :init
+      (message "Use-package: Dashboard")
+      (setq dashboard-banner-logo-title "Go!")
+      (setq dashboard-startup-banner '2) ; 1,2,3 are the text banners
+      (setq dashboard-icon-type 'nerd-icons)
+      (setq dashboard-set-heading-icons t)
+      (setq dashboard-set-file-icons t)
+      (setq dashboard-items '((recents  . 10)
+                              (bookmarks . 5)
+                              (agenda . 4)))
+      :config
+      (dashboard-setup-startup-hook)
+      ;;(dashboard-refresh-buffer)
+      )
+    ;; show dashboard on startup for emacsclients when running the daemon
+    (setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*"))) 
 #+END_SRC
 
 ** Prot's themes 
@@ -332,50 +341,95 @@ Modes that don't attempt to interoperate (and I avoid):
   and consult-ripgrep, and consult-line, which resembles Swiper.
    
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package consult
-    :after key-seq
-    :init
-    (message "Use-package: consult")
-    :bind
-    ;; see also key-chords elsewhere
-    ("C-x b" . consult-buffer)
-    ("M-g g" . consult-goto-line)
-    ("M-y"   . consult-yank-pop)
-    ("C-y"   . yank)
-    ("C-s"   . consult-line)
-    ("M-g o" . consult-outline))
+    (use-package consult
+      :after key-seq
+      :init
+      (message "Use-package: consult")
+      :bind
+      ;; see also key-chords elsewhere
+      ("C-x b" . consult-buffer)
+      ("M-g g" . consult-goto-line)
+      ("M-y"   . consult-yank-pop)
+      ("C-y"   . yank)
+      ("C-s"   . consult-line)
+      ("M-g o" . consult-outline))
 
     ;; define some related chords
     (key-seq-define-global "qq"     'consult-buffer)
     (key-seq-define-global "qb"     'consult-bookmark) ; set or jump
     (key-seq-define-global "ql"     'consult-goto-line)
 
-  (use-package consult-notes
-    :commands (consult-notes consult-notes-search-in-all-notes)
-    :config
-    (consult-notes-denote-mode))
+    (use-package consult-notes
+      :commands (consult-notes consult-notes-search-in-all-notes)
+      :config
+      (consult-notes-denote-mode))
 
-  (use-package vertico
-    :custom
-    (vertico-cycle t)
-    :init
-    (message "Use-package: vertico")
-    (vertico-mode))
+    (use-package vertico
+      :custom
+      (vertico-cycle t)
+      :init
+      (message "Use-package: vertico")
+      (vertico-mode))
 
-  (use-package savehist
-    :init
-    (savehist-mode))
+    ;; (code) completion via in-buffer pop-up choices
+    (use-package corfu
+      :init (message "Use-package: Corfu")
+      :custom
+      (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+      (corfu-auto t)                 ;; Enable auto completion
+      (corfu-separator ?\s)          ;; Orderless field separator
+      ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+      ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+      ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+      ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+      ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+      ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+      ;; Enable Corfu only for certain modes.
+      :hook ((prog-mode . corfu-mode)
+             (latex-mode . corfu-mode)
+             (shell-mode . corfu-mode)
+             (eshell-mode . corfu-mode))
+      ;; Recommended: Enable Corfu globally.
+      ;; This is recommended since Dabbrev can be used globally (M-/).
+      ;; See also `corfu-exclude-modes'.
+      :init
+      (setq tab-always-indent 'complete)
+      (global-corfu-mode)
+      (corfu-prescient-mode))
 
-   (use-package orderless
-    :custom (completion-styles '(orderless)))
+    (use-package prescient
+      :init
+      (message "Use-package: prescient")
+      :config
+      ;; you have to set the completion-style(s) to be used
+      (setq completion-styles '(substring prescient basic))
+      ;; retain completion statistics over restart of emacs
+      (prescient-persist-mode))
 
-  (use-package marginalia
-    :after vertico
-    :custom
-    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-    :init
-    (message "Use-package: marginalia")
-    (marginalia-mode))
+    (use-package vertico-prescient
+      :init
+      (message "Use-package: vertico-prescient")
+      :config
+      (vertico-prescient-mode))
+
+    (use-package corfu-prescient
+      :init
+      (message "Use-package: corfu-prescient") )
+
+    ;;(use-package savehist
+    ;;  :init
+    ;; (savehist-mode))
+
+    ;; (use-package orderless
+    ;;  :custom (completion-styles '(orderless)))
+
+    (use-package marginalia
+      :after vertico
+      :custom
+      (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+      :init
+      (message "Use-package: marginalia")
+      (marginalia-mode))
 #+END_SRC
 
 
@@ -384,7 +438,7 @@ Modes that don't attempt to interoperate (and I avoid):
 
 I use Wayland (no X11), and this interacts with wl-copy.
 
-#+BEGIN_SRC emacs-lisp :tangle no
+#+BEGIN_SRC emacs-lisp :tangle yes
   ;; - cut and paste in Wayland environment
   ;; - this puts selected text into the Wayland clipboard
   (setq x-select-enable-clipboard t)
@@ -513,12 +567,15 @@ Expand roots to standard text snippets with M-].
 Code completion and on-the-fly check/make.
 
 - interaction with a language back-end is done via "eglot" which is an
-  alternative to lsp-mode.
+  alternative to lsp-mode. The backend is currently set to 'ccls'.
 
-- IN-REGION completion is provided by Corfu (Completion Overlay Region
-  FUnction). This provides at-point completion in the main buffer
-  rather than via a mini-buffer. Completion is requested with a key
-  binding.
+- To parse appropriate header files requires a 'compile_commands.json'
+  file that is consistent with the local machine filesystem.
+  
+- IN-REGION (ie. buffer) completion is provided by Corfu (Completion
+  Overlay Region FUnction). Corfu is configured in the completion
+  section above. This provides at-point completion in the main buffer
+  rather than via a mini-buffer.
 
 - Note for eglot: On my Ubuntu 20.04 LTS installation I had to apt
   install g++ with a version that matched the latest version of the
@@ -527,22 +584,6 @@ Code completion and on-the-fly check/make.
   may pick the gcc toolchain with the largest version number."
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package corfu
-    :init (message "Use-package: Corfu")
-    :hook
-    (prog-mode . corfu-mode)
-    (latex-mode . corfu-mode)
-    (org-mode . corfu-mode) )
-
-  ;; GIT-GUTTER: SHOW changes relative to git repo
-  (use-package git-gutter
-    :defer t
-    :delight (git-gutter-mode "Gg")
-    :init (message "Use-package: Git-Gutter")
-    :hook
-    (prog-mode . git-gutter-mode)
-    (org-mode . git-gutter-mode) )
-
   ;; eglot is a simpler alternative to LSP-mode
   (use-package eglot
     :delight (eglot "Eglot")
@@ -554,30 +595,51 @@ Code completion and on-the-fly check/make.
     (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
     (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
+  ;; GIT-GUTTER: SHOW changes relative to git repo
+  (use-package git-gutter
+    :defer t
+    :delight (git-gutter-mode "Gg")
+    :init (message "Use-package: Git-Gutter")
+    :hook
+    (prog-mode . git-gutter-mode)
+    (org-mode . git-gutter-mode) )
+
   ;; NIX language mode
   (use-package nix-mode
     :delight (nix-mode "Nx")
     :mode "\\.nix\\'" ) 
 
+  ;; (use-package projectile
+  ;;   :diminish projectile-mode
+  ;;   :config (projectile-mode)
+  ;;   ;;:custom ((projectile-completion-system 'ivy))
+  ;;   :bind-keymap
+  ;;   ("C-c p" . projectile-command-map)
+  ;;   :init
+  ;;   ;; NOTE: Set this to the folder where you keep your Git repos!
+  ;;   (when (file-directory-p "~/Projects/Code")
+  ;;     (setq projectile-project-search-path '("/home/hewitt/CURRENT/Projects")))
+  ;;   (setq projectile-switch-project-action #'projectile-dired))
+
+  ;; COMPANY REPLACED WITH CORFU
   ;; company gives the selection front end for code completion
   ;; but not the C++-aware backend
-  (use-package company
-    ;;ensure t
-    :delight (company-mode "Co")
-    :bind ("M-/" . company-complete)
-    :init
-    (progn
-      (message "Use-package: Company")
-      (add-hook 'after-init-hook 'global-company-mode) )
-    :config
-    (require 'yasnippet)
-    (setq company-idle-delay 1)
-    (setq company-minimum-prefix-length 3)
-    (setq company-idle-delay 0)
-    (setq company-selection-wrap-around t)
-    (setq company-tooltip-align-annotations t)
-    (setq company-frontends '(company-pseudo-tooltip-frontend 
-                              company-echo-metadata-frontend) ) )
+  ;; (use-package company
+  ;;   :delight (company-mode "Co")
+  ;;   :bind ("M-/" . company-complete)
+  ;;   :init
+  ;;   (progn
+  ;;     (message "Use-package: Company")
+  ;;     (add-hook 'after-init-hook 'global-company-mode) )
+  ;;   :config
+  ;;   (require 'yasnippet)
+  ;;   (setq company-idle-delay 1)
+  ;;   (setq company-minimum-prefix-length 3)
+  ;;   (setq company-idle-delay 0)
+  ;;   (setq company-selection-wrap-around t)
+  ;;   (setq company-tooltip-align-annotations t)
+  ;;   (setq company-frontends '(company-pseudo-tooltip-frontend 
+  ;;                             company-echo-metadata-frontend) ) )
 #+END_SRC
 
 
@@ -720,13 +782,13 @@ Reproducible research aide.
   ;; stop it asking if I'm sure about evaluation
   (setq org-confirm-babel-evaluate nil)
 
-  (defun my-tab-related-stuff ()
-    (setq indent-tabs-mode nil)
-    ;;(setq tab-stop-list (number-sequence 4 200 4))
-    (setq tab-width 2)
-    ;;(setq indent-line-function 'insert-tab) )
+  ;; (defun my-tab-related-stuff ()
+  ;;   (setq indent-tabs-mode nil)
+  ;;   ;;(setq tab-stop-list (number-sequence 4 200 4))
+  ;;   (setq tab-width 2)
+  ;;   ;;(setq indent-line-function 'insert-tab) )
 
-  (add-hook 'org-mode-hook 'my-tab-related-stuff)
+  ;; (add-hook 'org-mode-hook 'my-tab-related-stuff)
 #+END_SRC
 
 ** Denote
@@ -1066,22 +1128,22 @@ support all the specified identities.
 Wrap up the config with some shortcut definitions and select the theme
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-    ;; simple prefix key launcher
-    (global-set-key (kbd "C-c h m") 'mu4e)
-    (global-set-key (kbd "C-c h a") 'org-agenda)
-    ;; C-c h e : edit the init.el configuration file
-    (defun config-visit ()
-      (interactive)
-      (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
-    (global-set-key (kbd "C-c h e") 'config-visit)
-    ;; C-c h e : edit the init.el configuration file
-    (defun todo-visit ()
-      (interactive)
-      (find-file "~/Sync/Org/Todo.org") )
-    (global-set-key (kbd "C-c h t") 'todo-visit)
+  ;; simple prefix key launcher
+  (global-set-key (kbd "C-c h m") 'mu4e)
+  (global-set-key (kbd "C-c h a") 'org-agenda)
+  ;; C-c h e : edit the init.el configuration file
+  (defun config-visit ()
+    (interactive)
+    (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
+  (global-set-key (kbd "C-c h e") 'config-visit)
+  ;; C-c h e : edit the init.el configuration file
+  (defun todo-visit ()
+    (interactive)
+    (find-file "~/Sync/Org/Todo.org") )
+  (global-set-key (kbd "C-c h t") 'todo-visit)
 
-    ;; load default theme last.
-    (load-theme 'ef-day :no-confirm)
+  ;; load default theme last.
+  (load-theme 'ef-dark :no-confirm)
 #+END_SRC
 
 
