@@ -14,18 +14,16 @@
 (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
 (load custom-file t)
 
-;; move backups to stop *~ proliferation
-(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+;; skip auto backups
+(setq make-backup-files nil)
+;; (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
 ;; have mouse input in the terminal -- the disadvantage is you
 ;; need to SHIFT+middle mouse to paste in the terminal
 (xterm-mouse-mode 1)
 ;; Turn off the menu/scroll/toolbar
 (menu-bar-mode -1)
-(scroll-bar-mode -1)
+;;(scroll-bar-mode -1)
 (tool-bar-mode -1)
-;; this stops the cursor recentering on leaving the page
-;; ie. stop scrolling by 0.5 page
-(setq scroll-conservatively 101 )
 ;; replace annoying yes/no with y/n
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; don't end sentences with a double space
@@ -41,15 +39,21 @@
 
 (global-auto-revert-mode)
 
-;; setup files ending in “.m4” to open in LaTeX-mode
-;; for use in lecture note construction
-(add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
-;; my default gnuplot extension
-(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
-;; Octave/Matlab
-(add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
-;; Nix language
-(add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
+(setq-default scroll-conservatively 10000)
+(setq-default scroll-margin 5)
+
+(pixel-scroll-precision-mode t)
+(setq pixel-scroll-precision-use-momentum t)
+(setq pixel-scroll-precision-interpolate-mice t)
+(setq pixel-scroll-precision-large-scroll-height 10.0)
+(setq pixel-scroll-precision-interpolate-page t)
+
+(global-set-key (kbd "C-v") 'pixel-scroll-interpolate-down)
+(global-set-key (kbd "M-v") 'pixel-scroll-interpolate-up)
+
+;; apply to resizing frames and windows too
+(setq frame-resize-pixelwise t)
+(setq window-resize-pixelwise t)
 
 (use-package delight
   :init (message "Use-package: Delight") )
@@ -57,33 +61,64 @@
 (delight 'eldoc-mode "" 'eldoc)
 (delight 'abbrev-mode "" 'abbrev)
 
-(use-package nerd-icons
-  ;; :custom
-  ;; The Nerd Font you want to use in GUI
-  ;; "Symbols Nerd Font Mono" is the default and is recommended
-  ;; but you can use any other Nerd Font if you want
-  ;; (nerd-icons-font-family "Symbols Nerd Font Mono")
-  )
+;; capitalise the major mode
+(defun my-modeline--major-mode-name ()
+  "Return capitalized `major-mode' as a string."
+  (capitalize (symbol-name major-mode)))
 
-;; dashboard runs at startup by default
-(use-package dashboard
-  :delight "Dash"
-  :init
-  (message "Use-package: Dashboard")
-  (setq dashboard-banner-logo-title "Go!")
-  (setq dashboard-startup-banner '2) ; 1,2,3 are the text banners
-  (setq dashboard-icon-type 'nerd-icons)
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
-  (setq dashboard-items '((recents  . 10)
-                          (bookmarks . 5)
-                          (agenda . 4)))
-  :config
-  (dashboard-setup-startup-hook)
-  ;;(dashboard-refresh-buffer)
-  )
-;; show dashboard on startup for emacsclients when running the daemon
-(setq initial-buffer-choice (lambda () (get-buffer-create "*dashboard*")))
+;; only show the major mode, not all active minor modes
+(defvar-local my-modeline-major-mode
+    '(:eval
+      (when (mode-line-window-selected-p)  ; remove from windows not active
+        (list
+         (propertize "::" 'face 'shadow)
+         " "
+         (propertize (my-modeline--major-mode-name) 'face 'bold))))
+  "Mode line construct to display the major mode.")
+(put 'my-modeline-major-mode 'risky-local-variable t)
+
+;; a function that allows text alignment left or right
+(defun my-mode-line-alignment (left right)
+  "Return a string of `window-width' length containing LEFT, and RIGHT
+   aligned respectively."
+  (let* ((available-width (- (window-width) (length left) 2)))
+    (format (format " %%s %%%ds " available-width) left right)))
+
+;; Prot ef-theme modeline tweak to add box
+(defun my-ef-themes-mode-line ()
+  "Tweak the style of the mode lines."
+  (ef-themes-with-colors
+    (custom-set-faces
+     `(mode-line ((,c :background ,bg-mode-line :foreground ,fg-main :box (:line-width 1 :color ,yellow-faint))))
+     `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
+(add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
+
+;; define the line/column information
+(setq mode-line-position (list "L%l C%c"))
+;; define the mode line content
+(setq-default mode-line-format
+              '((:eval (my-mode-line-alignment
+                        ;; left aligned parts
+                        (format-mode-line
+                         '("%*"                      ; modified buffer indicator
+                           "%b"                      ; name of the buffer		  
+                           " "
+                           my-modeline-major-mode    ; ONLY list major modes
+                           )
+                         )
+                        ;; right aligned parts
+                        (format-mode-line
+                         '(
+                           "%f"
+                           " "
+                           (vc-mode vc-mode)         ; if vc-mode active, then show the branch information
+
+                           " "
+                           mode-line-position        ; show lines and columns as specified above
+                           "%e"                      ; default out of memory error as in default config
+                           )
+                         )
+                        ))))
 
 ;; Disable all other themes to avoid awkward blending:    
 (use-package ef-themes
@@ -91,7 +126,7 @@
   (mapc #'disable-theme custom-enabled-themes)
   ;; Make customisations that affect Emacs faces BEFORE loading a theme
   ;; (any change needs a theme re-load to take effect).
-  (setq ef-themes-to-toggle '(ef-day ef-winter))
+  (setq ef-themes-to-toggle '(ef-symbiosis ef-day ef-winter))
   ;;:config
   ;; Load the theme of choice:
   ;;(load-theme 'ef-summer :no-confirm)
@@ -101,34 +136,11 @@
   ;; I set the theme at the end of this configuration because of
   ;; some minor issues with code comments showing as underlined [2022]
   )
-
-(use-package doom-modeline
-  ;;ensure t
-  :init (message "Use-package: Doom-modeline")
-  :hook (after-init . doom-modeline-mode)
-  :config
-  ;; Whether display icons or not (if nil nothing will be showed).
-  (setq doom-modeline-icon t)
-  ;; Display the icon for the major mode. 
-  (setq doom-modeline-major-mode-icon t )
-  ;; Display color icons for `major-mode' 
-  (setq doom-modeline-major-mode-color-icon t)
-  ;; Display minor modes or not?
-  (setq doom-modeline-minor-modes t)
-  ;; Whether display icons for buffer states.
-  (setq doom-modeline-buffer-state-icon t)
-  ;; Whether display buffer modification icon.
-  (setq doom-modeline-buffer-modification-icon t)
-  ;; If non-nil, a word count will be added to the selection-info modeline segment.
-  (setq doom-modeline-enable-word-count nil)
-  ;; If non-nil, only display one number for checker information if applicable.
-  ; (setq doom-modeline-checker-simple-format t)
-  ;; The maximum displayed length of the branch name of version control.
-  (setq doom-modeline-vcs-max-length 6)
-  ;; Whether display perspective name or not. Non-nil to display in mode-line.
-  ;(setq doom-modeline-persp-name t)
-  ;; Whether display `lsp' state or not. Non-nil to display in mode-line.
-  (setq doom-modeline-lsp t)  )
+;; Add a little bit of transparency
+(set-frame-parameter nil 'alpha-background 95)
+(add-to-list 'default-frame-alist '(alpha-background . 95))
+;; select my default theme
+(ef-themes-select 'ef-symbiosis)
 
 (use-package rainbow-delimiters
   ;;ensure t
@@ -153,13 +165,14 @@
 (add-hook 'latex-mode-hook 'hl-line-mode)
 ;; programming
 (add-hook 'prog-mode-hook 'hl-line-mode)
+(add-hook 'prog-mode-hook 'eglot-ensure)
 ;; org-mode
 (add-hook 'org-mode-hook 'hl-line-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 
 (use-package consult
-  :after key-seq
+  :after key-chord
   :init
   (message "Use-package: consult")
   :bind
@@ -172,9 +185,9 @@
   ("M-g o" . consult-outline))
 
 ;; define some related chords
-(key-seq-define-global "qq"     'consult-buffer)
-(key-seq-define-global "qb"     'consult-bookmark) ; set or jump
-(key-seq-define-global "ql"     'consult-goto-line)
+(key-chord-define-global "qq"     'consult-buffer)
+(key-chord-define-global "qb"     'consult-bookmark) ; set or jump
+(key-chord-define-global "ql"     'consult-goto-line)
 
 (use-package consult-notes
   :commands (consult-notes consult-notes-search-in-all-notes)
@@ -270,7 +283,12 @@
   :init
   (progn
     (message "Use-package: Key-chord" )
-    )
+     (key-chord-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
+     (key-chord-define-global "qi"     'ibuffer-bs-show) 
+     (key-chord-define-global "qw"     'other-window)
+     (key-chord-define-global "qt"     'org-babel-tangle)
+     (key-chord-define-global "qd"     'org-journal-new-entry)
+     (key-chord-define-global "qc"     'org-capture) )     
   :config
   ;; Max time delay between two key presses to be considered a key chord
   (setq key-chord-two-keys-delay 0.1) ; default 0.1
@@ -278,20 +296,6 @@
   ;; Should normally be a little longer than `key-chord-two-keys-delay'.
   (setq key-chord-one-key-delay 0.2) ; default 0.2    
   (key-chord-mode 1) )
-
-;; NOTE: additional key-chords are defined within other use-package declarations herein.
-(use-package key-seq
-  :after key-chord
-  :init
-  (progn
-    (message "Use-package: Key-seq" )
-    ;(key-seq-define-global "kk"     'kill-whole-line)
-    (key-seq-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
-    (key-seq-define-global "qi"     'ibuffer-bs-show) 
-    (key-seq-define-global "qw"     'other-window)
-    (key-seq-define-global "qt"     'org-babel-tangle)
-    (key-seq-define-global "qd"     'org-journal-new-entry)
-    (key-seq-define-global "qc"     'org-capture) ) )
 
 ;; move focus when splitting a window
 (defun split-and-follow-horizontally ()
@@ -360,51 +364,64 @@
   (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
   (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
-;; GIT-GUTTER: SHOW changes relative to git repo
-(use-package git-gutter
-  :defer t
-  :delight (git-gutter-mode "Gg")
-  :init (message "Use-package: Git-Gutter")
-  :hook
-  (prog-mode . git-gutter-mode)
-  (org-mode . git-gutter-mode) )
+  ;; GIT-GUTTER: SHOW changes relative to git repo
+  (use-package git-gutter
+    :defer t
+    :delight (git-gutter-mode "Gg")
+    :init
+    (message "Use-package: Git-Gutter")
+    :hook
+    (prog-mode . git-gutter-mode)
+    (org-mode . git-gutter-mode) )
 
-;; NIX language mode
+  ;; NIX language mode
 (use-package nix-mode
-  :delight (nix-mode "Nx")
-  :mode "\\.nix\\'" ) 
+    :delight (nix-mode "Nx")
+    :mode "\\.nix\\'" ) 
 
-;; (use-package projectile
-;;   :diminish projectile-mode
-;;   :config (projectile-mode)
-;;   ;;:custom ((projectile-completion-system 'ivy))
-;;   :bind-keymap
-;;   ("C-c p" . projectile-command-map)
-;;   :init
-;;   ;; NOTE: Set this to the folder where you keep your Git repos!
-;;   (when (file-directory-p "~/Projects/Code")
-;;     (setq projectile-project-search-path '("/home/hewitt/CURRENT/Projects")))
-;;   (setq projectile-switch-project-action #'projectile-dired))
+  ;; aggressive indentation
+(require 'aggressive-indent)
+(message "Use-package: Aggressive-indent")
+(global-aggressive-indent-mode 1)
+  ;(add-to-list 'aggressive-indent-excluded-modes 'html-mode)
 
-;; COMPANY REPLACED WITH CORFU
-;; company gives the selection front end for code completion
-;; but not the C++-aware backend
-;; (use-package company
-;;   :delight (company-mode "Co")
-;;   :bind ("M-/" . company-complete)
-;;   :init
-;;   (progn
-;;     (message "Use-package: Company")
-;;     (add-hook 'after-init-hook 'global-company-mode) )
-;;   :config
-;;   (require 'yasnippet)
-;;   (setq company-idle-delay 1)
-;;   (setq company-minimum-prefix-length 3)
-;;   (setq company-idle-delay 0)
-;;   (setq company-selection-wrap-around t)
-;;   (setq company-tooltip-align-annotations t)
-;;   (setq company-frontends '(company-pseudo-tooltip-frontend 
-;;                             company-echo-metadata-frontend) ) )
+  ;; (use-package projectile
+  ;;   :diminish projectile-mode
+  ;;   :config (projectile-mode)
+  ;;   ;;:custom ((projectile-completion-system 'ivy))
+  ;;   :bind-keymap
+  ;;   ("C-c p" . projectile-command-map)
+  ;;   :init
+  ;;   ;; NOTE: Set this to the folder where you keep your Git repos!
+  ;;   (when (file-directory-p "~/Projects/Code")
+  ;;     (setq projectile-project-search-path '("/home/hewitt/CURRENT/Projects")))
+  ;;   (setq projectile-switch-project-action #'projectile-dired))
+
+  ;; COMPANY REPLACED WITH CORFU
+  ;; company gives the selection front end for code completion
+  ;; but not the C++-aware backend
+  ;; (use-package company
+  ;;   :delight (company-mode "Co")
+  ;;   :bind ("M-/" . company-complete)
+  ;;   :init
+  ;;   (progn
+  ;;     (message "Use-package: Company")
+  ;;     (add-hook 'after-init-hook 'global-company-mode) )
+  ;;   :config
+  ;;   (require 'yasnippet)
+  ;;   (setq company-idle-delay 1)
+  ;;   (setq company-minimum-prefix-length 3)
+  ;;   (setq company-idle-delay 0)
+  ;;   (setq company-selection-wrap-around t)
+  ;;   (setq company-tooltip-align-annotations t)
+  ;;   (setq company-frontends '(company-pseudo-tooltip-frontend 
+  ;;                             company-echo-metadata-frontend) ) )
+
+(add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
+(add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
+(add-to-list 'major-mode-remap-alist '(c-or-c++-mode . c-or-c++-ts-mode))
+;; maximum level of highlighting
+(setq treesit-font-lock-level 4)
 
 ;; MAGIT
 (use-package magit
@@ -416,7 +433,6 @@
   (message "Use-package: Magit installed") )
 
 (use-package org
-  :after key-seq
   :init
   (message "Use-package: Org") )
 
@@ -429,12 +445,12 @@
 
 ;; replace emphasis with colors in Org files
 (setq org-emphasis-alist
-       '(("*" my-org-emphasis-bold)
-         ("/" my-org-emphasis-italic)
-         ("_" underline)
-         ("=" org-verbatim verbatim)
-         ("~" org-code verbatim)
-         ("+" (:strike-through t))))
+      '(("*" my-org-emphasis-bold)
+        ("/" my-org-emphasis-italic)
+        ("_" underline)
+        ("=" org-verbatim verbatim)
+        ("~" org-code verbatim)
+        ("+" (:strike-through t))))
 
  ;; colorise text instead of changing the font weight.
  (defface my-org-emphasis-bold
@@ -461,10 +477,9 @@
       :foreground "#d0bc00"))
    "My underline emphasis for Org.")
 
-
    ;; ORG link to mu4e emails -- see mu from https://github.com/djcb/mu
-   ;(require 'org-mu4e)
-   ;(setq org-mu4e-link-query-in-headers-mode nil)
+   ;;(require 'org-mu4e)
+   ;;(setq org-mu4e-link-query-in-headers-mode nil)
 
    ;; custom capture
    (require 'org-capture)
@@ -501,8 +516,6 @@
          org-agenda-start-on-weekday nil
          org-agenda-start-day "-3d")
 
-   ;; used for org timers?
-   (key-seq-define-global "qp"     'org-timer-set-timer)
    ;; default duration of events
    (setq org-agenda-default-appointment-duration 60)
 
@@ -535,7 +548,7 @@
 (require 'denote)
 
 ;; Remember to check the doc strings of those variables.
-(setq denote-directory (expand-file-name "~/Sync/Org/Denote/"))
+(setq denote-directory (expand-file-name "~/CURRENT/PNL/Denote/"))
 (setq denote-known-keywords '("research" "admin" "industry" "teaching" "home" "attachment"))
 (setq denote-infer-keywords t)
 (setq denote-sort-keywords t)
@@ -600,7 +613,7 @@
   :init
   (message "Use-package: Org-journal")
   :config
-  (setq org-journal-dir "~/Sync/Org/Journal/"
+  (setq org-journal-dir "~/CURRENT/PNL/JNL/"
         org-journal-date-format "%A, %d %B %Y"
         org-journal-file-format "%Y_%m_%d"
         org-journal-time-prefix "  - "
@@ -657,7 +670,7 @@
 ;; better only use that for the last field.
 ;; These are the defaults:
 (setq mu4e-headers-fields
-      '((:human-date    .  15)    ;; alternatively, use :date
+      '((:human-date    .  15)   ;; alternatively, use :date
         (:flags        .   6)
         (:from         .  22)
         (:subject      .  nil))  ;; alternatively, use :thread-subject
@@ -706,102 +719,15 @@
   (setq age-armor nil) ;; don't convert to ASCII so I can see the key headers
   (age-file-enable))
 
-(defun meow-setup ()
-  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-  (meow-motion-overwrite-define-key
-   '("j" . meow-next)
-   '("k" . meow-prev)
-   '("<escape>" . ignore))
-
-  (meow-leader-define-key
-   ;; SPC j/k will run the original command in MOTION state.
-   '("j" . "H-j")
-   '("k" . "H-k")
-   ;; Use SPC (0-9) for digit arguments.
-   '("1" . meow-digit-argument)
-   '("2" . meow-digit-argument)
-   '("3" . meow-digit-argument)
-   '("4" . meow-digit-argument)
-   '("5" . meow-digit-argument)
-   '("6" . meow-digit-argument)
-   '("7" . meow-digit-argument)
-   '("8" . meow-digit-argument)
-   '("9" . meow-digit-argument)
-   '("0" . meow-digit-argument)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet))
-
-  (meow-normal-define-key
-   '("0" . meow-expand-0)
-   '("9" . meow-expand-9)
-   '("8" . meow-expand-8)
-   '("7" . meow-expand-7)
-   '("6" . meow-expand-6)
-   '("5" . meow-expand-5)
-   '("4" . meow-expand-4)
-   '("3" . meow-expand-3)
-   '("2" . meow-expand-2)
-   '("1" . meow-expand-1)
-   '("-" . negative-argument)
-   '(";" . meow-reverse)
-   ;; SELECTION
-   '("," . meow-inner-of-thing) 
-   '("." . meow-bounds-of-thing)
-   '("g" . meow-cancel-selection)
-   '("H" . meow-left-expand)
-   '("J" . meow-next-expand)
-   '("K" . meow-prev-expand)
-   '("L" . meow-right-expand)
-   '("[" . meow-beginning-of-thing)
-   '("]" . meow-end-of-thing)
-   ;; MOVEMENT
-   '("b" . meow-back-word)
-   '("B" . meow-back-symbol)
-   '("e" . meow-next-word)
-   '("E" . meow-next-symbol)
-   '("h" . meow-left)
-   '("j" . meow-next)
-   '("k" . meow-prev)
-   '("l" . meow-right)
-   ;; EDIT
-   '("c" . meow-change)
-   '("d" . meow-delete)
-   '("D" . meow-backward-delete)
-   '("i" . meow-insert)
-   '("a" . meow-append)
-   '("I" . meow-open-above)
-   '("A" . meow-open-below)
-   '("s" . meow-kill)
-   ;;
-   ;; SEARCH
-   '("f" . meow-find)
-   '("G" . meow-grab)
-   '("m" . meow-join)
-   '("n" . meow-search)
-   '("o" . meow-block)
-   '("O" . meow-to-block)
-   '("p" . meow-yank)
-   '("q" . meow-quit)
-   '("Q" . meow-goto-line)
-   '("r" . meow-replace)
-   '("R" . meow-swap-grab)
-   ;;'("t" . meow-till)
-   '("u" . meow-undo)
-   '("U" . meow-undo-in-selection)
-   '("v" . meow-visit)
-   '("w" . meow-mark-word)
-   '("W" . meow-mark-symbol)
-   '("x" . meow-line)
-   '("X" . meow-goto-line)
-   '("y" . meow-save)
-   '("Y" . meow-sync-grab)
-   '("z" . meow-pop-selection)
-   '("'" . repeat)
-   '("<escape>" . ignore)))
-
-   (require 'meow)
-   (meow-setup)
-   (meow-global-mode 1)
+;; setup files ending in “.m4” to open in LaTeX-mode
+;; for use in lecture note construction
+(add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+;; my default gnuplot extension
+(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+;; Octave/Matlab
+(add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
+;; Nix language
+(add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 
 ;; simple prefix key launcher
 (global-set-key (kbd "C-c h m") 'mu4e)
@@ -816,6 +742,3 @@
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 (global-set-key (kbd "C-c h t") 'todo-visit)
-
-;; load default theme last.
-(load-theme 'ef-dark :no-confirm)
