@@ -1,6 +1,3 @@
-;;;;
-;;;; CONFIGURE MELPA AND GNU ARCHIVES
-;;;;
 (require 'package)
 (setq package-archives
       '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
@@ -36,89 +33,10 @@
 (setq large-file-warning-threshold 80000000)
 ;; always follow the symlink
 (setq vc-follow-symlinks t)
+;; show line numbers by default
+(setq display-line-numbers-mode t)
 
 (global-auto-revert-mode)
-
-(setq-default scroll-conservatively 10000)
-(setq-default scroll-margin 5)
-
-(pixel-scroll-precision-mode t)
-(setq pixel-scroll-precision-use-momentum t)
-(setq pixel-scroll-precision-interpolate-mice t)
-(setq pixel-scroll-precision-large-scroll-height 10.0)
-(setq pixel-scroll-precision-interpolate-page t)
-
-(global-set-key (kbd "C-v") 'pixel-scroll-interpolate-down)
-(global-set-key (kbd "M-v") 'pixel-scroll-interpolate-up)
-
-;; apply to resizing frames and windows too
-(setq frame-resize-pixelwise t)
-(setq window-resize-pixelwise t)
-
-(use-package delight
-  :init (message "Use-package: Delight") )
-;; delight some basic modes to get rid of modeline content
-(delight 'eldoc-mode "" 'eldoc)
-(delight 'abbrev-mode "" 'abbrev)
-
-;; capitalise the major mode
-(defun my-modeline--major-mode-name ()
-  "Return capitalized `major-mode' as a string."
-  (capitalize (symbol-name major-mode)))
-
-;; only show the major mode, not all active minor modes
-(defvar-local my-modeline-major-mode
-    '(:eval
-      (when (mode-line-window-selected-p)  ; remove from windows not active
-        (list
-         (propertize "::" 'face 'shadow)
-         " "
-         (propertize (my-modeline--major-mode-name) 'face 'bold))))
-  "Mode line construct to display the major mode.")
-(put 'my-modeline-major-mode 'risky-local-variable t)
-
-;; a function that allows text alignment left or right
-(defun my-mode-line-alignment (left right)
-  "Return a string of `window-width' length containing LEFT, and RIGHT
-   aligned respectively."
-  (let* ((available-width (- (window-width) (length left) 2)))
-    (format (format " %%s %%%ds " available-width) left right)))
-
-;; Prot ef-theme modeline tweak to add box
-(defun my-ef-themes-mode-line ()
-  "Tweak the style of the mode lines."
-  (ef-themes-with-colors
-    (custom-set-faces
-     `(mode-line ((,c :background ,bg-mode-line :foreground ,fg-main :box (:line-width 1 :color ,yellow-faint))))
-     `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
-(add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
-
-;; define the line/column information
-(setq mode-line-position (list "L%l C%c"))
-;; define the mode line content
-(setq-default mode-line-format
-              '((:eval (my-mode-line-alignment
-                        ;; left aligned parts
-                        (format-mode-line
-                         '("%*"                      ; modified buffer indicator
-                           "%b"                      ; name of the buffer		  
-                           " "
-                           my-modeline-major-mode    ; ONLY list major modes
-                           )
-                         )
-                        ;; right aligned parts
-                        (format-mode-line
-                         '(
-                           "%f"
-                           " "
-                           (vc-mode vc-mode)         ; if vc-mode active, then show the branch information
-
-                           " "
-                           mode-line-position        ; show lines and columns as specified above
-                           "%e"                      ; default out of memory error as in default config
-                           )
-                         )
-                        ))))
 
 ;; Disable all other themes to avoid awkward blending:    
 (use-package ef-themes
@@ -139,8 +57,68 @@
 ;; Add a little bit of transparency
 (set-frame-parameter nil 'alpha-background 95)
 (add-to-list 'default-frame-alist '(alpha-background . 95))
-;; select my default theme
+;; select a default theme
 (ef-themes-select 'ef-symbiosis)
+
+;; Prot ef-theme modeline tweak to add box around the modeline
+(defun my-ef-themes-mode-line ()
+  "Tweak the style of the mode lines."
+  (ef-themes-with-colors
+    (custom-set-faces
+     `(mode-line ((,c :background ,bg-mode-line :foreground ,fg-main :box (:line-width 1 :color ,yellow-faint))))
+     `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
+(add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
+
+;; define the line/column information
+(setq mode-line-position (list "L%l C%c"))
+
+(buffer-modified-p)
+
+(setq-default mode-line-format
+              '(
+                (:eval (if (buffer-modified-p)
+                           (propertize " [*] " 'face 'error)
+                         (propertize "  -  " 'face 'shadow)
+                         )
+                       )
+                ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
+                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
+                           (when (mode-line-window-selected-p) 
+                             (propertize 
+                              (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
+                              'face 'shadow)                                      
+                             ) 
+                         ) 
+                       )
+                ;; ALWAYS show the final filename even if inactive
+                ;; final separator is in usual font
+                "/" 
+                ;; filename in a more obvious colour
+                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
+                           (propertize 
+                            (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
+                            'face 'error)
+                         )
+                       )
+                ;; everything after here goes on the right
+                mode-line-format-right-align
+                ;; show ONLY the major mode (minor modes are not shown)
+                " | "
+                ;; strip "-Mode" from the end
+                (:eval (when (mode-line-window-selected-p) 
+                         (propertize (nth 0
+                                          (split-string
+                                           (capitalize (symbol-name major-mode)) "-Mode")
+                                          )
+                                     'face 'error)
+                         )
+                       )
+                " "
+                (vc-mode vc-mode)
+                " | "
+                mode-line-position        ; show lines and columns as specified above
+                )
+              )
 
 (use-package rainbow-delimiters
   ;;ensure t
@@ -153,7 +131,6 @@
 
 (use-package which-key
   ;;ensure t
-  :delight 
   :init 
   (message "Use-package: Which-key mode")
   :config
@@ -268,6 +245,25 @@
   (message "Use-package: marginalia")
   (marginalia-mode))
 
+(setq-default scroll-conservatively 20)
+;; how close to the edge of the buffer does point get when scrolling up/down
+(setq-default scroll-margin 8)
+
+;; by default always use pixel...mode.
+(pixel-scroll-precision-mode t)
+(setq pixel-scroll-precision-use-momentum nil)
+(setq pixel-scroll-precision-interpolate-mice t)
+(setq pixel-scroll-precision-large-scroll-height 10.0)
+(setq pixel-scroll-precision-interpolate-page t)
+
+;; apply to resizing frames and windows too
+(setq frame-resize-pixelwise t)
+(setq window-resize-pixelwise t)
+
+;; define scroll wheel behaviour, including text scaling using C+wheel.
+(setq mouse-wheel-scroll-amount '(0.2 ((shift) . hscroll) ((meta)) ((control meta) . global-text-scale) ((control) . text-scale)))
+(setq mouse-wheel-progressive-speed nil)
+
 ;; - cut and paste in Wayland environment
 ;; - this puts selected text into the Wayland clipboard
 (setq x-select-enable-clipboard t)
@@ -314,7 +310,6 @@
 
 ;; editorconfig allows specification of tab/space/indent
 (use-package editorconfig
-  :delight (editorconfig-mode "Ec")
   :init
   (message "Use-package: EditorConfig")
   :config
@@ -326,7 +321,6 @@
 (setq-default yas-snippet-dirs '("/home/hewitt/.emacs.d/my_snippets"))
 ;; include yansippet and snippets
 (use-package yasnippet
-  :delight (yas-minor-mode "YaS")
   ;;ensure t
   :init
   (message "Use-package: YASnippet")
@@ -355,7 +349,6 @@
 
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
-  :delight (eglot "Eglot")
   :init
   (message "Use-package: Eglot")
   (add-hook 'c++-mode-hook 'eglot-ensure)
@@ -364,58 +357,20 @@
   (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
   (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
-  ;; GIT-GUTTER: SHOW changes relative to git repo
-  (use-package git-gutter
-    :defer t
-    :delight (git-gutter-mode "Gg")
-    :init
-    (message "Use-package: Git-Gutter")
-    :hook
-    (prog-mode . git-gutter-mode)
-    (org-mode . git-gutter-mode) )
+;; GIT-GUTTER: SHOW changes relative to git repo
+(use-package git-gutter
+  :defer t
+  :init
+  (message "Use-package: Git-Gutter")
+  ;:hook
+  ;(prog-mode . git-gutter-mode)
+  ;(org-mode . git-gutter-mode)
+  )
+(global-git-gutter-mode +1)
 
-  ;; NIX language mode
+;; NIX language mode
 (use-package nix-mode
-    :delight (nix-mode "Nx")
-    :mode "\\.nix\\'" ) 
-
-  ;; aggressive indentation
-(require 'aggressive-indent)
-(message "Use-package: Aggressive-indent")
-(global-aggressive-indent-mode 1)
-  ;(add-to-list 'aggressive-indent-excluded-modes 'html-mode)
-
-  ;; (use-package projectile
-  ;;   :diminish projectile-mode
-  ;;   :config (projectile-mode)
-  ;;   ;;:custom ((projectile-completion-system 'ivy))
-  ;;   :bind-keymap
-  ;;   ("C-c p" . projectile-command-map)
-  ;;   :init
-  ;;   ;; NOTE: Set this to the folder where you keep your Git repos!
-  ;;   (when (file-directory-p "~/Projects/Code")
-  ;;     (setq projectile-project-search-path '("/home/hewitt/CURRENT/Projects")))
-  ;;   (setq projectile-switch-project-action #'projectile-dired))
-
-  ;; COMPANY REPLACED WITH CORFU
-  ;; company gives the selection front end for code completion
-  ;; but not the C++-aware backend
-  ;; (use-package company
-  ;;   :delight (company-mode "Co")
-  ;;   :bind ("M-/" . company-complete)
-  ;;   :init
-  ;;   (progn
-  ;;     (message "Use-package: Company")
-  ;;     (add-hook 'after-init-hook 'global-company-mode) )
-  ;;   :config
-  ;;   (require 'yasnippet)
-  ;;   (setq company-idle-delay 1)
-  ;;   (setq company-minimum-prefix-length 3)
-  ;;   (setq company-idle-delay 0)
-  ;;   (setq company-selection-wrap-around t)
-  ;;   (setq company-tooltip-align-annotations t)
-  ;;   (setq company-frontends '(company-pseudo-tooltip-frontend 
-  ;;                             company-echo-metadata-frontend) ) )
+  :mode "\\.nix\\'" )
 
 (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
 (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
