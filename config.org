@@ -41,6 +41,27 @@ settings should be treated as both transient and machine specific.
   (load custom-file t)
 #+END_SRC
 
+** Straight - just in case
+Recently a package I rely on had a problem introduced (key-chord).
+Rather than revert the package via NixOS, it proved quicker to remove from
+the OS and just switch to directly installing the correct revision.
+Once the issue is resolved I can then go back to the OS latest version.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 6))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+END_SRC
+
 ** Change some of the default emacs variables
 Some random minor tweaks: scroll bar, tool bar, menu bar, garbage collection.
 
@@ -70,7 +91,7 @@ Backups are turned *off*.
   ;; always follow the symlink
   (setq vc-follow-symlinks t)
   ;; show line numbers by default
-  (setq display-line-numbers-mode t) 
+  (global-display-line-numbers-mode)
 #+END_SRC
 
 ** Update buffer contents when file changes on "disk"
@@ -98,7 +119,7 @@ specific given each has its own DPI settings.
     (mapc #'disable-theme custom-enabled-themes)
     ;; Make customisations that affect Emacs faces BEFORE loading a theme
     ;; (any change needs a theme re-load to take effect).
-    (setq ef-themes-to-toggle '(ef-symbiosis ef-day ef-winter))
+    (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
     ;;:config
     ;; Load the theme of choice:
     ;;(load-theme 'ef-summer :no-confirm)
@@ -116,7 +137,7 @@ specific given each has its own DPI settings.
   #+END_SRC
 
 ** Modeline 
-Simplified home-brew modeline ... in progress Aug 2023.
+Simplified home-brew modeline.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; Prot ef-theme modeline tweak to add box around the modeline
@@ -131,12 +152,11 @@ Simplified home-brew modeline ... in progress Aug 2023.
   ;; define the line/column information
   (setq mode-line-position (list "L%l C%c"))
 
-  (buffer-modified-p)
-
+  ;; fire symbol for unsaved buffer is selected via (C-x 8 RET)
   (setq-default mode-line-format
                 '(
                   (:eval (if (buffer-modified-p)
-                             (propertize " [*] " 'face 'error)
+                             (propertize "🔥 [*] " 'face 'error)
                            (propertize "  -  " 'face 'shadow)
                            )
                          )
@@ -152,11 +172,11 @@ Simplified home-brew modeline ... in progress Aug 2023.
                   ;; ALWAYS show the final filename even if inactive
                   ;; final separator is in usual font
                   "/" 
-                  ;; filename in a more obvious colour
+                  ;; filename in a more obvious (warning) colour
                   (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
                              (propertize 
                               (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
-                              'face 'error)
+                              'face 'warning)
                            )
                          )
                   ;; everything after here goes on the right
@@ -169,7 +189,7 @@ Simplified home-brew modeline ... in progress Aug 2023.
                                             (split-string
                                              (capitalize (symbol-name major-mode)) "-Mode")
                                             )
-                                       'face 'error)
+                                       'face 'success)
                            )
                          )
                   " "
@@ -177,7 +197,7 @@ Simplified home-brew modeline ... in progress Aug 2023.
                   " | "
                   mode-line-position        ; show lines and columns as specified above
                   )
-                )    
+                )     
 #+END_SRC
 
 ** Rainbow-delimiters
@@ -189,9 +209,10 @@ Colorised brackets to make matching easier.
     :init
     (message "Use-package: Rainbow delimiters")
     :config
-    (rainbow-delimiters-mode)
+    ;(rainbow-delimiters-mode)
     (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-    (add-hook 'latex-mode-hook 'rainbow-delimiters-mode) )
+    (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
+    )
 #+END_SRC
 
 ** Which-key
@@ -308,7 +329,6 @@ Modes that don't attempt to interoperate (and I avoid):
   
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package consult
-    :after key-chord
     :init
     (message "Use-package: consult")
     :bind
@@ -320,10 +340,6 @@ Modes that don't attempt to interoperate (and I avoid):
     ("C-s"   . consult-line)
     ("M-g o" . consult-outline))
 
-  ;; define some related chords
-  (key-chord-define-global "qq"     'consult-buffer)
-  (key-chord-define-global "qb"     'consult-bookmark) ; set or jump
-  (key-chord-define-global "ql"     'consult-goto-line)
 
   (use-package consult-notes
     :commands (consult-notes consult-notes-search-in-all-notes)
@@ -450,18 +466,26 @@ Keyboard shortcuts based on double pressing of low-popularity key
 combinations (e.g. 'qq'). Key-chord doesn't take account of order
 (e.g. 'qa'='aq').
 
+*ISSUES* see: https://github.com/emacsorphanage/key-chord/issues/8
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; rapid-double press to activate key chords
   (use-package key-chord
+    ;; Use a specific commit as defined in ~/.emacs.d/straight/versions/general.el
+    :straight t
     :init
     (progn
       (message "Use-package: Key-chord" )
-       (key-chord-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
-       (key-chord-define-global "qi"     'ibuffer-bs-show) 
-       (key-chord-define-global "qw"     'other-window)
-       (key-chord-define-global "qt"     'org-babel-tangle)
-       (key-chord-define-global "qd"     'org-journal-new-entry)
-       (key-chord-define-global "qc"     'org-capture) )     
+      (key-chord-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
+      (key-chord-define-global "qi"     'ibuffer-bs-show) 
+      (key-chord-define-global "qw"     'other-window)
+      (key-chord-define-global "qt"     'org-babel-tangle)
+      (key-chord-define-global "qd"     'org-journal-new-entry)
+      (key-chord-define-global "qc"     'org-capture)      
+      ;; define some related chords
+      (key-chord-define-global "qq"     'consult-buffer)
+      (key-chord-define-global "qb"     'consult-bookmark) ; set or jump
+      (key-chord-define-global "ql"     'consult-goto-line) )
     :config
     ;; Max time delay between two key presses to be considered a key chord
     (setq key-chord-two-keys-delay 0.1) ; default 0.1
@@ -475,20 +499,20 @@ combinations (e.g. 'qq'). Key-chord doesn't take account of order
 Global keys to split the window AND follow by moving point to the new window.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-;; move focus when splitting a window
-(defun split-and-follow-horizontally ()
-  (interactive)
-  (split-window-below)
-  (balance-windows)
-  (other-window 1))
-(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
-;; move focus when splitting a window
-(defun split-and-follow-vertically ()
-  (interactive)
-  (split-window-right)
-  (balance-windows)
-  (other-window 1))
-(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+  ;; move focus when splitting a window
+  (defun split-and-follow-horizontally ()
+    (interactive)
+    (split-window-below)
+    (balance-windows)
+    (other-window 1))
+  (global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
+  ;; move focus when splitting a window
+  (defun split-and-follow-vertically ()
+    (interactive)
+    (split-window-right)
+    (balance-windows)
+    (other-window 1))
+  (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
 #+END_SRC
 
 ** Editorconfig
@@ -981,7 +1005,8 @@ NixOS.
     (interactive)
     (find-file "~/Sync/Org/Todo.org") )
   (global-set-key (kbd "C-c h t") 'todo-visit)
-
+  ;; default to something other than scratch
+  ;(setq initial-buffer-choice "~/")
 #+END_SRC
 
 

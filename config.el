@@ -11,6 +11,19 @@
 (setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
 (load custom-file t)
 
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
 ;; skip auto backups
 (setq make-backup-files nil)
 ;; (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
@@ -34,7 +47,7 @@
 ;; always follow the symlink
 (setq vc-follow-symlinks t)
 ;; show line numbers by default
-(setq display-line-numbers-mode t)
+(global-display-line-numbers-mode)
 
 (global-auto-revert-mode)
 
@@ -44,7 +57,7 @@
   (mapc #'disable-theme custom-enabled-themes)
   ;; Make customisations that affect Emacs faces BEFORE loading a theme
   ;; (any change needs a theme re-load to take effect).
-  (setq ef-themes-to-toggle '(ef-symbiosis ef-day ef-winter))
+  (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
   ;;:config
   ;; Load the theme of choice:
   ;;(load-theme 'ef-summer :no-confirm)
@@ -72,12 +85,11 @@
 ;; define the line/column information
 (setq mode-line-position (list "L%l C%c"))
 
-(buffer-modified-p)
-
+;; fire symbol for unsaved buffer is selected via (C-x 8 RET)
 (setq-default mode-line-format
               '(
                 (:eval (if (buffer-modified-p)
-                           (propertize " [*] " 'face 'error)
+                           (propertize "🔥 [*] " 'face 'error)
                          (propertize "  -  " 'face 'shadow)
                          )
                        )
@@ -93,11 +105,11 @@
                 ;; ALWAYS show the final filename even if inactive
                 ;; final separator is in usual font
                 "/" 
-                ;; filename in a more obvious colour
+                ;; filename in a more obvious (warning) colour
                 (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
                            (propertize 
                             (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
-                            'face 'error)
+                            'face 'warning)
                          )
                        )
                 ;; everything after here goes on the right
@@ -110,7 +122,7 @@
                                           (split-string
                                            (capitalize (symbol-name major-mode)) "-Mode")
                                           )
-                                     'face 'error)
+                                     'face 'success)
                          )
                        )
                 " "
@@ -125,9 +137,10 @@
   :init
   (message "Use-package: Rainbow delimiters")
   :config
-  (rainbow-delimiters-mode)
+  ;(rainbow-delimiters-mode)
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode) )
+  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
+  )
 
 (use-package which-key
   ;;ensure t
@@ -149,7 +162,6 @@
 (add-hook 'org-mode-hook 'visual-line-mode)
 
 (use-package consult
-  :after key-chord
   :init
   (message "Use-package: consult")
   :bind
@@ -161,10 +173,6 @@
   ("C-s"   . consult-line)
   ("M-g o" . consult-outline))
 
-;; define some related chords
-(key-chord-define-global "qq"     'consult-buffer)
-(key-chord-define-global "qb"     'consult-bookmark) ; set or jump
-(key-chord-define-global "ql"     'consult-goto-line)
 
 (use-package consult-notes
   :commands (consult-notes consult-notes-search-in-all-notes)
@@ -276,15 +284,21 @@
 
 ;; rapid-double press to activate key chords
 (use-package key-chord
+  ;; Use a specific commit as defined in ~/.emacs.d/straight/versions/general.el
+  :straight t
   :init
   (progn
     (message "Use-package: Key-chord" )
-     (key-chord-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
-     (key-chord-define-global "qi"     'ibuffer-bs-show) 
-     (key-chord-define-global "qw"     'other-window)
-     (key-chord-define-global "qt"     'org-babel-tangle)
-     (key-chord-define-global "qd"     'org-journal-new-entry)
-     (key-chord-define-global "qc"     'org-capture) )     
+    (key-chord-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
+    (key-chord-define-global "qi"     'ibuffer-bs-show) 
+    (key-chord-define-global "qw"     'other-window)
+    (key-chord-define-global "qt"     'org-babel-tangle)
+    (key-chord-define-global "qd"     'org-journal-new-entry)
+    (key-chord-define-global "qc"     'org-capture)      
+    ;; define some related chords
+    (key-chord-define-global "qq"     'consult-buffer)
+    (key-chord-define-global "qb"     'consult-bookmark) ; set or jump
+    (key-chord-define-global "ql"     'consult-goto-line) )
   :config
   ;; Max time delay between two key presses to be considered a key chord
   (setq key-chord-two-keys-delay 0.1) ; default 0.1
@@ -697,3 +711,5 @@
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 (global-set-key (kbd "C-c h t") 'todo-visit)
+;; default to something other than scratch
+;(setq initial-buffer-choice "~/")
