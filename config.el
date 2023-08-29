@@ -46,8 +46,6 @@
 (setq large-file-warning-threshold 80000000)
 ;; always follow the symlink
 (setq vc-follow-symlinks t)
-;; show line numbers by default
-(global-display-line-numbers-mode)
 
 (global-auto-revert-mode)
 
@@ -150,12 +148,18 @@
   (setq which-key-idle-delay 0.25)
   (which-key-mode) )
 
-;; latex  
-(add-hook 'latex-mode-hook 'flyspell-mode)
+(defun my-display-line-numbers-hook ()
+  (display-line-numbers-mode 1)
+  )
+;; latex 
 (add-hook 'latex-mode-hook 'hl-line-mode)
+(add-hook 'latex-mode-hook 'flyspell-mode)
+(add-hook 'latex-mode-hook 'visual-line-mode)
+(add-hook 'latex-mode-hook 'my-display-line-numbers-hook)
 ;; programming
 (add-hook 'prog-mode-hook 'hl-line-mode)
 (add-hook 'prog-mode-hook 'eglot-ensure)
+(add-hook 'prog-mode-hook 'my-display-line-numbers-hook)
 ;; org-mode
 (add-hook 'org-mode-hook 'hl-line-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
@@ -593,86 +597,6 @@
 (use-package pdf-tools
   :config
   (pdf-tools-install) )
-
-;; defines mu4e exists, but holds off until needed
-(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
-
-;; used for outgoing mail send
-(use-package smtpmail
-  :defer t
-  :init
-  (message "Use-package: SMTPmail")
-  (setq message-send-mail-function 'smtpmail-send-it
-        user-mail-address "richard.hewitt@manchester.ac.uk"
-        ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
-        smtpmail-default-smtp-server "localhost" ; davmail runs locally
-        ;;smtpmail-local-domain "manchester.ac.uk"
-        smtpmail-smtp-server "localhost"
-        ;;smtpmail-stream-type 'starttls
-        smtpmail-smtp-service 1025) )
-
-;; 2018 : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
-(setq mu4e-change-filenames-when-moving t)
-;; general mu4e config
-(setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
-(setq mu4e-drafts-folder "/Drafts")
-(setq mu4e-sent-folder   "/Sent") ; they still seem to appear in O365 despite this not being "Sent Items"
-(setq mu4e-trash-folder  "/Deleted Items") ; I don't sync Deleted Items & largely do permanent delete "D" rather than move to trash "d"
-(setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
-(setq mu4e-headers-show-thread nil)
-(setq mu4e-headers-include-related nil)
-(setq mu4e-headers-results-limit 200)
-(setq mu4e-mu-binary (executable-find "mu"))
-;; stop mail draft/sent appearing in the recent files list of the dashboard
-;;(add-to-list 'recentf-exclude "\\mbsyncmail\\")
-;; how to get mail
-(setq mu4e-get-mail-command "mbsync Work"
-      mu4e-html2text-command "w3m -T text/html"
-      ;;mu4e-html2text-command "html2markdown --body-width=72" 
-      ;;mu4e-update-interval 300
-      ;;mu4e-headers-auto-update t
-      mu4e-compose-signature-auto-include t)
-
-;; the headers to show 
-;; in the headers list -- a pair of a field
-;; and its width, with `nil' meaning 'unlimited'
-;; better only use that for the last field.
-;; These are the defaults:
-(setq mu4e-headers-fields
-      '((:human-date    .  15)   ;; alternatively, use :date
-        (:flags        .   6)
-        (:from         .  22)
-        (:subject      .  nil))  ;; alternatively, use :thread-subject
-      )
-(setq mu4e-maildir-shortcuts
-      '( ("/INBOX"          . ?i)
-         ("/Sent"           . ?s)
-         ("/Deleted Items"  . ?t)
-         ("/Drafts"         . ?d)) )
-;; REMOVE BELOW FOR TERMINAL EMACS
-;; show images
-(setq mu4e-show-images t)
-;; use imagemagick, if available
-(when (fboundp 'imagemagick-register-types)
-  (imagemagick-register-types) )
-;; don't keep message buffers around
-(setq message-kill-buffer-on-exit t)
-;; general emacs mail settings; used when composing e-mail
-;; the non-mu4e-* stuff is inherited from emacs/message-mode
-(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
-      user-mail-address "richard.hewitt@manchester.ac.uk"
-      user-full-name  "Rich Hewitt")
-(setq mu4e-sent-messages-behavior 'sent)
-
-;; spell check during compose
-(add-hook 'mu4e-compose-mode-hook
-          (defun my-do-compose-stuff ()
-            "My settings for message composition."
-            (set-fill-column 72)
-            (flyspell-mode)
-            ;; turn off autosave, otherwise we end up with multiple
-            ;; versions of sent/draft mail being sync'd
-            (auto-save-mode -1) ) )
 
 (use-package age
   ;;; :quelpa (age :fetcher github :repo "anticomputer/age.el") 

@@ -90,8 +90,6 @@ Backups are turned *off*.
   (setq large-file-warning-threshold 80000000)
   ;; always follow the symlink
   (setq vc-follow-symlinks t)
-  ;; show line numbers by default
-  (global-display-line-numbers-mode)
 #+END_SRC
 
 ** Update buffer contents when file changes on "disk"
@@ -232,12 +230,18 @@ Popup a description of key combinations after a delay.
 * Mode hooks
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; latex  
-  (add-hook 'latex-mode-hook 'flyspell-mode)
+  (defun my-display-line-numbers-hook ()
+    (display-line-numbers-mode 1)
+    )
+  ;; latex 
   (add-hook 'latex-mode-hook 'hl-line-mode)
+  (add-hook 'latex-mode-hook 'flyspell-mode)
+  (add-hook 'latex-mode-hook 'visual-line-mode)
+  (add-hook 'latex-mode-hook 'my-display-line-numbers-hook)
   ;; programming
   (add-hook 'prog-mode-hook 'hl-line-mode)
   (add-hook 'prog-mode-hook 'eglot-ensure)
+  (add-hook 'prog-mode-hook 'my-display-line-numbers-hook)
   ;; org-mode
   (add-hook 'org-mode-hook 'hl-line-mode)
   (add-hook 'org-mode-hook 'flyspell-mode)
@@ -858,12 +862,14 @@ than trying to scribble a hadnwritten note via other methods.
  
 
 * Email/mu4e
+Untangled -- too much hassle run via davmail.
+
 You need the "mu" package and also the executable "mbsync" (the
-package that mbsync is in is called "isync"). Existing solution was
+package that mbsync is in is called "itync"). Existing solution was
 broken by move to Oauth2 in O365. Now I run "davmail" as an
 intermediary, with IMAP/SMTP on localhost which seems to run well.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   ;; defines mu4e exists, but holds off until needed
   (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
