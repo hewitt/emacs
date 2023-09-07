@@ -49,34 +49,13 @@
 
 (global-auto-revert-mode)
 
-;; Disable all other themes to avoid awkward blending:    
-(use-package ef-themes
-  :init
-  (mapc #'disable-theme custom-enabled-themes)
-  ;; Make customisations that affect Emacs faces BEFORE loading a theme
-  ;; (any change needs a theme re-load to take effect).
-  (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
-  ;;:config
-  ;; Load the theme of choice:
-  ;;(load-theme 'ef-summer :no-confirm)
-  ;; Light: `ef-day', `ef-light', `ef-spring', `ef-summer'.
-  ;; Dark:  `ef-autumn', `ef-dark', `ef-night', `ef-winter'.
-
-  ;; I set the theme at the end of this configuration because of
-  ;; some minor issues with code comments showing as underlined [2022]
-  )
-;; Add a little bit of transparency
-(set-frame-parameter nil 'alpha-background 95)
-(add-to-list 'default-frame-alist '(alpha-background . 95))
-;; select a default theme
-(ef-themes-select 'ef-symbiosis)
-
 ;; Prot ef-theme modeline tweak to add box around the modeline
+;; box is the same colour as background, so looks like a wider mode line.
 (defun my-ef-themes-mode-line ()
   "Tweak the style of the mode lines."
   (ef-themes-with-colors
     (custom-set-faces
-     `(mode-line ((,c :background ,bg-mode-line :foreground ,fg-main :box (:line-width 1 :color ,yellow-faint))))
+     `(mode-line ((,c :background ,bg-mode-line :height 100 :foreground ,fg-main :box (:line-width 6 :color ,bg-mode-line))))
      `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
 (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
 
@@ -87,7 +66,7 @@
 (setq-default mode-line-format
               '(
                 (:eval (if (buffer-modified-p)
-                           (propertize "🔥 [*] " 'face 'error)
+                           (propertize "[🔥] " 'face 'error)
                          (propertize "  -  " 'face 'shadow)
                          )
                        )
@@ -129,6 +108,28 @@
                 mode-line-position        ; show lines and columns as specified above
                 )
               )
+
+;; Disable all other themes to avoid awkward blending:    
+(use-package ef-themes
+  :init
+  (mapc #'disable-theme custom-enabled-themes)
+  ;; Make customisations that affect Emacs faces BEFORE loading a theme
+  ;; (any change needs a theme re-load to take effect).
+  (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
+  ;;:config
+  ;; Load the theme of choice:
+  ;;(load-theme 'ef-summer :no-confirm)
+  ;; Light: `ef-day', `ef-light', `ef-spring', `ef-summer'.
+  ;; Dark:  `ef-autumn', `ef-dark', `ef-night', `ef-winter'.
+
+  ;; I set the theme at the end of this configuration because of
+  ;; some minor issues with code comments showing as underlined [2022]
+  )
+;; DONT add a little bit of transparency
+;;(set-frame-parameter nil 'alpha-background 100)
+;;(add-to-list 'default-frame-alist '(alpha-background . 95))
+;; select a default theme
+(ef-themes-select 'ef-symbiosis)
 
 (use-package rainbow-delimiters
   ;;ensure t
