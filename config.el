@@ -57,6 +57,7 @@
     (custom-set-faces
      `(mode-line ((,c :background ,bg-mode-line :height 100 :foreground ,fg-main :box (:line-width 6 :color ,bg-mode-line))))
      `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
+;; hook to update the colours/style using the above function when theme loaded
 (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
 
 ;; define the line/column information
@@ -65,6 +66,11 @@
 ;; fire symbol for unsaved buffer is selected via (C-x 8 RET)
 (setq-default mode-line-format
               '(
+                (:eval (cond
+                        (god-local-mode
+                         (propertize " [♌] " 'face 'error)) ;;GOD mode indicator
+                        (t
+                         (propertize "-" 'face 'shadow))))
                 (:eval (if (buffer-modified-p)
                            (propertize "[🔥] " 'face 'error)
                          (propertize "  -  " 'face 'shadow)
@@ -89,7 +95,7 @@
                             'face 'warning)
                          )
                        )
-                ;; everything after here goes on the right
+                ;; everything after here goes on the right .. emacs 30+?
                 mode-line-format-right-align
                 ;; show ONLY the major mode (minor modes are not shown)
                 " | "
@@ -257,6 +263,40 @@
   :init
   (message "Use-package: marginalia")
   (marginalia-mode))
+
+(require 'god-mode)
+(god-mode)
+(global-set-key (kbd "<escape>") #'god-local-mode)
+(which-key-enable-god-mode-support)
+(define-key god-local-mode-map (kbd "i") 'god-local-mode)                                                                                            
+(define-key god-local-mode-map (kbd ".") 'repeat)
+(defun god-update-cursor ()
+  (setq cursor-type (if (or god-local-mode buffer-read-only)
+                        'bar
+                      'box)))
+
+(add-hook 'god-mode-enabled-hook 'god-update-cursor)
+(add-hook 'god-mode-disabled-hook 'god-update-cursor)
+
+(defvar mygod-fast-keyseq-timeout 200)
+
+(defun mygod-tty-ESC-filter (map)
+  (if (and (equal (this-single-command-keys) [?\e])
+           (sit-for (/ mygod-fast-keyseq-timeout 1000.0)))
+      [escape] map))
+
+(defun mygod-lookup-key (map key)
+  (catch 'found
+    (map-keymap (lambda (k b) (if (equal key k) (throw 'found b))) map)))
+
+(defun mygod-catch-tty-ESC ()
+  "Setup key mappings of current terminal to turn a tty's ESC into `escape'."
+  (when (memq (terminal-live-p (frame-terminal)) '(t pc))
+    (let ((esc-binding (mygod-lookup-key input-decode-map ?\e)))
+      (define-key input-decode-map
+        [?\e] `(menu-item "" ,esc-binding :filter mygod-tty-ESC-filter)))))
+
+(mygod-catch-tty-ESC)
 
 (setq-default scroll-conservatively 20)
 ;; how close to the edge of the buffer does point get when scrolling up/down
@@ -623,18 +663,18 @@
 ;; Nix language
 (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 
-;; simple prefix key launcher
-(global-set-key (kbd "C-c h m") 'mu4e)
-(global-set-key (kbd "C-c h a") 'org-agenda)
+;; simple prefix key launcher : 'ch' in God mode
+(global-set-key (kbd "C-c C-h C-m") 'mu4e)
+(global-set-key (kbd "C-c C-h C-a") 'org-agenda)
 ;; C-c h e : edit the init.el configuration file
 (defun config-visit ()
   (interactive)
   (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
-(global-set-key (kbd "C-c h e") 'config-visit)
+(global-set-key (kbd "C-c C-h C-e") 'config-visit)
 ;; C-c h e : edit the init.el configuration file
 (defun todo-visit ()
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
-(global-set-key (kbd "C-c h t") 'todo-visit)
+(global-set-key (kbd "C-c C-h C-t") 'todo-visit)
 ;; default to something other than scratch
 ;(setq initial-buffer-choice "~/")

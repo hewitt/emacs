@@ -116,6 +116,7 @@ ef-themes-post-load-hook defined below.
       (custom-set-faces
        `(mode-line ((,c :background ,bg-mode-line :height 100 :foreground ,fg-main :box (:line-width 6 :color ,bg-mode-line))))
        `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
+  ;; hook to update the colours/style using the above function when theme loaded
   (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
 
   ;; define the line/column information
@@ -124,6 +125,11 @@ ef-themes-post-load-hook defined below.
   ;; fire symbol for unsaved buffer is selected via (C-x 8 RET)
   (setq-default mode-line-format
                 '(
+                  (:eval (cond
+                          (god-local-mode
+                           (propertize " [♌] " 'face 'error)) ;;GOD mode indicator
+                          (t
+                           (propertize "-" 'face 'shadow))))
                   (:eval (if (buffer-modified-p)
                              (propertize "[🔥] " 'face 'error)
                            (propertize "  -  " 'face 'shadow)
@@ -148,7 +154,7 @@ ef-themes-post-load-hook defined below.
                               'face 'warning)
                            )
                          )
-                  ;; everything after here goes on the right
+                  ;; everything after here goes on the right .. emacs 30+?
                   mode-line-format-right-align
                   ;; show ONLY the major mode (minor modes are not shown)
                   " | "
@@ -166,7 +172,7 @@ ef-themes-post-load-hook defined below.
                   " | "
                   mode-line-position        ; show lines and columns as specified above
                   )
-                )     
+                )
 #+END_SRC
 
 
@@ -214,7 +220,7 @@ Colorised brackets to make matching easier.
     ;(rainbow-delimiters-mode)
     (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
     (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
-    )
+    )  
 #+END_SRC
 
 ** Which-key
@@ -431,6 +437,61 @@ Modes that don't attempt to interoperate (and I avoid):
 
 
 * Interaction
+** God mode
+
+Use God mode to avoid excessive modifier keys and hand strain. Below
+is a fairly standard config. The "escape" key toggles God mode and
+subsequent keypress are assumed to be modified by control C-<key>. So
+"xs" is save file for example -- see the God mode docs. A visual
+indicator is included in the mode line (below) and the cursor changes
+from box to bar. As a nod to VI keybindings "i" is set to switch back
+to non-God (i.e normal) operation and "." repeats the previous
+command.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'god-mode)
+  (god-mode)
+  (global-set-key (kbd "<escape>") #'god-local-mode)
+  (which-key-enable-god-mode-support)
+  (define-key god-local-mode-map (kbd "i") 'god-local-mode)                                                                                            
+  (define-key god-local-mode-map (kbd ".") 'repeat)
+  (defun god-update-cursor ()
+    (setq cursor-type (if (or god-local-mode buffer-read-only)
+                          'bar
+                        'box)))
+
+  (add-hook 'god-mode-enabled-hook 'god-update-cursor)
+  (add-hook 'god-mode-disabled-hook 'god-update-cursor)
+#+END_SRC
+
+One complication is if we run "emacs -nw" (terminal rather than GUI
+interface to emacs) then the "escape" key is interpreted differently
+than via Wayland/X11. To deal with this we can use the workaround
+employed by xah-fly-keys (or Evil mode too I think).
+
+
+#+begin_SRC emacs-lisp :tangle yes
+  (defvar mygod-fast-keyseq-timeout 200)
+
+  (defun mygod-tty-ESC-filter (map)
+    (if (and (equal (this-single-command-keys) [?\e])
+             (sit-for (/ mygod-fast-keyseq-timeout 1000.0)))
+        [escape] map))
+
+  (defun mygod-lookup-key (map key)
+    (catch 'found
+      (map-keymap (lambda (k b) (if (equal key k) (throw 'found b))) map)))
+
+  (defun mygod-catch-tty-ESC ()
+    "Setup key mappings of current terminal to turn a tty's ESC into `escape'."
+    (when (memq (terminal-live-p (frame-terminal)) '(t pc))
+      (let ((esc-binding (mygod-lookup-key input-decode-map ?\e)))
+        (define-key input-decode-map
+          [?\e] `(menu-item "" ,esc-binding :filter mygod-tty-ESC-filter)))))
+
+  (mygod-catch-tty-ESC)
+#+END_SRC
+
 
 ** Scrolling
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1002,19 +1063,19 @@ NixOS.
 ** Wrap up the config with some shortcut definitions and select the theme
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; simple prefix key launcher
-  (global-set-key (kbd "C-c h m") 'mu4e)
-  (global-set-key (kbd "C-c h a") 'org-agenda)
+  ;; simple prefix key launcher : 'ch' in God mode
+  (global-set-key (kbd "C-c C-h C-m") 'mu4e)
+  (global-set-key (kbd "C-c C-h C-a") 'org-agenda)
   ;; C-c h e : edit the init.el configuration file
   (defun config-visit ()
     (interactive)
     (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
-  (global-set-key (kbd "C-c h e") 'config-visit)
+  (global-set-key (kbd "C-c C-h C-e") 'config-visit)
   ;; C-c h e : edit the init.el configuration file
   (defun todo-visit ()
     (interactive)
     (find-file "~/Sync/Org/Todo.org") )
-  (global-set-key (kbd "C-c h t") 'todo-visit)
+  (global-set-key (kbd "C-c C-h C-t") 'todo-visit)
   ;; default to something other than scratch
   ;(setq initial-buffer-choice "~/")
 #+END_SRC
