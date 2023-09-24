@@ -67,8 +67,8 @@
 (setq-default mode-line-format
               '(
                 (:eval (cond
-                        (god-local-mode
-                         (propertize " [♌] " 'face 'error)) ;;GOD mode indicator
+                        (ryo-modal-mode
+                         (propertize " [♌] " 'face 'error)) ;; modal indicator
                         (t
                          (propertize "-" 'face 'shadow))))
                 (:eval (if (buffer-modified-p)
@@ -264,9 +264,71 @@
   (message "Use-package: marginalia")
   (marginalia-mode))
 
+;; edit the init.el configuration file
+(defun config-visit ()
+  (interactive)
+  (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
+
+;; edit the init.el configuration file
+(defun todo-visit ()
+  (interactive)
+  (find-file "~/Sync/Org/Todo.org") )
+
+(use-package ryo-modal
+  :commands ryo-modal-mode
+  :bind ("<escape>" . ryo-modal-mode)
+  :config
+  (ryo-modal-keys
+   ;; vi like
+   ("."  ryo-modal-repeat)
+   ("/"  consult-line)
+   ("i"  ryo-modal-mode)
+   ;; navigation
+   ("h"  backward-char)
+   ("j"  next-line)
+   ("k"  previous-line)
+   ("l"  forward-char)
+   ("H"  left-word)
+   ("J"  forward-paragraph)
+   ("K"  backward-paragraph)
+   ("L"  right-word)
+   ;; abbreviated emacs
+   ("f"  find-file)
+   ("s"  save-buffer)
+   ("b"  consult-buffer)
+   ("g"  consult-goto-line)
+   ("Y"  consult-yank-pop)
+   ("y"  yank)
+   ("w"  kill-region)
+   ("W"  copy-region-as-kill)
+   ("q" (("a" org-agenda)
+         ("e" config-visit)
+         ("t" todo-visit)
+         ("c" org-capture)))
+   ;;("t"  'org-babel-tangle)
+   ;; sugar
+   ("["  previous-buffer)
+   ("]"  next-buffer)
+   )
+
+  (ryo-modal-keys
+   ;; First argument to ryo-modal-keys may be a list of keywords.
+   ;; These keywords will be applied to all keybindings.
+   (:norepeat t)
+   ("0" "M-0")
+   ("1" "M-1")
+   ("2" "M-2")
+   ("3" "M-3")
+   ("4" "M-4")
+   ("5" "M-5")
+   ("6" "M-6")
+   ("7" "M-7")
+   ("8" "M-8")
+   ("9" "M-9")))
+
 (require 'god-mode)
-(god-mode)
-(global-set-key (kbd "<escape>") #'god-local-mode)
+;(god-mode)
+;(global-set-key (kbd "<escape>") #'god-local-mode)
 (which-key-enable-god-mode-support)
 (define-key god-local-mode-map (kbd "i") 'god-local-mode)                                                                                            
 (define-key god-local-mode-map (kbd ".") 'repeat)
