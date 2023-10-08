@@ -11,9 +11,10 @@ To convert this to "./config.el" do M-x org-babel-tangle.
   mechanism. As of 2022 this is replaced in favour of a NixOS
   Home-Manager configuration that manages most packages.
   
-+ I'm using Emacs 30.0.50 so 'use-package' (and some other things) are
-  built-in for me. Notably 'eglot' and 'treesitter'. 
-
++ I'm using the dev version of Emacs (30.0.50) so 'use-package' (and
+  some other things) are built-in, notably 'eglot' and 'treesitter'.
+  The mode-line configuration also makes use of
+  'mode-line-format-right-align' which needs a recent version.
 
 * Basic setup
 ** Package archives: ELPA/MELPA
@@ -42,10 +43,10 @@ settings should be treated as both transient and machine specific.
 #+END_SRC
 
 ** Straight - just in case
-Recently a package I rely on had a problem introduced (key-chord).
-Rather than revert the package via NixOS, it proved quicker to remove from
-the OS and just switch to directly installing the correct revision.
-Once the issue is resolved I can then go back to the OS latest version.
+Recently a package I rely on had a problem. Rather than revert the
+package via NixOS, it was quicker to remove the package from the OS
+configuration and just switch to directly installing the correct
+revision with 'straight'.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (defvar bootstrap-version)
@@ -62,15 +63,16 @@ Once the issue is resolved I can then go back to the OS latest version.
     (load bootstrap-file nil 'nomessage))
 #+END_SRC
 
-** Change some of the default emacs variables
+** Change some of the default emacs settings
 Some random minor tweaks: scroll bar, tool bar, menu bar, garbage collection.
 
-Backups are turned *off*.
+Note that backups are turned *off*.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; skip auto backups
   (setq make-backup-files nil)
   ;; (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+
   ;; have mouse input in the terminal -- the disadvantage is you
   ;; need to SHIFT+middle mouse to paste in the terminal
   (xterm-mouse-mode 1)
@@ -100,12 +102,10 @@ that we update any open buffers to show the on-file current status.
   (global-auto-revert-mode)
 #+END_SRC
 
-
 * Appearance
-
 ** Modeline 
-Simplified home-brew modeline. Set this before calling an ef-theme since there is a
-ef-themes-post-load-hook defined below.
+This is a simplified home-brew modeline. Set this before calling an
+ef-theme since there is a 'ef-themes-post-load-hook' defined below.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; Prot ef-theme modeline tweak to add box around the modeline
@@ -127,12 +127,12 @@ ef-themes-post-load-hook defined below.
                 '(
                   (:eval (cond
                           (ryo-modal-mode
-                           (propertize " [♌] " 'face 'error)) ;; modal indicator
+                           (propertize " ♌" 'face 'error)) ;; modal indicator
                           (t
-                           (propertize "-" 'face 'shadow))))
+                           (propertize " -" 'face 'shadow))))
                   (:eval (if (buffer-modified-p)
-                             (propertize "[🔥] " 'face 'error)
-                           (propertize "  -  " 'face 'shadow)
+                             (propertize "🔥 " 'face 'error)
+                           (propertize "- " 'face 'shadow)
                            )
                          )
                   ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
@@ -175,13 +175,12 @@ ef-themes-post-load-hook defined below.
                 )
 #+END_SRC
 
-
 ** Theme 
 I've switched to the more systematic themes from Protesilaos Stavrou,
-and most recently his ef-themes.
+and most recently his 'ef-themes'.
 
-Fonts: The defailt font is now set via custom-settings.el since it is machine
-specific given each has its own DPI settings.
+Fonts: The default font is now set via 'custom-settings.el' since it is
+machine specific given each has its own DPI settings.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; Disable all other themes to avoid awkward blending:    
@@ -190,6 +189,7 @@ specific given each has its own DPI settings.
     (mapc #'disable-theme custom-enabled-themes)
     ;; Make customisations that affect Emacs faces BEFORE loading a theme
     ;; (any change needs a theme re-load to take effect).
+
     (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
     ;;:config
     ;; Load the theme of choice:
@@ -200,49 +200,45 @@ specific given each has its own DPI settings.
     ;; I set the theme at the end of this configuration because of
     ;; some minor issues with code comments showing as underlined [2022]
     )
+
   ;; DONT add a little bit of transparency
   ;;(set-frame-parameter nil 'alpha-background 100)
   ;;(add-to-list 'default-frame-alist '(alpha-background . 95))
+
   ;; select a default theme
   (ef-themes-select 'ef-symbiosis)
   #+END_SRC
-
 
 ** Rainbow-delimiters
 Colorised brackets to make matching easier.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package rainbow-delimiters
-    ;;ensure t
     :init
     (message "Use-package: Rainbow delimiters")
     :config
     ;(rainbow-delimiters-mode)
     (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-    (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
-    )  
+    (add-hook 'latex-mode-hook 'rainbow-delimiters-mode))  
 #+END_SRC
 
 ** Which-key
-Popup a description of key combinations after a delay.
+Pop-up a description of key combinations after a delay.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package which-key
-    ;;ensure t
     :init 
     (message "Use-package: Which-key mode")
     :config
     (setq which-key-idle-delay 0.25)
-    (which-key-mode) )
+    (which-key-mode))
 #+END_SRC
-
 
 * Mode hooks
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (defun my-display-line-numbers-hook ()
-    (display-line-numbers-mode 1)
-    )
+    (display-line-numbers-mode 1))
   ;; latex 
   (add-hook 'latex-mode-hook 'hl-line-mode)
   (add-hook 'latex-mode-hook 'flyspell-mode)
@@ -258,7 +254,6 @@ Popup a description of key combinations after a delay.
   (add-hook 'org-mode-hook 'visual-line-mode)
 #+END_SRC
 
-
 * Narrowing and completion
 ** Overview
 A useful overview from: https://www.reddit.com/r/emacs/comments/k3c0u7/consult_counselswiper_alternative_for/
@@ -273,9 +268,9 @@ The minibuffer completion uses:
 
 In terms of packages:
 
-+ "icomplete", "fido" and "Selectrum" all just set the
++ "icomplete", "fido" and "selectrum" all just define a
   "completing-read" function and implement continuous completion on
-  each key press (not technically true for "icomplete" for close
+  each key press (not technically true for "icomplete" but close
   enough).
 
 + "Orderless", "Prescient", and the built-in "flex" are
@@ -318,26 +313,26 @@ Modes that don't attempt to interoperate (and I avoid):
   on each selection. I would use "embark" if I wanted this
   functionality, but I don't.
 
-** Everything done using standard completing-read interface
-- Use Vertico as a smaller solution for incremental completion in
+** Using standard completing-read interface
+- Use 'vertico' as a smaller solution for incremental completion in
   Emacs.
 
-- marginalia-mode adds marginalia to the minibuffer completions.
+- 'marginalia-mode' adds marginalia to the minibuffer completions.
   Marginalia can only add annotations to be displayed with the
   completion candidates.
 
-- Consult provides various practical commands based on the
-  Emacs completion function completing-read, which allows to quickly
-  select an item from a list of candidates with completion. Consult
-  offers in particular an advanced buffer switching command
-  consult-buffer to switch between buffers and recently opened files.
-  Multiple search commands are provided, an asynchronous consult-grep
-  and consult-ripgrep, and consult-line, which resembles Swiper.
+- 'consult' provides various practical commands based on the Emacs
+  completion function 'completing-read', which allows to quickly select
+  an item from a list of candidates with completion. Consult offers in
+  particular an advanced buffer switching command 'consult-buffer' to
+  switch between buffers and recently opened files. Multiple search
+  commands are provided, an asynchronous 'consult-grep',
+  'consult-ripgrep' and 'consult-line', which resembles 'swiper'.
 
-- Corfu provide in-region (ie. in the buffer) completion candidates
-  useful for code-completion when combined with eglot and ccls (see
+- 'corfu' provides in-region (ie. in the buffer) completion candidates
+  useful for code-completion when combined with 'eglot' and 'ccls' (see
   the section below). In this config I stick to the terminal mode for
-  corfu just so it works in both GUI + Terminal modes. Detecting which
+  'corfu' just so it works in both GUI + Terminal modes. Detecting which
   mode we're in and starting the appropriate version is a pain when
   using GUI+Terminal emacsclients connected to a daemon instance.
   
@@ -353,7 +348,6 @@ Modes that don't attempt to interoperate (and I avoid):
     ("C-y"   . yank)
     ("C-s"   . consult-line)
     ("M-g o" . consult-outline))
-
 
   (use-package consult-notes
     :commands (consult-notes consult-notes-search-in-all-notes)
@@ -419,10 +413,6 @@ Modes that don't attempt to interoperate (and I avoid):
     :init
     (message "Use-package: corfu-prescient") )
 
-  ;;(use-package savehist
-  ;;  :init
-  ;; (savehist-mode))
-
   ;; (use-package orderless
   ;;  :custom (completion-styles '(orderless)))
 
@@ -435,26 +425,46 @@ Modes that don't attempt to interoperate (and I avoid):
     (marginalia-mode))
 #+END_SRC
 
-
 * Interaction
+** Splitting window behaviour
+Global keys to split the window AND follow by moving point to the new window.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; move focus when splitting a window
+  (defun my/split-and-follow-horizontally ()
+    (interactive)
+    (split-window-below)
+    (balance-windows)
+    (other-window 1))
+  (global-set-key (kbd "C-x 2") 'my/split-and-follow-horizontally)
+  ;; move focus when splitting a window
+  (defun my/split-and-follow-vertically ()
+    (interactive)
+    (split-window-right)
+    (balance-windows)
+    (other-window 1))
+  (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
+#+END_SRC
+
 ** Modal editing
 
-Testing roll-your-own-modal editing to replace GOD-mode (below).
+Roll-your-own-modal editing.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; edit the init.el configuration file
-  (defun config-visit ()
+  (defun my/config-visit ()
     (interactive)
     (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
-  
+
   ;; edit the init.el configuration file
-  (defun todo-visit ()
+  (defun my/todo-visit ()
     (interactive)
     (find-file "~/Sync/Org/Todo.org") )
-  
+
   (use-package ryo-modal
     :commands ryo-modal-mode
     :bind ("<escape>" . ryo-modal-mode)
+    :after org
     :config
     (ryo-modal-keys
      ;; vi like
@@ -470,18 +480,27 @@ Testing roll-your-own-modal editing to replace GOD-mode (below).
      ("J"  forward-paragraph)
      ("K"  backward-paragraph)
      ("L"  right-word)
-     ;; abbreviated emacs
-     ("f"  find-file)
-     ("s"  save-buffer)
      ("b"  consult-buffer)
      ("g"  consult-goto-line)
      ("Y"  consult-yank-pop)
      ("y"  yank)
      ("w"  kill-region)
      ("W"  copy-region-as-kill)
+     ;; abbreviated emacs
+     ("x" (("s" save-buffer)
+           ("f" find-file)
+           ("o" other-window)
+           ("c" save-buffers-kill-terminal)
+           ("0" delete-window)
+           ("1" delete-other-windows)
+           ("2" my/split-and-follow-horizontally)
+           ("3" my/split-and-follow-vertically)))
      ("q" (("a" org-agenda)
-           ("e" config-visit)
-           ("t" todo-visit)
+           ("e" my/config-visit)
+           ("t" my/todo-visit)
+           ("T" org-babel-tangle)
+           ("d" org-journal-new-entry)
+           ("s" consult-notes-search-in-all-notes)
            ("c" org-capture)))
      ;;("t"  'org-babel-tangle)
      ;; sugar
@@ -505,61 +524,32 @@ Testing roll-your-own-modal editing to replace GOD-mode (below).
      ("9" "M-9")))
 #+END_SRC
 
-** God mode
-
-Use God mode to avoid excessive modifier keys and hand strain. Below
-is a fairly standard config. The "escape" key toggles God mode and
-subsequent keypress are assumed to be modified by control C-<key>. So
-"xs" is save file for example -- see the God mode docs. A visual
-indicator is included in the mode line (below) and the cursor changes
-from box to bar. As a nod to VI keybindings "i" is set to switch back
-to non-God (i.e normal) operation and "." repeats the previous
-command.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (require 'god-mode)
-  ;(god-mode)
-  ;(global-set-key (kbd "<escape>") #'god-local-mode)
-  (which-key-enable-god-mode-support)
-  (define-key god-local-mode-map (kbd "i") 'god-local-mode)                                                                                            
-  (define-key god-local-mode-map (kbd ".") 'repeat)
-  (defun god-update-cursor ()
-    (setq cursor-type (if (or god-local-mode buffer-read-only)
-                          'bar
-                        'box)))
-
-  (add-hook 'god-mode-enabled-hook 'god-update-cursor)
-  (add-hook 'god-mode-disabled-hook 'god-update-cursor)
-#+END_SRC
-
 One complication is if we run "emacs -nw" (terminal rather than GUI
 interface to emacs) then the "escape" key is interpreted differently
 than via Wayland/X11. To deal with this we can use the workaround
 employed by xah-fly-keys (or Evil mode too I think).
 
-
 #+begin_SRC emacs-lisp :tangle yes
-  (defvar mygod-fast-keyseq-timeout 200)
+  (defvar my/ryo-fast-keyseq-timeout 200)
 
-  (defun mygod-tty-ESC-filter (map)
+  (defun my/ryo-tty-ESC-filter (map)
     (if (and (equal (this-single-command-keys) [?\e])
-             (sit-for (/ mygod-fast-keyseq-timeout 1000.0)))
+             (sit-for (/ my/ryo-fast-keyseq-timeout 1000.0)))
         [escape] map))
 
-  (defun mygod-lookup-key (map key)
+  (defun my/ryo-lookup-key (map key)
     (catch 'found
       (map-keymap (lambda (k b) (if (equal key k) (throw 'found b))) map)))
 
-  (defun mygod-catch-tty-ESC ()
+  (defun my/ryo-catch-tty-ESC ()
     "Setup key mappings of current terminal to turn a tty's ESC into `escape'."
     (when (memq (terminal-live-p (frame-terminal)) '(t pc))
-      (let ((esc-binding (mygod-lookup-key input-decode-map ?\e)))
+      (let ((esc-binding (my/ryo-lookup-key input-decode-map ?\e)))
         (define-key input-decode-map
-          [?\e] `(menu-item "" ,esc-binding :filter mygod-tty-ESC-filter)))))
+          [?\e] `(menu-item "" ,esc-binding :filter my/ryo-tty-ESC-filter)))))
 
-  (mygod-catch-tty-ESC)
+  (my/ryo-catch-tty-ESC)
 #+END_SRC
-
 
 ** Scrolling
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -590,12 +580,12 @@ I use Wayland (no X11), and this interacts with wl-copy.
   ;; - cut and paste in Wayland environment
   ;; - this puts selected text into the Wayland clipboard
   (setq x-select-enable-clipboard t)
-  (defun txt-cut-function (text &optional push)
+  (defun my/txt-cut-function (text &optional push)
     (with-temp-buffer
       (insert text)
       (call-process-region (point-min) (point-max) "wl-copy" ))
     )
-  (setq interprogram-cut-function 'txt-cut-function)
+  (setq interprogram-cut-function 'my/txt-cut-function)
 #+END_SRC
 
 ** Key-chord
@@ -605,7 +595,9 @@ combinations (e.g. 'qq'). Key-chord doesn't take account of order
 
 *ISSUES* see: https://github.com/emacsorphanage/key-chord/issues/8
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+*Disabled as now it is being replaced by ryo-modal*
+
+#+BEGIN_SRC emacs-lisp :tangle no
   ;; rapid-double press to activate key chords
   (use-package key-chord
     ;; Use a specific commit as defined in ~/.emacs.d/straight/versions/general.el
@@ -632,26 +624,6 @@ combinations (e.g. 'qq'). Key-chord doesn't take account of order
     (key-chord-mode 1) )
 #+END_SRC
 
-** Splitting window behaviour
-Global keys to split the window AND follow by moving point to the new window.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-  ;; move focus when splitting a window
-  (defun split-and-follow-horizontally ()
-    (interactive)
-    (split-window-below)
-    (balance-windows)
-    (other-window 1))
-  (global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
-  ;; move focus when splitting a window
-  (defun split-and-follow-vertically ()
-    (interactive)
-    (split-window-right)
-    (balance-windows)
-    (other-window 1))
-  (global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
-#+END_SRC
-
 ** Editorconfig
 Set configuration on a per directory basis via .editorconfig.
 
@@ -674,7 +646,6 @@ Expand roots to standard text snippets with M-].
   (setq-default yas-snippet-dirs '("/home/hewitt/.emacs.d/my_snippets"))
   ;; include yansippet and snippets
   (use-package yasnippet
-    ;;ensure t
     :init
     (message "Use-package: YASnippet")
     :config
@@ -701,11 +672,10 @@ Expand roots to standard text snippets with M-].
     (yas-reload-all) )
 #+END_SRC
 
-
 * Coding environment
 Code completion and on-the-fly check/make.
 
-- interaction with a language back-end is done via "eglot" which is an
+- interaction with a language back-end is done via 'eglot' which is an
   alternative to lsp-mode. The backend is currently set to 'ccls'.
 
 - To parse appropriate header files requires a 'compile_commands.json'
@@ -736,6 +706,7 @@ Code completion and on-the-fly check/make.
     ;(prog-mode . git-gutter-mode)
     ;(org-mode . git-gutter-mode)
     )
+  ;; activate globally
   (global-git-gutter-mode +1)
 
   ;; NIX language mode
@@ -753,21 +724,18 @@ Code completion and on-the-fly check/make.
   (setq treesit-font-lock-level 4)
 #+END_SRC
 
-
 * Magit
 Git interface within emacs.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; MAGIT
   (use-package magit
-    ;;ensure t
     :defer t
     :bind
     ("C-x g" . magit-status)
     :init
     (message "Use-package: Magit installed") )
 #+END_SRC
-
 
 * Org mode
 ** Basics of Org mode
@@ -788,15 +756,15 @@ colourise bold/italic/underline for use with bitmap fonts.
 
   ;; replace emphasis with colors in Org files
   (setq org-emphasis-alist
-        '(("*" my-org-emphasis-bold)
-          ("/" my-org-emphasis-italic)
-          ("_" underline)
+        '(("*" my/org-emphasis-bold)
+          ("/" my/org-emphasis-italic)
+          ("_" my/org-emphasis-underline)
           ("=" org-verbatim verbatim)
           ("~" org-code verbatim)
           ("+" (:strike-through t))))
-  
+
    ;; colorise text instead of changing the font weight.
-   (defface my-org-emphasis-bold
+   (defface my/org-emphasis-bold
      '((default :inherit bold)
        (((class color) (min-colors 88) (background light))
         :foreground "#a60000")
@@ -804,7 +772,7 @@ colourise bold/italic/underline for use with bitmap fonts.
         :foreground "#ff8059"))
      "My bold emphasis for Org.")
 
-   (defface my-org-emphasis-italic
+   (defface my/org-emphasis-italic
      '((default :inherit italic)
        (((class color) (min-colors 88) (background light))
         :foreground "#005e00")
@@ -812,7 +780,7 @@ colourise bold/italic/underline for use with bitmap fonts.
         :foreground "#44bc44"))
      "My italic emphasis for Org.")
 
-   (defface my-org-emphasis-underline
+   (defface my/org-emphasis-underline
      '((default :inherit underline)
        (((class color) (min-colors 88) (background light))
         :foreground "#813e00")
@@ -820,55 +788,54 @@ colourise bold/italic/underline for use with bitmap fonts.
         :foreground "#d0bc00"))
      "My underline emphasis for Org.")
 
-     ;; ORG link to mu4e emails -- see mu from https://github.com/djcb/mu
-     ;;(require 'org-mu4e)
-     ;;(setq org-mu4e-link-query-in-headers-mode nil)
+   ;; ORG link to mu4e emails -- see mu from https://github.com/djcb/mu
+   ;;(require 'org-mu4e)
+   ;;(setq org-mu4e-link-query-in-headers-mode nil)
 
-     ;; custom capture
-     (require 'org-capture)
-     ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
-     (setq org-capture-templates
-           '(
-             ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-              "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-             ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-              "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-              :empty-lines 1)) )
+   ;; custom capture
+   (require 'org-capture)
+   ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
+   (setq org-capture-templates
+         '(
+           ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+            "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+           ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+            "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+            :empty-lines 1)) )
 
-     ;; Agenda is constructed from org files in ONE directory
-     (setq org-agenda-files '("~/Sync/Org"))
+   ;; Agenda is constructed from org files in ONE directory
+   (setq org-agenda-files '("~/Sync/Org"))
 
-     ;; refile to targets defined by the org-agenda-files list above
-     (setq org-refile-targets '((nil :maxlevel . 3)
-                                (org-agenda-files :maxlevel . 3)))
-     (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
-     (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+   ;; refile to targets defined by the org-agenda-files list above
+   (setq org-refile-targets '((nil :maxlevel . 3)
+                              (org-agenda-files :maxlevel . 3)))
+   (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+   (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
 
-     ;; store DONE time in the drawer
-     (setq org-log-done (quote time))
-     (setq org-log-into-drawer t)
+   ;; store DONE time in the drawer
+   (setq org-log-done (quote time))
+   (setq org-log-into-drawer t)
 
-     ;; Ask and store note if rescheduling
-     (setq org-log-reschedule (quote note))
+   ;; Ask and store note if rescheduling
+   (setq org-log-reschedule (quote note))
 
-     ;; syntax highlight latex in org files
-     (setq org-highlight-latex-and-related '(latex script entities))
+   ;; syntax highlight latex in org files
+   (setq org-highlight-latex-and-related '(latex script entities))
 
-     ;; define the number of days to show in the agenda
-     (setq org-agenda-span 14
-           org-agenda-start-on-weekday nil
-           org-agenda-start-day "-3d")
+   ;; define the number of days to show in the agenda
+   (setq org-agenda-span 14
+         org-agenda-start-on-weekday nil
+         org-agenda-start-day "-3d")
 
-     ;; default duration of events
-     (setq org-agenda-default-appointment-duration 60)
-
-     (setq org-agenda-prefix-format '(
-      ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-                                      (agenda  . "  •  %-12:c%?-12t% s")
-                                      (timeline  . "  % s")
-                                      (todo  . " %i %-12:c")
-                                      (tags  . " %i %-12:c")
-                                      (search . " %i %-12:c")))
+   ;; default duration of events
+   (setq org-agenda-default-appointment-duration 60)
+   (setq org-agenda-prefix-format '(
+    ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                                    (agenda  . "  •  %-12:c%?-12t% s")
+                                    (timeline  . "  % s")
+                                    (todo  . " %i %-12:c")
+                                    (tags  . " %i %-12:c")
+                                    (search . " %i %-12:c")))
 #+END_SRC
 
 ** Org-babel
@@ -877,7 +844,7 @@ Reproducible research aide.
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package gnuplot
     :init
-    (message "Use-package: gnuplot for babel installed") )
+    (message "Use-package: gnuplot for babel installed"))
   ;; languages I work in via babel
   (org-babel-do-load-languages
    'org-babel-load-languages
@@ -966,7 +933,6 @@ Searching the Denote files is done via the "consult-notes" package.
 
   ;; I still like "org-journal" rather than using "denote".
   (use-package org-journal
-    ;;ensure t
     :init
     (message "Use-package: Org-journal")
     :config
@@ -979,8 +945,6 @@ Searching the Denote files is done via the "consult-notes" package.
 
 #+END_SRC 
                  
-
-
 * PDF tools
 This is a great tool if you have to comment on or otherwise annotate
 PDFs. The standard method for adding a text comment can be faster
@@ -993,47 +957,57 @@ than trying to scribble a hadnwritten note via other methods.
     (pdf-tools-install) )
 #+END_SRC
  
-
 * Email/mu4e
-Untangled -- too much hassle run via davmail.
-
 You need the "mu" package and also the executable "mbsync" (the
-package that mbsync is in is called "itync"). Existing solution was
-broken by move to Oauth2 in O365. Now I run "davmail" as an
-intermediary, with IMAP/SMTP on localhost which seems to run well.
+package that mbsync is in, is usually called "isync"). An existing
+solution was broken by move to Oauth2 in O365. Now I run "davmail" as
+an intermediary, with IMAP/SMTP on localhost which seems to run well.
+The "davmail" process is started as an asynchronous process under
+emacs as needed when mu4e is started.
 
-#+BEGIN_SRC emacs-lisp :tangle no
+#+BEGIN_SRC emacs-lisp :tangle yes
   ;; defines mu4e exists, but holds off until needed
   (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
   ;; used for outgoing mail send
-  (use-package smtpmail
-    :defer t
-    :init
-    (message "Use-package: SMTPmail")
-    (setq message-send-mail-function 'smtpmail-send-it
-          user-mail-address "richard.hewitt@manchester.ac.uk"
-          ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
-          smtpmail-default-smtp-server "localhost" ; davmail runs locally
-          ;;smtpmail-local-domain "manchester.ac.uk"
-          smtpmail-smtp-server "localhost"
-          ;;smtpmail-stream-type 'starttls
-          smtpmail-smtp-service 1025) )
+  ;(use-package smtpmail
+  ;  :defer t
+  ;  :init
+  ;  (message "Use-package: SMTPmail")
+  ;  ;(setq message-send-mail-function 'smtpmail-send-it
+  ;  ;      user-mail-address "richard.hewitt@manchester.ac.uk"
+  ;  ;      ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+  ;  ;      smtpmail-default-smtp-server "localhost" ; davmail runs locally
+  ;  ;      ;;smtpmail-local-domain "manchester.ac.uk"
+  ;  ;      smtpmail-smtp-server "localhost"
+  ;  ;      ;;smtpmail-stream-type 'starttls
+  ;  ;      smtpmail-smtp-service 1025)
+  ;  )
 
-  ;; 2018 : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+  (setq send-mail-function 'sendmail-send-it
+        sendmail-program "msmtp"
+        mail-specify-envelope-from t
+        message-sendmail-envelope-from 'header
+        mail-envelope-from 'header)
+
+  ;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
   (setq mu4e-change-filenames-when-moving t)
   ;; general mu4e config
-  (setq mu4e-maildir (expand-file-name "/home/hewitt/CURRENT/mbsyncmail"))
+  (setq mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail"))
   (setq mu4e-drafts-folder "/Drafts")
-  (setq mu4e-sent-folder   "/Sent") ; they still seem to appear in O365 despite this not being "Sent Items"
-  (setq mu4e-trash-folder  "/Deleted Items") ; I don't sync Deleted Items & largely do permanent delete "D" rather than move to trash "d"
-  (setq message-signature-file "/home/hewitt/CURRENT/dot.signature")
+  ;; sent mails still seem to appear in O365 despite this not being "Sent Items"
+  (setq mu4e-sent-folder   "/Sent")
+  ;; I don't sync Deleted Items & largely do permanent
+  ;;  delete via "D" rather than move to trash via "d" 
+  (setq mu4e-trash-folder  "/Deleted Items") 
+  (setq message-signature-file "~/CURRENT/dot.signature")
   (setq mu4e-headers-show-thread nil)
   (setq mu4e-headers-include-related nil)
   (setq mu4e-headers-results-limit 200)
   (setq mu4e-mu-binary (executable-find "mu"))
-  ;; stop mail draft/sent appearing in the recent files list of the dashboard
-  ;;(add-to-list 'recentf-exclude "\\mbsyncmail\\")
+  ;; to stop mail draft/sent appearing in the recent files list of the dashboard add:
+  ;; (add-to-list 'recentf-exclude "\\mbsyncmail\\")
+
   ;; how to get mail
   (setq mu4e-get-mail-command "mbsync Work"
         mu4e-html2text-command "w3m -T text/html"
@@ -1042,28 +1016,31 @@ intermediary, with IMAP/SMTP on localhost which seems to run well.
         ;;mu4e-headers-auto-update t
         mu4e-compose-signature-auto-include t)
 
-  ;; the headers to show 
+  ;; Define what headers to show 
   ;; in the headers list -- a pair of a field
   ;; and its width, with `nil' meaning 'unlimited'
-  ;; better only use that for the last field.
-  ;; These are the defaults:
+  ;; best to only use nil for the last field.
   (setq mu4e-headers-fields
-        '((:human-date    .  15)   ;; alternatively, use :date
+        '((:human-date   .  15)   ;; alternatively, use :date
           (:flags        .   6)
           (:from         .  22)
-          (:subject      .  nil))  ;; alternatively, use :thread-subject
+          (:subject      . nil))  ;; alternatively, use :thread-subject
         )
+
+  ;; shortcut keys are used in the main-view
   (setq mu4e-maildir-shortcuts
         '( ("/INBOX"          . ?i)
            ("/Sent"           . ?s)
            ("/Deleted Items"  . ?t)
-           ("/Drafts"         . ?d)) )
-  ;; REMOVE BELOW FOR TERMINAL EMACS
-  ;; show images
-  (setq mu4e-show-images t)
+           ("/Drafts"         . ?d)
+           ("/BULK"           . ?b)))
+
+  ;; ;; show images inline
+  ;;(setq mu4e-show-images t)
   ;; use imagemagick, if available
-  (when (fboundp 'imagemagick-register-types)
-    (imagemagick-register-types) )
+  ;;(when (fboundp 'imagemagick-register-types)
+  ;;  (imagemagick-register-types) )
+
   ;; don't keep message buffers around
   (setq message-kill-buffer-on-exit t)
   ;; general emacs mail settings; used when composing e-mail
@@ -1075,27 +1052,51 @@ intermediary, with IMAP/SMTP on localhost which seems to run well.
 
   ;; spell check during compose
   (add-hook 'mu4e-compose-mode-hook
-            (defun my-do-compose-stuff ()
+            (defun my/do-compose-stuff ()
               "My settings for message composition."
               (set-fill-column 72)
               (flyspell-mode)
               ;; turn off autosave, otherwise we end up with multiple
               ;; versions of sent/draft mail being sync'd
-              (auto-save-mode -1) ) )
+              (auto-save-mode -1)))
 #+END_SRC
 
+We need some quick elisp to start 'davmail' when 'mu4e' starts in order to connect
+to O365 with MFA. We do a bit of a hack to stop the 'davmail' process with a timer
+check every 15 minutes to see if 'mu4e' is still running or not.
 
-* AGE
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun my/davmail-start ()
+    "Start davmail process for mu4e."
+    (interactive)
+    (if (get-process "davmail") ; look for the started process 
+        (message "[debug] davmail process already running for mu4e") ; don't start more than one davmail process
+      (let ((default-directory "~/"))
+        (start-process "davmail" "*davmail*" "~/.nix-profile/bin/davmail" "-server"))))
+
+  (defun my/davmail-stop ()
+    "Stop davmain if mu4e is not active."
+    (interactive)    
+    (if (buffer-live-p (get-buffer "*mu4e-main*")) ; check if mu4e-main buffer is present as a proxy for being in use
+        (message "[debug] mu4e still active, not stopping davmail process")
+      (kill-process "davmail")))
+
+  ;; start davmail when entering mu4e
+  (add-hook 'mu4e-main-mode-hook 'my/davmail-start)
+
+  ;; I can't find any suitable exit hooks in mu4e so a quick hack is to
+  ;; stop 'davmail' every 5 mins if mu4e is not active
+  (run-with-timer 0 (* 5 60) 'my/davmail-stop)
+#+END_SRC
+
+* AGE encryption
 Replaced GPG with simpler AGE from the end of 2022.
-Update Jan/2023: now this mode is available from MELPA so Quelpa removed below.
 
 I prefer "armor" off so I can see from the terminal that files
 support all the specified identities.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package age
-    ;;; :quelpa (age :fetcher github :repo "anticomputer/age.el") 
-    :ensure t
     :demand
     :custom
     (age-program "rage")
@@ -1107,7 +1108,6 @@ support all the specified identities.
     (setq age-armor nil) ;; don't convert to ASCII so I can see the key headers
     (age-file-enable))
 #+END_SRC
-
 
 * Wrap up
 ** Add custom file extensions to set major modes
@@ -1127,25 +1127,3 @@ NixOS.
   ;; Nix language
   (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 #+END_SRC
-
-** Wrap up the config with some shortcut definitions and select the theme
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-  ;; simple prefix key launcher : 'ch' in God mode
-  (global-set-key (kbd "C-c C-h C-m") 'mu4e)
-  (global-set-key (kbd "C-c C-h C-a") 'org-agenda)
-  ;; C-c h e : edit the init.el configuration file
-  (defun config-visit ()
-    (interactive)
-    (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
-  (global-set-key (kbd "C-c C-h C-e") 'config-visit)
-  ;; C-c h e : edit the init.el configuration file
-  (defun todo-visit ()
-    (interactive)
-    (find-file "~/Sync/Org/Todo.org") )
-  (global-set-key (kbd "C-c C-h C-t") 'todo-visit)
-  ;; default to something other than scratch
-  ;(setq initial-buffer-choice "~/")
-#+END_SRC
-
-

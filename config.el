@@ -27,6 +27,7 @@
 ;; skip auto backups
 (setq make-backup-files nil)
 ;; (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+
 ;; have mouse input in the terminal -- the disadvantage is you
 ;; need to SHIFT+middle mouse to paste in the terminal
 (xterm-mouse-mode 1)
@@ -68,12 +69,12 @@
               '(
                 (:eval (cond
                         (ryo-modal-mode
-                         (propertize " [♌] " 'face 'error)) ;; modal indicator
+                         (propertize " ♌" 'face 'error)) ;; modal indicator
                         (t
-                         (propertize "-" 'face 'shadow))))
+                         (propertize " -" 'face 'shadow))))
                 (:eval (if (buffer-modified-p)
-                           (propertize "[🔥] " 'face 'error)
-                         (propertize "  -  " 'face 'shadow)
+                           (propertize "🔥 " 'face 'error)
+                         (propertize "- " 'face 'shadow)
                          )
                        )
                 ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
@@ -121,6 +122,7 @@
   (mapc #'disable-theme custom-enabled-themes)
   ;; Make customisations that affect Emacs faces BEFORE loading a theme
   ;; (any change needs a theme re-load to take effect).
+
   (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
   ;;:config
   ;; Load the theme of choice:
@@ -131,33 +133,31 @@
   ;; I set the theme at the end of this configuration because of
   ;; some minor issues with code comments showing as underlined [2022]
   )
+
 ;; DONT add a little bit of transparency
 ;;(set-frame-parameter nil 'alpha-background 100)
 ;;(add-to-list 'default-frame-alist '(alpha-background . 95))
+
 ;; select a default theme
 (ef-themes-select 'ef-symbiosis)
 
 (use-package rainbow-delimiters
-  ;;ensure t
   :init
   (message "Use-package: Rainbow delimiters")
   :config
   ;(rainbow-delimiters-mode)
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode)
-  )
+  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode))
 
 (use-package which-key
-  ;;ensure t
   :init 
   (message "Use-package: Which-key mode")
   :config
   (setq which-key-idle-delay 0.25)
-  (which-key-mode) )
+  (which-key-mode))
 
 (defun my-display-line-numbers-hook ()
-  (display-line-numbers-mode 1)
-  )
+  (display-line-numbers-mode 1))
 ;; latex 
 (add-hook 'latex-mode-hook 'hl-line-mode)
 (add-hook 'latex-mode-hook 'flyspell-mode)
@@ -183,7 +183,6 @@
   ("C-y"   . yank)
   ("C-s"   . consult-line)
   ("M-g o" . consult-outline))
-
 
 (use-package consult-notes
   :commands (consult-notes consult-notes-search-in-all-notes)
@@ -249,10 +248,6 @@
   :init
   (message "Use-package: corfu-prescient") )
 
-;;(use-package savehist
-;;  :init
-;; (savehist-mode))
-
 ;; (use-package orderless
 ;;  :custom (completion-styles '(orderless)))
 
@@ -264,19 +259,35 @@
   (message "Use-package: marginalia")
   (marginalia-mode))
 
+;; move focus when splitting a window
+(defun my/split-and-follow-horizontally ()
+  (interactive)
+  (split-window-below)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 2") 'my/split-and-follow-horizontally)
+;; move focus when splitting a window
+(defun my/split-and-follow-vertically ()
+  (interactive)
+  (split-window-right)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
+
 ;; edit the init.el configuration file
-(defun config-visit ()
+(defun my/config-visit ()
   (interactive)
   (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
 
 ;; edit the init.el configuration file
-(defun todo-visit ()
+(defun my/todo-visit ()
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 
 (use-package ryo-modal
   :commands ryo-modal-mode
   :bind ("<escape>" . ryo-modal-mode)
+  :after org
   :config
   (ryo-modal-keys
    ;; vi like
@@ -292,18 +303,27 @@
    ("J"  forward-paragraph)
    ("K"  backward-paragraph)
    ("L"  right-word)
-   ;; abbreviated emacs
-   ("f"  find-file)
-   ("s"  save-buffer)
    ("b"  consult-buffer)
    ("g"  consult-goto-line)
    ("Y"  consult-yank-pop)
    ("y"  yank)
    ("w"  kill-region)
    ("W"  copy-region-as-kill)
+   ;; abbreviated emacs
+   ("x" (("s" save-buffer)
+         ("f" find-file)
+         ("o" other-window)
+         ("c" save-buffers-kill-terminal)
+         ("0" delete-window)
+         ("1" delete-other-windows)
+         ("2" my/split-and-follow-horizontally)
+         ("3" my/split-and-follow-vertically)))
    ("q" (("a" org-agenda)
-         ("e" config-visit)
-         ("t" todo-visit)
+         ("e" my/config-visit)
+         ("t" my/todo-visit)
+         ("T" org-babel-tangle)
+         ("d" org-journal-new-entry)
+         ("s" consult-notes-search-in-all-notes)
          ("c" org-capture)))
    ;;("t"  'org-babel-tangle)
    ;; sugar
@@ -326,39 +346,25 @@
    ("8" "M-8")
    ("9" "M-9")))
 
-(require 'god-mode)
-;(god-mode)
-;(global-set-key (kbd "<escape>") #'god-local-mode)
-(which-key-enable-god-mode-support)
-(define-key god-local-mode-map (kbd "i") 'god-local-mode)                                                                                            
-(define-key god-local-mode-map (kbd ".") 'repeat)
-(defun god-update-cursor ()
-  (setq cursor-type (if (or god-local-mode buffer-read-only)
-                        'bar
-                      'box)))
+(defvar my/ryo-fast-keyseq-timeout 200)
 
-(add-hook 'god-mode-enabled-hook 'god-update-cursor)
-(add-hook 'god-mode-disabled-hook 'god-update-cursor)
-
-(defvar mygod-fast-keyseq-timeout 200)
-
-(defun mygod-tty-ESC-filter (map)
+(defun my/ryo-tty-ESC-filter (map)
   (if (and (equal (this-single-command-keys) [?\e])
-           (sit-for (/ mygod-fast-keyseq-timeout 1000.0)))
+           (sit-for (/ my/ryo-fast-keyseq-timeout 1000.0)))
       [escape] map))
 
-(defun mygod-lookup-key (map key)
+(defun my/ryo-lookup-key (map key)
   (catch 'found
     (map-keymap (lambda (k b) (if (equal key k) (throw 'found b))) map)))
 
-(defun mygod-catch-tty-ESC ()
+(defun my/ryo-catch-tty-ESC ()
   "Setup key mappings of current terminal to turn a tty's ESC into `escape'."
   (when (memq (terminal-live-p (frame-terminal)) '(t pc))
-    (let ((esc-binding (mygod-lookup-key input-decode-map ?\e)))
+    (let ((esc-binding (my/ryo-lookup-key input-decode-map ?\e)))
       (define-key input-decode-map
-        [?\e] `(menu-item "" ,esc-binding :filter mygod-tty-ESC-filter)))))
+        [?\e] `(menu-item "" ,esc-binding :filter my/ryo-tty-ESC-filter)))))
 
-(mygod-catch-tty-ESC)
+(my/ryo-catch-tty-ESC)
 
 (setq-default scroll-conservatively 20)
 ;; how close to the edge of the buffer does point get when scrolling up/down
@@ -382,52 +388,12 @@
 ;; - cut and paste in Wayland environment
 ;; - this puts selected text into the Wayland clipboard
 (setq x-select-enable-clipboard t)
-(defun txt-cut-function (text &optional push)
+(defun my/txt-cut-function (text &optional push)
   (with-temp-buffer
     (insert text)
     (call-process-region (point-min) (point-max) "wl-copy" ))
   )
-(setq interprogram-cut-function 'txt-cut-function)
-
-;; rapid-double press to activate key chords
-(use-package key-chord
-  ;; Use a specific commit as defined in ~/.emacs.d/straight/versions/general.el
-  :straight t
-  :init
-  (progn
-    (message "Use-package: Key-chord" )
-    (key-chord-define-global "qs"     'consult-notes-search-in-all-notes) ; search org files
-    (key-chord-define-global "qi"     'ibuffer-bs-show) 
-    (key-chord-define-global "qw"     'other-window)
-    (key-chord-define-global "qt"     'org-babel-tangle)
-    (key-chord-define-global "qd"     'org-journal-new-entry)
-    (key-chord-define-global "qc"     'org-capture)      
-    ;; define some related chords
-    (key-chord-define-global "qq"     'consult-buffer)
-    (key-chord-define-global "qb"     'consult-bookmark) ; set or jump
-    (key-chord-define-global "ql"     'consult-goto-line) )
-  :config
-  ;; Max time delay between two key presses to be considered a key chord
-  (setq key-chord-two-keys-delay 0.1) ; default 0.1
-  ;; Max time delay between two presses of the same key to be considered a key chord.
-  ;; Should normally be a little longer than `key-chord-two-keys-delay'.
-  (setq key-chord-one-key-delay 0.2) ; default 0.2    
-  (key-chord-mode 1) )
-
-;; move focus when splitting a window
-(defun split-and-follow-horizontally ()
-  (interactive)
-  (split-window-below)
-  (balance-windows)
-  (other-window 1))
-(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
-;; move focus when splitting a window
-(defun split-and-follow-vertically ()
-  (interactive)
-  (split-window-right)
-  (balance-windows)
-  (other-window 1))
-(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+(setq interprogram-cut-function 'my/txt-cut-function)
 
 ;; editorconfig allows specification of tab/space/indent
 (use-package editorconfig
@@ -442,7 +408,6 @@
 (setq-default yas-snippet-dirs '("/home/hewitt/.emacs.d/my_snippets"))
 ;; include yansippet and snippets
 (use-package yasnippet
-  ;;ensure t
   :init
   (message "Use-package: YASnippet")
   :config
@@ -487,6 +452,7 @@
   ;(prog-mode . git-gutter-mode)
   ;(org-mode . git-gutter-mode)
   )
+;; activate globally
 (global-git-gutter-mode +1)
 
 ;; NIX language mode
@@ -501,7 +467,6 @@
 
 ;; MAGIT
 (use-package magit
-  ;;ensure t
   :defer t
   :bind
   ("C-x g" . magit-status)
@@ -521,15 +486,15 @@
 
 ;; replace emphasis with colors in Org files
 (setq org-emphasis-alist
-      '(("*" my-org-emphasis-bold)
-        ("/" my-org-emphasis-italic)
-        ("_" underline)
+      '(("*" my/org-emphasis-bold)
+        ("/" my/org-emphasis-italic)
+        ("_" my/org-emphasis-underline)
         ("=" org-verbatim verbatim)
         ("~" org-code verbatim)
         ("+" (:strike-through t))))
 
  ;; colorise text instead of changing the font weight.
- (defface my-org-emphasis-bold
+ (defface my/org-emphasis-bold
    '((default :inherit bold)
      (((class color) (min-colors 88) (background light))
       :foreground "#a60000")
@@ -537,7 +502,7 @@
       :foreground "#ff8059"))
    "My bold emphasis for Org.")
 
- (defface my-org-emphasis-italic
+ (defface my/org-emphasis-italic
    '((default :inherit italic)
      (((class color) (min-colors 88) (background light))
       :foreground "#005e00")
@@ -545,7 +510,7 @@
       :foreground "#44bc44"))
    "My italic emphasis for Org.")
 
- (defface my-org-emphasis-underline
+ (defface my/org-emphasis-underline
    '((default :inherit underline)
      (((class color) (min-colors 88) (background light))
       :foreground "#813e00")
@@ -553,59 +518,58 @@
       :foreground "#d0bc00"))
    "My underline emphasis for Org.")
 
-   ;; ORG link to mu4e emails -- see mu from https://github.com/djcb/mu
-   ;;(require 'org-mu4e)
-   ;;(setq org-mu4e-link-query-in-headers-mode nil)
+ ;; ORG link to mu4e emails -- see mu from https://github.com/djcb/mu
+ ;;(require 'org-mu4e)
+ ;;(setq org-mu4e-link-query-in-headers-mode nil)
 
-   ;; custom capture
-   (require 'org-capture)
-   ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
-   (setq org-capture-templates
-         '(
-           ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-            "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-           ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-            "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-            :empty-lines 1)) )
+ ;; custom capture
+ (require 'org-capture)
+ ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
+ (setq org-capture-templates
+       '(
+         ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+          "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+         ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+          "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+          :empty-lines 1)) )
 
-   ;; Agenda is constructed from org files in ONE directory
-   (setq org-agenda-files '("~/Sync/Org"))
+ ;; Agenda is constructed from org files in ONE directory
+ (setq org-agenda-files '("~/Sync/Org"))
 
-   ;; refile to targets defined by the org-agenda-files list above
-   (setq org-refile-targets '((nil :maxlevel . 3)
-                              (org-agenda-files :maxlevel . 3)))
-   (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
-   (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+ ;; refile to targets defined by the org-agenda-files list above
+ (setq org-refile-targets '((nil :maxlevel . 3)
+                            (org-agenda-files :maxlevel . 3)))
+ (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+ (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
 
-   ;; store DONE time in the drawer
-   (setq org-log-done (quote time))
-   (setq org-log-into-drawer t)
+ ;; store DONE time in the drawer
+ (setq org-log-done (quote time))
+ (setq org-log-into-drawer t)
 
-   ;; Ask and store note if rescheduling
-   (setq org-log-reschedule (quote note))
+ ;; Ask and store note if rescheduling
+ (setq org-log-reschedule (quote note))
 
-   ;; syntax highlight latex in org files
-   (setq org-highlight-latex-and-related '(latex script entities))
+ ;; syntax highlight latex in org files
+ (setq org-highlight-latex-and-related '(latex script entities))
 
-   ;; define the number of days to show in the agenda
-   (setq org-agenda-span 14
-         org-agenda-start-on-weekday nil
-         org-agenda-start-day "-3d")
+ ;; define the number of days to show in the agenda
+ (setq org-agenda-span 14
+       org-agenda-start-on-weekday nil
+       org-agenda-start-day "-3d")
 
-   ;; default duration of events
-   (setq org-agenda-default-appointment-duration 60)
-
-   (setq org-agenda-prefix-format '(
-    ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-                                    (agenda  . "  •  %-12:c%?-12t% s")
-                                    (timeline  . "  % s")
-                                    (todo  . " %i %-12:c")
-                                    (tags  . " %i %-12:c")
-                                    (search . " %i %-12:c")))
+ ;; default duration of events
+ (setq org-agenda-default-appointment-duration 60)
+ (setq org-agenda-prefix-format '(
+  ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                                  (agenda  . "  •  %-12:c%?-12t% s")
+                                  (timeline  . "  % s")
+                                  (todo  . " %i %-12:c")
+                                  (tags  . " %i %-12:c")
+                                  (search . " %i %-12:c")))
 
 (use-package gnuplot
   :init
-  (message "Use-package: gnuplot for babel installed") )
+  (message "Use-package: gnuplot for babel installed"))
 ;; languages I work in via babel
 (org-babel-do-load-languages
  'org-babel-load-languages
@@ -685,7 +649,6 @@
 
 ;; I still like "org-journal" rather than using "denote".
 (use-package org-journal
-  ;;ensure t
   :init
   (message "Use-package: Org-journal")
   :config
@@ -701,9 +664,123 @@
   :config
   (pdf-tools-install) )
 
+;; defines mu4e exists, but holds off until needed
+(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+
+;; used for outgoing mail send
+;(use-package smtpmail
+;  :defer t
+;  :init
+;  (message "Use-package: SMTPmail")
+;  ;(setq message-send-mail-function 'smtpmail-send-it
+;  ;      user-mail-address "richard.hewitt@manchester.ac.uk"
+;  ;      ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
+;  ;      smtpmail-default-smtp-server "localhost" ; davmail runs locally
+;  ;      ;;smtpmail-local-domain "manchester.ac.uk"
+;  ;      smtpmail-smtp-server "localhost"
+;  ;      ;;smtpmail-stream-type 'starttls
+;  ;      smtpmail-smtp-service 1025)
+;  )
+
+(setq send-mail-function 'sendmail-send-it
+      sendmail-program "msmtp"
+      mail-specify-envelope-from t
+      message-sendmail-envelope-from 'header
+      mail-envelope-from 'header)
+
+;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+(setq mu4e-change-filenames-when-moving t)
+;; general mu4e config
+(setq mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail"))
+(setq mu4e-drafts-folder "/Drafts")
+;; sent mails still seem to appear in O365 despite this not being "Sent Items"
+(setq mu4e-sent-folder   "/Sent")
+;; I don't sync Deleted Items & largely do permanent
+;;  delete via "D" rather than move to trash via "d" 
+(setq mu4e-trash-folder  "/Deleted Items") 
+(setq message-signature-file "~/CURRENT/dot.signature")
+(setq mu4e-headers-show-thread nil)
+(setq mu4e-headers-include-related nil)
+(setq mu4e-headers-results-limit 200)
+(setq mu4e-mu-binary (executable-find "mu"))
+;; to stop mail draft/sent appearing in the recent files list of the dashboard add:
+;; (add-to-list 'recentf-exclude "\\mbsyncmail\\")
+
+;; how to get mail
+(setq mu4e-get-mail-command "mbsync Work"
+      mu4e-html2text-command "w3m -T text/html"
+      ;;mu4e-html2text-command "html2markdown --body-width=72" 
+      ;;mu4e-update-interval 300
+      ;;mu4e-headers-auto-update t
+      mu4e-compose-signature-auto-include t)
+
+;; Define what headers to show 
+;; in the headers list -- a pair of a field
+;; and its width, with `nil' meaning 'unlimited'
+;; best to only use nil for the last field.
+(setq mu4e-headers-fields
+      '((:human-date   .  15)   ;; alternatively, use :date
+        (:flags        .   6)
+        (:from         .  22)
+        (:subject      . nil))  ;; alternatively, use :thread-subject
+      )
+
+;; shortcut keys are used in the main-view
+(setq mu4e-maildir-shortcuts
+      '( ("/INBOX"          . ?i)
+         ("/Sent"           . ?s)
+         ("/Deleted Items"  . ?t)
+         ("/Drafts"         . ?d)
+         ("/BULK"           . ?b)))
+
+;; ;; show images inline
+;;(setq mu4e-show-images t)
+;; use imagemagick, if available
+;;(when (fboundp 'imagemagick-register-types)
+;;  (imagemagick-register-types) )
+
+;; don't keep message buffers around
+(setq message-kill-buffer-on-exit t)
+;; general emacs mail settings; used when composing e-mail
+;; the non-mu4e-* stuff is inherited from emacs/message-mode
+(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
+      user-mail-address "richard.hewitt@manchester.ac.uk"
+      user-full-name  "Rich Hewitt")
+(setq mu4e-sent-messages-behavior 'sent)
+
+;; spell check during compose
+(add-hook 'mu4e-compose-mode-hook
+          (defun my/do-compose-stuff ()
+            "My settings for message composition."
+            (set-fill-column 72)
+            (flyspell-mode)
+            ;; turn off autosave, otherwise we end up with multiple
+            ;; versions of sent/draft mail being sync'd
+            (auto-save-mode -1)))
+
+(defun my/davmail-start ()
+  "Start davmail process for mu4e."
+  (interactive)
+  (if (get-process "davmail") ; look for the started process 
+      (message "[debug] davmail process already running for mu4e") ; don't start more than one davmail process
+    (let ((default-directory "~/"))
+      (start-process "davmail" "*davmail*" "~/.nix-profile/bin/davmail" "-server"))))
+
+(defun my/davmail-stop ()
+  "Stop davmain if mu4e is not active."
+  (interactive)    
+  (if (buffer-live-p (get-buffer "*mu4e-main*")) ; check if mu4e-main buffer is present as a proxy for being in use
+      (message "[debug] mu4e still active, not stopping davmail process")
+    (kill-process "davmail")))
+
+;; start davmail when entering mu4e
+(add-hook 'mu4e-main-mode-hook 'my/davmail-start)
+
+;; I can't find any suitable exit hooks in mu4e so a quick hack is to
+;; stop 'davmail' every 5 mins if mu4e is not active
+(run-with-timer 0 (* 5 60) 'my/davmail-stop)
+
 (use-package age
-  ;;; :quelpa (age :fetcher github :repo "anticomputer/age.el") 
-  :ensure t
   :demand
   :custom
   (age-program "rage")
@@ -724,19 +801,3 @@
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
 ;; Nix language
 (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
-
-;; simple prefix key launcher : 'ch' in God mode
-(global-set-key (kbd "C-c C-h C-m") 'mu4e)
-(global-set-key (kbd "C-c C-h C-a") 'org-agenda)
-;; C-c h e : edit the init.el configuration file
-(defun config-visit ()
-  (interactive)
-  (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
-(global-set-key (kbd "C-c C-h C-e") 'config-visit)
-;; C-c h e : edit the init.el configuration file
-(defun todo-visit ()
-  (interactive)
-  (find-file "~/Sync/Org/Todo.org") )
-(global-set-key (kbd "C-c C-h C-t") 'todo-visit)
-;; default to something other than scratch
-;(setq initial-buffer-choice "~/")
