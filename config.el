@@ -8,7 +8,7 @@
 (package-initialize)
 
 ;; Keep custom settings in a separate file to not pollute this one
-(setq custom-file "/home/hewitt/.emacs.d/custom-settings.el")
+(setq custom-file "~/.emacs.d/custom-settings.el")
 (load custom-file t)
 
 (defvar bootstrap-version)
@@ -61,8 +61,17 @@
 ;; hook to update the colours/style using the above function when theme loaded
 (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
 
-;; define the line/column information
-(setq mode-line-position (list "L%l C%c"))
+;; use 'mu' as an external process to get the number of unread email
+;; the number is a string 'my-email-count-string'
+(defun my/unread-email-command ()
+  "Run mu to get how many unread email are in the INBOX"
+  (interactive)
+  (setq my/email-count-string (substring (shell-command-to-string "mu find date:1w..now maildir:/INBOX flag:unread 2>/dev/null | wc -l") 0 -1)))
+;; update 'my/email-count-string' every 5 mins with a 10 second delay
+(run-with-timer 0 60 'my/unread-email-command)
+
+;; define the line/column information -- fixed 2 character width for columbn
+(setq mode-line-position (list "L%l C%02c"))
 
 ;; fire symbol for unsaved buffer is selected via (C-x 8 RET)
 (setq-default mode-line-format
@@ -88,7 +97,7 @@
                        )
                 ;; ALWAYS show the final filename even if inactive
                 ;; final separator is in usual font
-                "/" 
+                "/"
                 ;; filename in a more obvious (warning) colour
                 (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
                            (propertize 
@@ -98,6 +107,12 @@
                        )
                 ;; everything after here goes on the right .. emacs 30+?
                 mode-line-format-right-align
+                "| "
+                my/email-count-string
+                (:eval (when (mode-line-window-selected-p) 
+                         (if (buffer-live-p (get-buffer "*mu4e-main*"))
+                             " 📫"
+                           "-")))
                 ;; show ONLY the major mode (minor modes are not shown)
                 " | "
                 ;; strip "-Mode" from the end
@@ -319,13 +334,13 @@
          ("2" my/split-and-follow-horizontally)
          ("3" my/split-and-follow-vertically)))
    ("q" (("a" org-agenda)
+         ("d" org-journal-new-entry)
          ("e" my/config-visit)
+         ;;("m" mu4e) ; set later
+         ("s" consult-notes-search-in-all-notes)
          ("t" my/todo-visit)
          ("T" org-babel-tangle)
-         ("d" org-journal-new-entry)
-         ("s" consult-notes-search-in-all-notes)
          ("c" org-capture)))
-   ;;("t"  'org-babel-tangle)
    ;; sugar
    ("["  previous-buffer)
    ("]"  next-buffer)
@@ -405,7 +420,7 @@
 (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
 
 ;; location of my snippets -- has to go before yas-reload-all
-(setq-default yas-snippet-dirs '("/home/hewitt/.emacs.d/my_snippets"))
+(setq-default yas-snippet-dirs '("~/.emacs.d/my_snippets"))
 ;; include yansippet and snippets
 (use-package yasnippet
   :init
@@ -518,13 +533,9 @@
       :foreground "#d0bc00"))
    "My underline emphasis for Org.")
 
- ;; ORG link to mu4e emails -- see mu from https://github.com/djcb/mu
- ;;(require 'org-mu4e)
- ;;(setq org-mu4e-link-query-in-headers-mode nil)
-
  ;; custom capture
  (require 'org-capture)
- ;;(define-key global-map "\C-cc" 'org-capture) ; see key-chord/seq
+ ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
  (setq org-capture-templates
        '(
          ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
@@ -667,53 +678,43 @@
 ;; defines mu4e exists, but holds off until needed
 (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
-;; used for outgoing mail send
-;(use-package smtpmail
-;  :defer t
-;  :init
-;  (message "Use-package: SMTPmail")
-;  ;(setq message-send-mail-function 'smtpmail-send-it
-;  ;      user-mail-address "richard.hewitt@manchester.ac.uk"
-;  ;      ;;smtpmail-default-smtp-server "outgoing.manchester.ac.uk"
-;  ;      smtpmail-default-smtp-server "localhost" ; davmail runs locally
-;  ;      ;;smtpmail-local-domain "manchester.ac.uk"
-;  ;      smtpmail-smtp-server "localhost"
-;  ;      ;;smtpmail-stream-type 'starttls
-;  ;      smtpmail-smtp-service 1025)
-;  )
+(ryo-modal-keys
+ ("q" (("m" mu4e))))
 
-(setq send-mail-function 'sendmail-send-it
-      sendmail-program "msmtp"
-      mail-specify-envelope-from t
-      message-sendmail-envelope-from 'header
-      mail-envelope-from 'header)
-
-;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
-(setq mu4e-change-filenames-when-moving t)
-;; general mu4e config
-(setq mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail"))
-(setq mu4e-drafts-folder "/Drafts")
-;; sent mails still seem to appear in O365 despite this not being "Sent Items"
-(setq mu4e-sent-folder   "/Sent")
-;; I don't sync Deleted Items & largely do permanent
-;;  delete via "D" rather than move to trash via "d" 
-(setq mu4e-trash-folder  "/Deleted Items") 
-(setq message-signature-file "~/CURRENT/dot.signature")
-(setq mu4e-headers-show-thread nil)
-(setq mu4e-headers-include-related nil)
-(setq mu4e-headers-results-limit 200)
-(setq mu4e-mu-binary (executable-find "mu"))
+;;
+;; GETTING new messages
+;;
+;; how to get mail
+(setq mu4e-get-mail-command "mbsync Work"
+      mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
+      mu4e-mu-binary (executable-find "mu"))
+;; auto GET every 5 mins
+(setq mu4e-update-interval 300)
 ;; to stop mail draft/sent appearing in the recent files list of the dashboard add:
 ;; (add-to-list 'recentf-exclude "\\mbsyncmail\\")
 
-;; how to get mail
-(setq mu4e-get-mail-command "mbsync Work"
-      mu4e-html2text-command "w3m -T text/html"
-      ;;mu4e-html2text-command "html2markdown --body-width=72" 
-      ;;mu4e-update-interval 300
-      ;;mu4e-headers-auto-update t
-      mu4e-compose-signature-auto-include t)
-
+;;
+;; READING and ORGANIZING mail
+;;
+;; I don't sync Deleted Items & largely do permanent
+;;  delete via "D" rather than move to trash via "d" 
+(setq mu4e-trash-folder  "/Trash") 
+;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+(setq mu4e-change-filenames-when-moving t)
+;; show thread but don't bring back related emails that have been moved
+(setq mu4e-headers-show-thread t
+      mu4e-headers-include-related nil
+      mu4e-headers-results-limit 200)
+;; rich text emails are converted using 'shr'
+;; they are displayed using 'shr-face'
+;; and for a dark background the 'mu4e' manual suggests:
+(setq shr-color-visible-luminance-min 80)
+;; ;; show images inline
+;;(setq mu4e-show-images t)
+;; use imagemagick, if available
+;;(when (fboundp 'imagemagick-register-types)
+;;  (imagemagick-register-types) )
+;;
 ;; Define what headers to show 
 ;; in the headers list -- a pair of a field
 ;; and its width, with `nil' meaning 'unlimited'
@@ -724,21 +725,38 @@
         (:from         .  22)
         (:subject      . nil))  ;; alternatively, use :thread-subject
       )
-
 ;; shortcut keys are used in the main-view
 (setq mu4e-maildir-shortcuts
       '( ("/INBOX"          . ?i)
          ("/Sent"           . ?s)
-         ("/Deleted Items"  . ?t)
+         ("/Trash"          . ?t)
          ("/Drafts"         . ?d)
          ("/BULK"           . ?b)))
+;; bookmarks
+(setq mu4e-bookmarks
+      ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK" :key 117) ; bu
+         (:name "Today" :query "date:today..now" :key 116)                   ; bt
+         (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
+         (:name "Attachment" :query "flag:a" :key 97)                        ; ba
+         (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
+         ))       
 
-;; ;; show images inline
-;;(setq mu4e-show-images t)
-;; use imagemagick, if available
-;;(when (fboundp 'imagemagick-register-types)
-;;  (imagemagick-register-types) )
+;; Couple to Org -- not sure if this is strictly required or not?
+(require 'mu4e-org)
 
+;;
+;; SENDING and COMPOSING
+;;
+;; configure for msmtp as this is easy to test from the CLI
+(setq send-mail-function 'sendmail-send-it
+      sendmail-program "msmtp"
+      mail-specify-envelope-from t
+      message-sendmail-envelope-from 'header
+      mail-envelope-from 'header)
+;; Note: sent mails should appear in O365 sent list
+;; O365 uses "Sent Items" in the web interface but this
+;; appears as just "Sent" with mbsync set to "Patterns *"
+(setq mu4e-sent-folder   "/Sent")
 ;; don't keep message buffers around
 (setq message-kill-buffer-on-exit t)
 ;; general emacs mail settings; used when composing e-mail
@@ -746,13 +764,22 @@
 (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
       user-mail-address "richard.hewitt@manchester.ac.uk"
       user-full-name  "Rich Hewitt")
+;; sent messages are copied into the 'mu4e-sent-folder' defined above
+;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
+;; 2 copies in the O365 "Sent Items" folder
 (setq mu4e-sent-messages-behavior 'sent)
-
+;; compose signature
+(setq message-signature-file "~/CURRENT/dot.signature")
+(setq mu4e-compose-signature-auto-include t)
+;; don't wrap at 70-something columns
+(setq mu4e-compose-format-flowed t)
+;; define where to put draft email
+(setq mu4e-drafts-folder "/Drafts")
 ;; spell check during compose
 (add-hook 'mu4e-compose-mode-hook
           (defun my/do-compose-stuff ()
             "My settings for message composition."
-            (set-fill-column 72)
+            ;;(set-fill-column 72)
             (flyspell-mode)
             ;; turn off autosave, otherwise we end up with multiple
             ;; versions of sent/draft mail being sync'd
@@ -768,10 +795,15 @@
 
 (defun my/davmail-stop ()
   "Stop davmain if mu4e is not active."
-  (interactive)    
-  (if (buffer-live-p (get-buffer "*mu4e-main*")) ; check if mu4e-main buffer is present as a proxy for being in use
+  (interactive)
+  ;; check if mu4e-main buffer is present as a proxy for mu4e running
+  ;; the 'mu4e-running-p' function will only be available IF I've started mu4e
+  (if (buffer-live-p (get-buffer "*mu4e-main*"))
+      ;; mu4e IS running so DONT stop davmail
       (message "[debug] mu4e still active, not stopping davmail process")
-    (kill-process "davmail")))
+    ;; mu4e is NOT running so try to kill davmail ONLY IF it is running
+    (if (process-status "davmail")
+        (kill-process "davmail"))))
 
 ;; start davmail when entering mu4e
 (add-hook 'mu4e-main-mode-hook 'my/davmail-start)
@@ -783,14 +815,18 @@
 (use-package age
   :demand
   :custom
-  (age-program "rage")
-  (age-default-identity "~/CURRENT/AGE/age-yubikey-identity-bb978fd1.txt")
+  (age-program "rage")   ; 'rage' is the rust implementation of 'age' that supports pinentry
+  (age-default-identity "~/CURRENT/AGE/yubikey-bb978fd1-identity.txt")
   (age-default-recipient
-   '("~/CURRENT/AGE/backupKey.pub"
-     "~/CURRENT/AGE/age-yubikey-identity-bb978fd1.pub"))
+   '("~/CURRENT/AGE/recovery-recipient.pub"            ; cold-storage recovery
+     "~/CURRENT/AGE/yubikey-bb978fd1-recipient.pub"))  ; active hardware key
   :config
-  (setq age-armor nil) ;; don't convert to ASCII so I can see the key headers
+  (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
   (age-file-enable))
+
+(straight-use-package
+ '(passage :type git :host github :repo "anticomputer/passage.el"))
+(require 'passage)
 
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
