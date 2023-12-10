@@ -336,7 +336,7 @@
    ("q" (("a" org-agenda)
          ("d" org-journal-new-entry)
          ("e" my/config-visit)
-         ;;("m" mu4e) ; set later
+         ;;("m" mu4e) ; set later after mu4e in mu4e specification section
          ("s" consult-notes-search-in-all-notes)
          ("t" my/todo-visit)
          ("T" org-babel-tangle)
@@ -715,15 +715,16 @@
 ;;(when (fboundp 'imagemagick-register-types)
 ;;  (imagemagick-register-types) )
 ;;
+
 ;; Define what headers to show 
 ;; in the headers list -- a pair of a field
 ;; and its width, with `nil' meaning 'unlimited'
 ;; best to only use nil for the last field.
 (setq mu4e-headers-fields
-      '((:human-date   .  15)   ;; alternatively, use :date
-        (:flags        .   6)
-        (:from         .  22)
-        (:subject      . nil))  ;; alternatively, use :thread-subject
+      '((:human-date          .  10)   ;; alternatively, use :date
+        (:flags               .   5)
+        (:from-or-to          .  30)
+        (:thread-subject      . nil))  ;; alternatively, use :thread-subject
       )
 ;; shortcut keys are used in the main-view
 (setq mu4e-maildir-shortcuts
@@ -740,6 +741,8 @@
          (:name "Attachment" :query "flag:a" :key 97)                        ; ba
          (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
          ))       
+;; don't auto update in the headers view, wait for return to main view
+(setq mu4e-headers-auto-update nil) 
 
 ;; Couple to Org -- not sure if this is strictly required or not?
 (require 'mu4e-org)
