@@ -136,12 +136,12 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
                 '(
                   (:eval (cond
                           (ryo-modal-mode
-                           (propertize " ♌" 'face 'error)) ;; modal indicator
+                           (propertize " ♌ " 'face 'error)) ;; modal indicator
                           (t
-                           (propertize " -" 'face 'shadow))))
+                           (propertize " - " 'face 'shadow))))
                   (:eval (if (buffer-modified-p)
-                             (propertize "🔥 " 'face 'error)
-                           (propertize "- " 'face 'shadow)
+                             (propertize " 🔥   " 'face 'error)
+                           (propertize " -    " 'face 'shadow)
                            )
                          )
                   ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
@@ -163,16 +163,16 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
                               'face 'warning)
                            )
                          )
-                  ;; everything after here goes on the right .. emacs 30+?
+                  ;; everything after here goes on the right. This doesn' work for emacs 29 ... needs emacs 30+?
                   mode-line-format-right-align
-                  "| "
+                  "   |   "
                   my/email-count-string
                   (:eval (when (mode-line-window-selected-p) 
                            (if (buffer-live-p (get-buffer "*mu4e-main*"))
-                               " 📫"
-                             "-")))
+                               " : 📫"
+                             " . ")))
                   ;; show ONLY the major mode (minor modes are not shown)
-                  " | "
+                  "   |   "
                   ;; strip "-Mode" from the end
                   (:eval (when (mode-line-window-selected-p) 
                            (propertize (nth 0
@@ -184,7 +184,7 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
                          )
                   " "
                   (vc-mode vc-mode)
-                  " | "
+                  "   |   "
                   mode-line-position        ; show lines and columns as specified above
                   )
                 )
@@ -513,7 +513,7 @@ Roll-your-own-modal editing.
      ("q" (("a" org-agenda)
            ("d" org-journal-new-entry)
            ("e" my/config-visit)
-           ;;("m" mu4e) ; set later
+           ;;("m" mu4e) ; set later after mu4e in mu4e specification section
            ("s" consult-notes-search-in-all-notes)
            ("t" my/todo-visit)
            ("T" org-babel-tangle)
@@ -1017,15 +1017,17 @@ emacs as needed when 'mu4e' is started.
   ;;(when (fboundp 'imagemagick-register-types)
   ;;  (imagemagick-register-types) )
   ;;
+
   ;; Define what headers to show 
   ;; in the headers list -- a pair of a field
   ;; and its width, with `nil' meaning 'unlimited'
   ;; best to only use nil for the last field.
   (setq mu4e-headers-fields
-        '((:human-date   .  15)   ;; alternatively, use :date
-          (:flags        .   6)
-          (:from         .  22)
-          (:subject      . nil))  ;; alternatively, use :thread-subject
+        '((:human-date          .  10)   ;; alternatively, use :date
+          (:flags               .   5)
+          (:recipnum            .   3)
+          (:from-or-to          .  30)
+          (:thread-subject      . nil))  ;; alternatively, use :thread-subject
         )
   ;; shortcut keys are used in the main-view
   (setq mu4e-maildir-shortcuts
@@ -1042,6 +1044,8 @@ emacs as needed when 'mu4e' is started.
            (:name "Attachment" :query "flag:a" :key 97)                        ; ba
            (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
            ))       
+  ;; don't auto update in the headers view, wait for return to main view
+  (setq mu4e-headers-auto-update nil) 
 
   ;; Couple to Org -- not sure if this is strictly required or not?
   (require 'mu4e-org)
