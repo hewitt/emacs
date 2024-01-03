@@ -78,12 +78,12 @@
               '(
                 (:eval (cond
                         (ryo-modal-mode
-                         (propertize " ♌" 'face 'error)) ;; modal indicator
+                         (propertize " ♌ " 'face 'error)) ;; modal indicator
                         (t
-                         (propertize " -" 'face 'shadow))))
+                         (propertize " - " 'face 'shadow))))
                 (:eval (if (buffer-modified-p)
-                           (propertize "🔥 " 'face 'error)
-                         (propertize "- " 'face 'shadow)
+                           (propertize " 🔥   " 'face 'error)
+                         (propertize " -    " 'face 'shadow)
                          )
                        )
                 ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
@@ -105,16 +105,16 @@
                             'face 'warning)
                          )
                        )
-                ;; everything after here goes on the right .. emacs 30+?
+                ;; everything after here goes on the right. This doesn' work for emacs 29 ... needs emacs 30+?
                 mode-line-format-right-align
-                "| "
+                "   |   "
                 my/email-count-string
                 (:eval (when (mode-line-window-selected-p) 
                          (if (buffer-live-p (get-buffer "*mu4e-main*"))
-                             " 📫"
-                           "-")))
+                             " : 📫"
+                           " . ")))
                 ;; show ONLY the major mode (minor modes are not shown)
-                " | "
+                "   |   "
                 ;; strip "-Mode" from the end
                 (:eval (when (mode-line-window-selected-p) 
                          (propertize (nth 0
@@ -126,7 +126,7 @@
                        )
                 " "
                 (vc-mode vc-mode)
-                " | "
+                "   |   "
                 mode-line-position        ; show lines and columns as specified above
                 )
               )
@@ -723,6 +723,7 @@
 (setq mu4e-headers-fields
       '((:human-date          .  10)   ;; alternatively, use :date
         (:flags               .   5)
+        (:recipnum            .   3)
         (:from-or-to          .  30)
         (:thread-subject      . nil))  ;; alternatively, use :thread-subject
       )
