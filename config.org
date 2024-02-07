@@ -11,10 +11,10 @@ To convert this to "./config.el" do M-x org-babel-tangle.
   mechanism. As of 2022 this is replaced in favour of a NixOS
   Home-Manager configuration that manages most packages.
   
-+ I'm using the dev version of Emacs (30.0.50) so 'use-package' (and
-  some other things) are built-in, notably 'eglot' and 'treesitter'.
-  The mode-line configuration also makes use of
-  'mode-line-format-right-align' which needs a recent version.
++ I'm using Emacs 29.2 so 'use-package' (and some other things) are
+  built-in, notably 'eglot' and 'treesitter'. To use
+  'mode-line-format-right-align' requires a later version -- so I
+  don't do any alignment hacks in the modeline text.
 
 * Basic setup
 ** Package archives: ELPA/MELPA
@@ -48,7 +48,9 @@ package via NixOS, it was quicker to remove the package from the OS
 configuration and just switch to directly installing the correct
 revision with 'straight'.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+*Not currently in use, and left untangled.*
+
+#+BEGIN_SRC emacs-lisp :tangle no
   (defvar bootstrap-version)
   (let ((bootstrap-file
          (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -103,20 +105,23 @@ that we update any open buffers to show the on-file current status.
 #+END_SRC
 
 * Appearance
-** Modeline 
+** Modeline
 This is a simplified home-brew modeline. Set this before calling an
 ef-theme since there is a 'ef-themes-post-load-hook' defined below.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; Prot ef-theme modeline tweak to add box around the modeline
-  ;; box is the same colour as background, so looks like a wider mode line.
+  ;; Prot ef-theme modeline tweak to add box around the modeline box is
+  ;; the same colour as background, so looks like a 'fatter' mode line.
   (defun my-ef-themes-mode-line ()
     "Tweak the style of the mode lines."
     (ef-themes-with-colors
       (custom-set-faces
-       `(mode-line ((,c :background ,bg-mode-line :height 100 :foreground ,fg-main :box (:line-width 6 :color ,bg-mode-line))))
+       `(mode-line ((,c :background ,bg-mode-line :height 100
+                        :foreground ,fg-main :box (:line-width 6
+                                                               :color ,bg-mode-line))))
        `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
-  ;; hook to update the colours/style using the above function when theme loaded
+  ;; hook to update the colours/style using the above function when
+  ;; theme loaded
   (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
 
   ;; use 'mu' as an external process to get the number of unread email
@@ -136,7 +141,7 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
                 '(
                   (:eval (cond
                           (ryo-modal-mode
-                           (propertize " ♌ " 'face 'error)) ;; modal indicator
+                           (propertize " ♌ " 'face 'error)) ;; obvious modal indicator
                           (t
                            (propertize " - " 'face 'shadow))))
                   (:eval (if (buffer-modified-p)
@@ -164,15 +169,15 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
                            )
                          )
                   ;; everything after here goes on the right. This doesn' work for emacs 29 ... needs emacs 30+?
-                  mode-line-format-right-align
-                  "   |   "
+                  ;; mode-line-format-right-align
+                  (:eval (propertize "   |   " 'face 'shadow) ) ; separator
                   my/email-count-string
                   (:eval (when (mode-line-window-selected-p) 
                            (if (buffer-live-p (get-buffer "*mu4e-main*"))
                                " : 📫"
                              " . ")))
                   ;; show ONLY the major mode (minor modes are not shown)
-                  "   |   "
+                  (:eval (propertize "   |   " 'face 'shadow) ) ; separator
                   ;; strip "-Mode" from the end
                   (:eval (when (mode-line-window-selected-p) 
                            (propertize (nth 0
@@ -184,13 +189,13 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
                          )
                   " "
                   (vc-mode vc-mode)
-                  "   |   "
+                  (:eval (propertize "   |   " 'face 'shadow) ) ; separator
                   mode-line-position        ; show lines and columns as specified above
                   )
                 )
 #+END_SRC
 
-** Theme 
+** Theme
 I've switched to the more systematic themes from Protesilaos Stavrou,
 and most recently his 'ef-themes'.
 
@@ -223,7 +228,7 @@ machine specific given each has its own DPI settings.
   ;; select a default theme
   (ef-themes-select 'ef-symbiosis)
   #+END_SRC
-
+  
 ** Rainbow-delimiters
 Colorised brackets to make matching easier.
 
@@ -461,11 +466,37 @@ Global keys to split the window AND follow by moving point to the new window.
   (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
 #+END_SRC
 
+** Tab-bar mode and tabspaces
+Tabspaces groups buffers under the tab interface provided by tab-bar mode.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package tabspaces
+  ;; use this next line only if you also use straight, otherwise ignore it. 
+  ;;:straight (:type git :host github :repo "mclear-tools/tabspaces")
+  :hook (after-init . tabspaces-mode) ;; use this only if you want the minor-mode loaded at startup. 
+  :commands (tabspaces-switch-or-create-workspace
+             tabspaces-open-or-create-project-and-workspace)
+  :custom
+  (tabspaces-use-filtered-buffers-as-default t)
+  (tabspaces-default-tab "Default")
+  (tabspaces-remove-to-default t)
+  (tabspaces-include-buffers '("*scratch*"))
+  ;; don't put a todo.org file in each project
+  (tabspaces-initialize-project-with-todo nil)
+  ;;(tabspaces-todo-file-name "spaces-todo.org")
+  ;; sessions
+  (tabspaces-session t)
+  (tabspaces-session-auto-restore t))  
+#+END_SRC
+
+
+
 ** Modal editing
 
 Roll-your-own-modal editing.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
+
   ;; edit the init.el configuration file
   (defun my/config-visit ()
     (interactive)
@@ -479,7 +510,7 @@ Roll-your-own-modal editing.
   (use-package ryo-modal
     :commands ryo-modal-mode
     :bind ("<escape>" . ryo-modal-mode)
-    :after org
+    :after org tabspaces
     :config
     (ryo-modal-keys
      ;; vi like
@@ -495,9 +526,21 @@ Roll-your-own-modal editing.
      ("J"  forward-paragraph)
      ("K"  backward-paragraph)
      ("L"  right-word)
-     ("b"  consult-buffer)
+     ;; edt
+     ("a" beginning-of-line)
+     ("e" end-of-line)
+     ("K" kill-line)     
+     ;; tab-bar
+     ("n"  tab-next)
+     ("p"  tab-previous)
+     ;; list buffers
+     ("b"  tabspaces-switch-to-buffer)      ; switch buffer in this tab/space
+     ("B"  tabspaces-switch-buffer-and-tab) ; switch to buffer in other tab/space
+     ;;("C-B"  consult-buffer)                ; all buffers
+     ;; jump to line
      ("g"  consult-goto-line)
-     ("Y"  consult-yank-pop)
+     ;; recall clipboard content
+     ("Y"  consult-yank-pop)     
      ("y"  yank)
      ("w"  kill-region)
      ("W"  copy-region-as-kill)
@@ -506,10 +549,14 @@ Roll-your-own-modal editing.
            ("f" find-file)
            ("o" other-window)
            ("c" save-buffers-kill-terminal)
+           ("e" eval-last-sexp)
            ("0" delete-window)
            ("1" delete-other-windows)
            ("2" my/split-and-follow-horizontally)
            ("3" my/split-and-follow-vertically)))
+     ("t" (("r" tabspaces-remove-current-buffer)
+           ("K" tabspaces-kill-buffers-close-workspace)
+           ("W" tabspaces-close-workspace)))
      ("q" (("a" org-agenda)
            ("d" org-journal-new-entry)
            ("e" my/config-visit)
@@ -517,7 +564,9 @@ Roll-your-own-modal editing.
            ("s" consult-notes-search-in-all-notes)
            ("t" my/todo-visit)
            ("T" org-babel-tangle)
-           ("c" org-capture)))
+           ("c" org-capture)
+           ("K" tabspaces-kill-buffers-close-workspace)
+           ("k" tabspaces-close-workspace)))
      ;; sugar
      ("["  previous-buffer)
      ("]"  next-buffer)
@@ -536,7 +585,8 @@ Roll-your-own-modal editing.
      ("6" "M-6")
      ("7" "M-7")
      ("8" "M-8")
-     ("9" "M-9")))
+     ("9" "M-9"))
+    )
 #+END_SRC
 
 One complication is if we run "emacs -nw" (terminal rather than GUI
@@ -567,7 +617,7 @@ employed by xah-fly-keys (or Evil mode too I think).
 #+END_SRC
 
 ** Scrolling
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (setq-default scroll-conservatively 20)
   ;; how close to the edge of the buffer does point get when scrolling up/down
   (setq-default scroll-margin 8)
@@ -604,6 +654,7 @@ I use Wayland (no X11), and this interacts with wl-copy.
 #+END_SRC
 
 ** Key-chord
+
 Keyboard shortcuts based on double pressing of low-popularity key
 combinations (e.g. 'qq'). Key-chord doesn't take account of order
 (e.g. 'qa'='aq').
@@ -1144,9 +1195,10 @@ replacement for the standard GPG applications.
     (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
     (age-file-enable))
 
-  (straight-use-package
-   '(passage :type git :host github :repo "anticomputer/passage.el"))
-  (require 'passage)
+  ;; never really used this - removed Jan 2024
+  ;;(straight-use-package
+  ;; '(passage :type git :host github :repo "anticomputer/passage.el"))
+  ;;(require 'passage)
 
 #+END_SRC
 

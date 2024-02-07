@@ -11,19 +11,6 @@
 (setq custom-file "~/.emacs.d/custom-settings.el")
 (load custom-file t)
 
-(defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 6))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
-
 ;; skip auto backups
 (setq make-backup-files nil)
 ;; (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
@@ -50,15 +37,18 @@
 
 (global-auto-revert-mode)
 
-;; Prot ef-theme modeline tweak to add box around the modeline
-;; box is the same colour as background, so looks like a wider mode line.
+;; Prot ef-theme modeline tweak to add box around the modeline box is
+;; the same colour as background, so looks like a 'fatter' mode line.
 (defun my-ef-themes-mode-line ()
   "Tweak the style of the mode lines."
   (ef-themes-with-colors
     (custom-set-faces
-     `(mode-line ((,c :background ,bg-mode-line :height 100 :foreground ,fg-main :box (:line-width 6 :color ,bg-mode-line))))
+     `(mode-line ((,c :background ,bg-mode-line :height 100
+                      :foreground ,fg-main :box (:line-width 6
+                                                             :color ,bg-mode-line))))
      `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
-;; hook to update the colours/style using the above function when theme loaded
+;; hook to update the colours/style using the above function when
+;; theme loaded
 (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
 
 ;; use 'mu' as an external process to get the number of unread email
@@ -78,7 +68,7 @@
               '(
                 (:eval (cond
                         (ryo-modal-mode
-                         (propertize " ♌ " 'face 'error)) ;; modal indicator
+                         (propertize " ♌ " 'face 'error)) ;; obvious modal indicator
                         (t
                          (propertize " - " 'face 'shadow))))
                 (:eval (if (buffer-modified-p)
@@ -106,15 +96,15 @@
                          )
                        )
                 ;; everything after here goes on the right. This doesn' work for emacs 29 ... needs emacs 30+?
-                mode-line-format-right-align
-                "   |   "
+                ;; mode-line-format-right-align
+                (:eval (propertize "   |   " 'face 'shadow) ) ; separator
                 my/email-count-string
                 (:eval (when (mode-line-window-selected-p) 
                          (if (buffer-live-p (get-buffer "*mu4e-main*"))
                              " : 📫"
                            " . ")))
                 ;; show ONLY the major mode (minor modes are not shown)
-                "   |   "
+                (:eval (propertize "   |   " 'face 'shadow) ) ; separator
                 ;; strip "-Mode" from the end
                 (:eval (when (mode-line-window-selected-p) 
                          (propertize (nth 0
@@ -126,7 +116,7 @@
                        )
                 " "
                 (vc-mode vc-mode)
-                "   |   "
+                (:eval (propertize "   |   " 'face 'shadow) ) ; separator
                 mode-line-position        ; show lines and columns as specified above
                 )
               )
@@ -289,6 +279,24 @@
   (other-window 1))
 (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
 
+(use-package tabspaces
+;; use this next line only if you also use straight, otherwise ignore it. 
+;;:straight (:type git :host github :repo "mclear-tools/tabspaces")
+:hook (after-init . tabspaces-mode) ;; use this only if you want the minor-mode loaded at startup. 
+:commands (tabspaces-switch-or-create-workspace
+           tabspaces-open-or-create-project-and-workspace)
+:custom
+(tabspaces-use-filtered-buffers-as-default t)
+(tabspaces-default-tab "Default")
+(tabspaces-remove-to-default t)
+(tabspaces-include-buffers '("*scratch*"))
+;; don't put a todo.org file in each project
+(tabspaces-initialize-project-with-todo nil)
+;;(tabspaces-todo-file-name "spaces-todo.org")
+;; sessions
+(tabspaces-session t)
+(tabspaces-session-auto-restore t))
+
 ;; edit the init.el configuration file
 (defun my/config-visit ()
   (interactive)
@@ -302,7 +310,7 @@
 (use-package ryo-modal
   :commands ryo-modal-mode
   :bind ("<escape>" . ryo-modal-mode)
-  :after org
+  :after org tabspaces
   :config
   (ryo-modal-keys
    ;; vi like
@@ -318,9 +326,17 @@
    ("J"  forward-paragraph)
    ("K"  backward-paragraph)
    ("L"  right-word)
-   ("b"  consult-buffer)
+   ;; tab-bar
+   ("n"  tab-next)
+   ("p"  tab-previous)
+   ;; list buffers
+   ("b"  tabspaces-switch-to-buffer)      ; switch buffer in this tab/space
+   ("B"  tabspaces-switch-buffer-and-tab) ; switch to buffer in other tab/space
+   ;;("C-B"  consult-buffer)                ; all buffers
+   ;; jump to line
    ("g"  consult-goto-line)
-   ("Y"  consult-yank-pop)
+   ;; recall clipboard content
+   ("Y"  consult-yank-pop)     
    ("y"  yank)
    ("w"  kill-region)
    ("W"  copy-region-as-kill)
@@ -333,6 +349,12 @@
          ("1" delete-other-windows)
          ("2" my/split-and-follow-horizontally)
          ("3" my/split-and-follow-vertically)))
+   ("C" (("a" beginning-of-line)
+         ("e" end-of-line)
+         ("k" kill-line)))
+   ("t" (("r" tabspaces-remove-current-buffer)
+         ("K" tabspaces-kill-buffers-close-workspace)
+         ("W" tabspaces-close-workspace)))
    ("q" (("a" org-agenda)
          ("d" org-journal-new-entry)
          ("e" my/config-visit)
@@ -340,7 +362,9 @@
          ("s" consult-notes-search-in-all-notes)
          ("t" my/todo-visit)
          ("T" org-babel-tangle)
-         ("c" org-capture)))
+         ("c" org-capture)
+         ("K" tabspaces-kill-buffers-close-workspace)
+         ("k" tabspaces-close-workspace)))
    ;; sugar
    ("["  previous-buffer)
    ("]"  next-buffer)
@@ -359,7 +383,8 @@
    ("6" "M-6")
    ("7" "M-7")
    ("8" "M-8")
-   ("9" "M-9")))
+   ("9" "M-9"))
+  )
 
 (defvar my/ryo-fast-keyseq-timeout 200)
 
@@ -380,25 +405,6 @@
         [?\e] `(menu-item "" ,esc-binding :filter my/ryo-tty-ESC-filter)))))
 
 (my/ryo-catch-tty-ESC)
-
-(setq-default scroll-conservatively 20)
-;; how close to the edge of the buffer does point get when scrolling up/down
-(setq-default scroll-margin 8)
-
-;; by default always use pixel...mode.
-(pixel-scroll-precision-mode t)
-(setq pixel-scroll-precision-use-momentum nil)
-(setq pixel-scroll-precision-interpolate-mice t)
-(setq pixel-scroll-precision-large-scroll-height 10.0)
-(setq pixel-scroll-precision-interpolate-page t)
-
-;; apply to resizing frames and windows too
-(setq frame-resize-pixelwise t)
-(setq window-resize-pixelwise t)
-
-;; define scroll wheel behaviour, including text scaling using C+wheel.
-(setq mouse-wheel-scroll-amount '(0.2 ((shift) . hscroll) ((meta)) ((control meta) . global-text-scale) ((control) . text-scale)))
-(setq mouse-wheel-progressive-speed nil)
 
 ;; - cut and paste in Wayland environment
 ;; - this puts selected text into the Wayland clipboard
@@ -828,9 +834,10 @@
   (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
   (age-file-enable))
 
-(straight-use-package
- '(passage :type git :host github :repo "anticomputer/passage.el"))
-(require 'passage)
+;; never really used this - removed Jan 2024
+;;(straight-use-package
+;; '(passage :type git :host github :repo "anticomputer/passage.el"))
+;;(require 'passage)
 
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
