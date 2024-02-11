@@ -121,6 +121,34 @@
                 )
               )
 
+;;(setq display-buffer-alist 'nil)
+(setq display-buffer-alist
+      `(
+        ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
+         (display-buffer-reuse-mode-window
+          display-buffer-below-selected)
+         (window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
+         )
+        ("\\(\\*Org Agenda\\*\\|\\*mu4e-draft\\*\\)"        ; always put my calendar and compose windows on the right
+         (display-buffer-in-side-window)
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         (side . right)
+         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )	
+        ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
+         (display-buffer-reuse-mode-window)                 ; don't always open a new window
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )
+        ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
+         (display-buffer-in-side-window)
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         (side . bottom)
+         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )          
+        )
+      )
+
 ;; Disable all other themes to avoid awkward blending:    
 (use-package ef-themes
   :init
@@ -158,7 +186,9 @@
   :init 
   (message "Use-package: Which-key mode")
   :config
-  (setq which-key-idle-delay 0.25)
+  (setq which-key-idle-delay 0.25) 
+  (setq max-mini-window-height 0.25) ; don't show bigger than 1/4 of the frame height
+  (which-key-setup-minibuffer)       ; use the minibuffer to show help
   (which-key-mode))
 
 (defun my-display-line-numbers-hook ()
@@ -207,7 +237,7 @@
   :custom
   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
   (corfu-auto t)                 ;; Enable auto completion
-  (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-separator ?\s)          ;; Orderless field separator
   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
   ;; (corfu-preview-current nil)    ;; Disable current candidate preview
@@ -223,7 +253,7 @@
   ;; This is recommended since Dabbrev can be used globally (M-/).
   ;; See also `corfu-exclude-modes'.
   :init
-  (setq tab-always-indent 'complete)
+  ;;(setq tab-always-indent 'complete)
   (global-corfu-mode)
   (corfu-prescient-mode))
 
@@ -279,112 +309,96 @@
   (other-window 1))
 (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
 
-(use-package tabspaces
-;; use this next line only if you also use straight, otherwise ignore it. 
-;;:straight (:type git :host github :repo "mclear-tools/tabspaces")
-:hook (after-init . tabspaces-mode) ;; use this only if you want the minor-mode loaded at startup. 
-:commands (tabspaces-switch-or-create-workspace
-           tabspaces-open-or-create-project-and-workspace)
-:custom
-(tabspaces-use-filtered-buffers-as-default t)
-(tabspaces-default-tab "Default")
-(tabspaces-remove-to-default t)
-(tabspaces-include-buffers '("*scratch*"))
-;; don't put a todo.org file in each project
-(tabspaces-initialize-project-with-todo nil)
-;;(tabspaces-todo-file-name "spaces-todo.org")
-;; sessions
-(tabspaces-session t)
-(tabspaces-session-auto-restore t))
+;; edit the init.el configuration file
+  (defun my/config-visit ()
+    (interactive)
+    (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
 
 ;; edit the init.el configuration file
-(defun my/config-visit ()
-  (interactive)
-  (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
+  (defun my/todo-visit ()
+    (interactive)
+    (find-file "~/Sync/Org/Todo.org") )
 
-;; edit the init.el configuration file
-(defun my/todo-visit ()
-  (interactive)
-  (find-file "~/Sync/Org/Todo.org") )
+;; I want the modal change to apply to all buffers not on
+;; a per-buffer basis
+(define-global-minor-mode ryo-global-mode ryo-modal-mode
+ (lambda ()
+    (unless (minibufferp)
+     (ryo-modal-mode 1))))
 
-(use-package ryo-modal
-  :commands ryo-modal-mode
-  :bind ("<escape>" . ryo-modal-mode)
-  :after org tabspaces
-  :config
-  (ryo-modal-keys
-   ;; vi like
-   ("."  ryo-modal-repeat)
-   ("/"  consult-line)
-   ("i"  ryo-modal-mode)
-   ;; navigation
-   ("h"  backward-char)
-   ("j"  next-line)
-   ("k"  previous-line)
-   ("l"  forward-char)
-   ("H"  left-word)
-   ("J"  forward-paragraph)
-   ("K"  backward-paragraph)
-   ("L"  right-word)
-   ;; tab-bar
-   ("n"  tab-next)
-   ("p"  tab-previous)
-   ;; list buffers
-   ("b"  tabspaces-switch-to-buffer)      ; switch buffer in this tab/space
-   ("B"  tabspaces-switch-buffer-and-tab) ; switch to buffer in other tab/space
-   ;;("C-B"  consult-buffer)                ; all buffers
-   ;; jump to line
-   ("g"  consult-goto-line)
-   ;; recall clipboard content
-   ("Y"  consult-yank-pop)     
-   ("y"  yank)
-   ("w"  kill-region)
-   ("W"  copy-region-as-kill)
-   ;; abbreviated emacs
-   ("x" (("s" save-buffer)
-         ("f" find-file)
-         ("o" other-window)
-         ("c" save-buffers-kill-terminal)
-         ("0" delete-window)
-         ("1" delete-other-windows)
-         ("2" my/split-and-follow-horizontally)
-         ("3" my/split-and-follow-vertically)))
-   ("C" (("a" beginning-of-line)
-         ("e" end-of-line)
-         ("k" kill-line)))
-   ("t" (("r" tabspaces-remove-current-buffer)
-         ("K" tabspaces-kill-buffers-close-workspace)
-         ("W" tabspaces-close-workspace)))
-   ("q" (("a" org-agenda)
-         ("d" org-journal-new-entry)
-         ("e" my/config-visit)
-         ;;("m" mu4e) ; set later after mu4e in mu4e specification section
-         ("s" consult-notes-search-in-all-notes)
-         ("t" my/todo-visit)
-         ("T" org-babel-tangle)
-         ("c" org-capture)
-         ("K" tabspaces-kill-buffers-close-workspace)
-         ("k" tabspaces-close-workspace)))
-   ;; sugar
-   ("["  previous-buffer)
-   ("]"  next-buffer)
-   )
+  (use-package ryo-modal
+    :commands ryo-modal-mode
+    :bind ("<escape>" . ryo-global-mode)
+    :after org 
+    :config
+    (ryo-modal-keys
+     ;; vi like
+     ("."  ryo-modal-repeat)
+     ("/"  consult-line)
+     ("i"  ryo-modal-mode)
+     ;; navigation
+     ("h"  backward-char)
+     ("j"  next-line)
+     ("k"  previous-line)
+     ("l"  forward-char)
+     ("H"  left-word)
+     ("J"  forward-paragraph)
+     ("K"  backward-paragraph)
+     ("L"  right-word)
+     ;; edt
+     ("a" beginning-of-line)
+     ("e" end-of-line)
+     ("K" kill-line)     
+     ;; tab-bar
+     ("n"  tab-next)
+     ("p"  tab-previous)
+     ;; list buffers
+     ("b"  consult-buffer) 
+     ;; jump to line
+     ("g"  consult-goto-line)
+     ;; recall clipboard content
+     ("Y"  consult-yank-pop)     
+     ("y"  yank)
+     ("w"  kill-region)
+     ("W"  copy-region-as-kill)
+     ;; abbreviated emacs
+     ("x" (("s" save-buffer)
+           ("f" find-file)
+           ("o" other-window)
+           ("c" save-buffers-kill-terminal)
+           ("e" eval-last-sexp)
+           ("0" delete-window)
+           ("1" delete-other-windows)
+           ("2" my/split-and-follow-horizontally)
+           ("3" my/split-and-follow-vertically)))
+     ("q" (("a" org-agenda)
+           ("d" org-journal-new-entry)
+           ("e" my/config-visit)
+           ;;("m" mu4e) ; set later after mu4e in mu4e specification section
+           ("s" consult-notes-search-in-all-notes)
+           ("t" my/todo-visit)
+           ("T" org-babel-tangle)
+           ("c" org-capture)))
+     ;; sugar
+     ("["  previous-buffer)
+     ("]"  next-buffer)
+     )
 
-  (ryo-modal-keys
-   ;; First argument to ryo-modal-keys may be a list of keywords.
-   ;; These keywords will be applied to all keybindings.
-   (:norepeat t)
-   ("0" "M-0")
-   ("1" "M-1")
-   ("2" "M-2")
-   ("3" "M-3")
-   ("4" "M-4")
-   ("5" "M-5")
-   ("6" "M-6")
-   ("7" "M-7")
-   ("8" "M-8")
-   ("9" "M-9"))
-  )
+    (ryo-modal-keys
+     ;; First argument to ryo-modal-keys may be a list of keywords.
+     ;; These keywords will be applied to all keybindings.
+     (:norepeat t)
+     ("0" "M-0")
+     ("1" "M-1")
+     ("2" "M-2")
+     ("3" "M-3")
+     ("4" "M-4")
+     ("5" "M-5")
+     ("6" "M-6")
+     ("7" "M-7")
+     ("8" "M-8")
+     ("9" "M-9"))
+    )
 
 (defvar my/ryo-fast-keyseq-timeout 200)
 
@@ -710,6 +724,7 @@
 ;; show thread but don't bring back related emails that have been moved
 (setq mu4e-headers-show-thread t
       mu4e-headers-include-related nil
+      mu4e-headers-visible-lines 20
       mu4e-headers-results-limit 200)
 ;; rich text emails are converted using 'shr'
 ;; they are displayed using 'shr-face'
@@ -722,7 +737,7 @@
 ;;  (imagemagick-register-types) )
 ;;
 
-;; Define what headers to show 
+;; Define what headers to sho w
 ;; in the headers list -- a pair of a field
 ;; and its width, with `nil' meaning 'unlimited'
 ;; best to only use nil for the last field.
