@@ -6,26 +6,57 @@
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
-* Notes
-+ Originally packages were installed by use-packages ':ensure t'
-  mechanism. As of 2022 this is replaced in favour of a NixOS
-  Home-Manager configuration that manages most packages.
+* Notes before we start
++ Originally my Emacs packages were installed by use-package using the
+  ':ensure t' mechanism. As of 2022+ this is replaced in favour of a
+  NixOS Home-Manager configuration. This config therefore assumes each
+  package is already installed and available.
   
-+ I'm using Emacs 29.2 so 'use-package' (and some other things) are
-  built-in, notably 'eglot' and 'treesitter'. To use
-  'mode-line-format-right-align' requires a later version -- so I
-  don't do any alignment hacks in the modeline text.
++ I'm using Emacs 29.x so 'use-package' (and some other things) are
+  built-in, notably 'treesitter'.
+
++ If using Emacs 30+ you might want to look into adding
+  'mode-line-format-right-align' in the modeline configuration below.
+  I currently don't do any alignment hacks in the modeline text.
+
++ Terminal vs GUI.
+  - There are issues in the way <escape> is treated in a terminal
+    compared to GUI. This can be helped with some magic from
+    xah-fly-keys included in RYO Modal section below.
+  - Cut/Paste should still function in the terminal, but you may need
+    shirt+middle-mouse-button to paste from the clipboard.
+  - You can distinguish between terminal and GUI on a frame-by-frame
+    basis using, see for example the code below.
+
+    *Not currently in use, and left untangled.*
+    
+    #+BEGIN_SRC emacs-lisp :tangle no
+      (defun new-frame-setup (frame)
+        (if (display-graphic-p frame)
+            (message "window system")
+          (message "not a window system")))
+
+      ;; Run for already-existing frames
+      (mapc 'new-frame-setup (frame-list))
+      ;; Run when a new frame is created
+      (add-hook 'after-make-frame-functions 'new-frame-setup)
+    #+END_SRC
+
+    In this config it is assumed that Emacs is run as a daemon and
+    clients connect via GUI.
+    e.g. 'emacsclient -cn --alternate-editor=""'
 
 * Basic setup
 ** Package archives: ELPA/MELPA
 Standard content to configure ELPA and MELPA for packages.
 
-I typically do package provision via NixOS and Home-Manager, but it is
-sometimes an interactive interface is useful.
+I typically do package provision via NixOS and Home-Manager, but
+sometimes an interactive interface can still be useful.
 
 Custom settings points to ~/.emacs.d/custom-settings.el. This is not
 controlled by "home-manager" in my NixOS configuration so these custom
 settings should be treated as both transient and machine specific.
+This is usually just a font choice for a given display.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (require 'package)
@@ -44,9 +75,9 @@ settings should be treated as both transient and machine specific.
 
 ** Straight [inactive]
 Recently a package I rely on had a problem. Rather than revert the
-package via NixOS, it was quicker to remove the package from the OS
-configuration and just switch to directly installing the correct
-revision with 'straight'.
+package to an older version via NixOS, it was quicker to remove the
+package from the OS configuration and just switch to directly
+installing the correct revision with 'straight'.
 
 *Not currently in use, and left untangled.*
 
@@ -66,21 +97,24 @@ revision with 'straight'.
 #+END_SRC
 
 ** Change some of the default emacs settings
-Some random minor tweaks: scroll bar, tool bar, menu bar, garbage collection.
+Some random minor tweaks: scroll bar, tool bar, menu bar, garbage
+collection.
 
-Note that backups are turned *off*.
+Note that file backups are turned *off*.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; skip auto backups
   (setq make-backup-files nil)
-  ;; (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
-
+  ;; backups can all be pushed to a particular directory if needed
+  ;;(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+  ;; don't show the default startup screen
+  (setq inhibit-startup-screen t)
   ;; have mouse input in the terminal -- the disadvantage is you
   ;; need to SHIFT+middle mouse to paste in the terminal
   (xterm-mouse-mode 1)
   ;; Turn off the menu/scroll/toolbar
   (menu-bar-mode -1)
-  ;;(scroll-bar-mode -1)
+  (scroll-bar-mode -1)
   (tool-bar-mode -1)
   ;; replace annoying yes/no with y/n
   (fset 'yes-or-no-p 'y-or-n-p)
@@ -105,6 +139,23 @@ that we update any open buffers to show the on-file current status.
 #+END_SRC
 
 * Appearance
+** Spacious padding
+Visual tweaks using Prot's 'spacious padding' code. Put before the modeline config.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+    (use-package spacious-padding
+      :config  
+      (setq spacious-padding-widths
+            '( :internal-border-width 15
+               :header-line-width 4
+               :mode-line-width 6
+               :tab-width 2
+               :right-divider-width 30
+               :scroll-bar-width 8))
+      :init
+      (spacious-padding-mode 1) )
+#+END_SRC
+
 ** Modeline
 This is a simplified home-brew modeline. Set this before calling an
 ef-theme since there is a 'ef-themes-post-load-hook' defined below.
@@ -116,22 +167,12 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
     "Tweak the style of the mode lines."
     (ef-themes-with-colors
       (custom-set-faces
-       `(mode-line ((,c :background ,bg-mode-line :height 100
-                        :foreground ,fg-main :box (:line-width 6
-                                                               :color ,bg-mode-line))))
-       `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
+       `(mode-line ((,c :background ,bg-mode-line :height 110
+                        :foreground ,fg-main :box (:line-width 4 :color ,bg-mode-line))))
+       `(mode-line-inactive ((,c :background ,bg-inactive :box (:line-width 4 :color ,bg-inactive)))))))
   ;; hook to update the colours/style using the above function when
   ;; theme loaded
   (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
-
-  ;; use 'mu' as an external process to get the number of unread email
-  ;; the number is a string 'my-email-count-string'
-  (defun my/unread-email-command ()
-    "Run mu to get how many unread email are in the INBOX"
-    (interactive)
-    (setq my/email-count-string (substring (shell-command-to-string "mu find date:1w..now maildir:/INBOX flag:unread 2>/dev/null | wc -l") 0 -1)))
-  ;; update 'my/email-count-string' every 5 mins with a 10 second delay
-  (run-with-timer 0 60 'my/unread-email-command)
 
   ;; define the line/column information -- fixed 2 character width for columbn
   (setq mode-line-position (list "L%l C%02c"))
@@ -168,13 +209,15 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
                               'face 'warning)
                            )
                          )
-                  ;; everything after here goes on the right. This doesn' work for emacs 29 ... needs emacs 30+?
+                  ;; everything after here goes on the right. This
+                  ;; doesn' work for emacs 29 ... needs emacs 30+?
                   ;; mode-line-format-right-align
                   (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                  my/email-count-string
+                  ;; there is a default string for the modeline from the mu4e package
+                  (:eval (mu4e--modeline-string))
                   (:eval (when (mode-line-window-selected-p) 
                            (if (buffer-live-p (get-buffer "*mu4e-main*"))
-                               " : 📫"
+                               " 📫"
                              " . ")))
                   ;; show ONLY the major mode (minor modes are not shown)
                   (:eval (propertize "   |   " 'face 'shadow) ) ; separator
@@ -196,10 +239,21 @@ ef-theme since there is a 'ef-themes-post-load-hook' defined below.
 #+END_SRC
 
 ** Buffer management alist
+Specify some specific buffer placement/appearance rules.
 
-Specify some specific buffer placement/appearance rules
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;;(setq display-buffer-alist 'nil)
+  (setq window-combination-resize t)
+  (setq even-window-sizes 'height-only)
+  ; left/right occupies full window height
+  (setq window-sides-vertical t)                    
+  ; pop new window if switching buffers from dedicated
+  (setq switch-to-buffer-in-dedicated-window 'pop)  
+  (setq split-height-threshold 80)
+  (setq split-width-threshold 120)
+  (setq window-min-height 5)
+  (setq window-min-width 90)
+
+  ;;(setq display-buffer-alist 'nil) ; to remove all preferences
   (setq display-buffer-alist
         `(
           ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
@@ -207,16 +261,23 @@ Specify some specific buffer placement/appearance rules
             display-buffer-below-selected)
            (window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
            )
-          ("\\(\\*Org Agenda\\*\\|\\*mu4e-draft\\*\\)"        ; always put my calendar and compose windows on the right
+          ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
            (display-buffer-in-side-window)
            (dedicated . t)                                    ; don't reuse this buffer for other things
-           (side . right)
+           (side . right)                                     ; put it on the right side
+           (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+           )	
+          ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
+           (display-buffer-in-side-window)
+           (dedicated . t)                                    ; don't reuse this buffer for other things
+           (window-width . 120)
+           (side . right)                                     ; put it on the right side
            (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
            )	
           ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
            (display-buffer-reuse-mode-window)                 ; don't always open a new window
            (dedicated . t)                                    ; don't reuse this buffer for other things
-           ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+           ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
            )
           ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
            (display-buffer-in-side-window)
@@ -232,26 +293,17 @@ Specify some specific buffer placement/appearance rules
 I've switched to the more systematic themes from Protesilaos Stavrou,
 and most recently his 'ef-themes'.
 
-Fonts: The default font is now set via 'custom-settings.el' since it is
-machine specific given each has its own DPI settings.
+Fonts: The default font is now set via 'custom-settings.el' since it
+is machine specific given each has its own DPI settings.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; Disable all other themes to avoid awkward blending:    
   (use-package ef-themes
     :init
+    ;; Disable all other themes to avoid awkward blending
     (mapc #'disable-theme custom-enabled-themes)
     ;; Make customisations that affect Emacs faces BEFORE loading a theme
     ;; (any change needs a theme re-load to take effect).
-
-    (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
-    ;;:config
-    ;; Load the theme of choice:
-    ;;(load-theme 'ef-summer :no-confirm)
-    ;; Light: `ef-day', `ef-light', `ef-spring', `ef-summer'.
-    ;; Dark:  `ef-autumn', `ef-dark', `ef-night', `ef-winter'.
-
-    ;; I set the theme at the end of this configuration because of
-    ;; some minor issues with code comments showing as underlined [2022]
+    (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light))
     )
 
   ;; DONT add a little bit of transparency
@@ -259,7 +311,7 @@ machine specific given each has its own DPI settings.
   ;;(add-to-list 'default-frame-alist '(alpha-background . 95))
 
   ;; select a default theme
-  (ef-themes-select 'ef-symbiosis)
+  (ef-themes-select 'ef-maris-dark)
   #+END_SRC
   
 ** Rainbow-delimiters
@@ -288,6 +340,7 @@ Pop-up a description of key combinations after a delay.
     (which-key-setup-minibuffer)       ; use the minibuffer to show help
     (which-key-mode))
 #+END_SRC
+
 
 * Mode hooks
 
@@ -386,9 +439,11 @@ Modes that don't attempt to interoperate (and I avoid):
 
 - 'corfu' provides in-region (ie. in the buffer) completion candidates
   useful for code-completion when combined with 'eglot' and 'ccls' (see
-  the section below). In this config I stick to the terminal mode for
+  the section below).
+
+  You can stick to the terminal mode for
   'corfu' just so it works in both GUI + Terminal modes. Detecting which
-  mode we're in and starting the appropriate version is a pain when
+  one we're in and starting the appropriate version is a pain when
   using GUI+Terminal emacsclients connected to a daemon instance.
   
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -396,7 +451,7 @@ Modes that don't attempt to interoperate (and I avoid):
     :init
     (message "Use-package: consult")
     :bind
-    ;; see also key-chords elsewhere
+    ;; some standard emacs-chord bindings -- but see also RYO modal section.
     ("C-x b" . consult-buffer)
     ("M-g g" . consult-goto-line)
     ("M-y"   . consult-yank-pop)
@@ -429,25 +484,28 @@ Modes that don't attempt to interoperate (and I avoid):
     ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
     ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
     ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
     ;; Enable Corfu only for certain modes.
     :hook ((prog-mode . corfu-mode)
            (latex-mode . corfu-mode)
            (shell-mode . corfu-mode)
            (eshell-mode . corfu-mode))
+
     ;; Recommended: Enable Corfu globally.
     ;; This is recommended since Dabbrev can be used globally (M-/).
-    ;; See also `corfu-exclude-modes'.
+    ;; See also `global-corfu-modes' to exclude certain modes.
     :init
     ;;(setq tab-always-indent 'complete)
     (global-corfu-mode)
     (corfu-prescient-mode))
 
-  (use-package corfu-terminal
-    :init
-    (message "Use-package: corfu-terminal")
-    :config
-    ;; let's default to the terminal mode
-    (corfu-terminal-mode))
+  ; you might need this for emacs -nw
+  ;(use-package corfu-terminal
+  ;  :init
+  ;  (message "Use-package: corfu-terminal")
+  ;  :config
+  ;  ;; let's default to the terminal mode
+  ;  (corfu-terminal-mode))
 
   (use-package prescient
     :init
@@ -532,96 +590,96 @@ Roll-your-own-modal editing.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 
-    ;; edit the init.el configuration file
-    (defun my/config-visit ()
-      (interactive)
-      (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
+  ;; edit the init.el configuration file
+  (defun my/config-visit ()
+    (interactive)
+    (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
 
   ;; edit the init.el configuration file
-    (defun my/todo-visit ()
-      (interactive)
-      (find-file "~/Sync/Org/Todo.org") )
+  (defun my/todo-visit ()
+    (interactive)
+    (find-file "~/Sync/Org/Todo.org") )
 
   ;; I want the modal change to apply to all buffers not on
   ;; a per-buffer basis.
   (define-global-minor-mode ryo-global-mode ryo-modal-mode
     (lambda () ; only if not already active
       (unless (minibufferp)
-       (ryo-modal-mode 1))))
+        (ryo-modal-mode 1))))
 
-    (use-package ryo-modal
-      :commands ryo-modal-mode
-      :bind ("<escape>" . ryo-global-mode)
-      :after org 
-      :config
-      (ryo-modal-keys
-       ;; vi like
-       ("."  ryo-modal-repeat)
-       ("/"  consult-line)
-       ("i"  ryo-modal-mode)
-       ;; navigation
-       ("h"  backward-char)
-       ("j"  next-line)
-       ("k"  previous-line)
-       ("l"  forward-char)
-       ("H"  left-word)
-       ("J"  forward-paragraph)
-       ("K"  backward-paragraph)
-       ("L"  right-word)
-       ;; edt
-       ("a" beginning-of-line)
-       ("e" end-of-line)
-       ("K" kill-line)     
-       ;; tab-bar
-       ("n"  tab-next)
-       ("p"  tab-previous)
-       ;; list buffers
-       ("b"  consult-buffer) 
-       ;; jump to line
-       ("g"  consult-goto-line)
-       ;; recall clipboard content
-       ("Y"  consult-yank-pop)     
-       ("y"  yank)
-       ("w"  kill-region)
-       ("W"  copy-region-as-kill)
-       ;; abbreviated emacs
-       ("x" (("s" save-buffer)
-             ("f" find-file)
-             ("o" other-window)
-             ("c" save-buffers-kill-terminal)
-             ("e" eval-last-sexp)
-             ("0" delete-window)
-             ("1" delete-other-windows)
-             ("2" my/split-and-follow-horizontally)
-             ("3" my/split-and-follow-vertically)))
-       ("q" (("a" org-agenda)
-             ("d" org-journal-new-entry)
-             ("e" my/config-visit)
-             ;;("m" mu4e) ; set later after mu4e in mu4e specification section
-             ("s" consult-notes-search-in-all-notes)
-             ("t" my/todo-visit)
-             ("T" org-babel-tangle)
-             ("c" org-capture)))
-       ;; sugar
-       ("["  previous-buffer)
-       ("]"  next-buffer)
-       )
+  (use-package ryo-modal
+    :commands ryo-modal-mode
+    :bind ("<escape>" . ryo-global-mode)
+    :after org 
+    :config
+    (ryo-modal-keys
+     ;; vi like
+     ("."  ryo-modal-repeat)
+     ("/"  consult-line)
+     ("i"  ryo-modal-mode)
+     ;; navigation
+     ("h"  backward-char)
+     ("j"  next-line)
+     ("k"  previous-line)
+     ("l"  forward-char)
+     ("H"  left-word)
+     ("J"  forward-paragraph)
+     ("K"  backward-paragraph)
+     ("L"  right-word)
+     ;; edt
+     ("a" beginning-of-line)
+     ("e" end-of-line)
+     ("K" kill-line)     
+     ;; tab-bar
+     ("n"  tab-next)
+     ("p"  tab-previous)
+     ;; list buffers
+     ("b"  consult-buffer) 
+     ;; jump to line
+     ("g"  consult-goto-line)
+     ;; recall clipboard content
+     ("Y"  consult-yank-pop)     
+     ("y"  yank)
+     ("w"  kill-region)
+     ("W"  copy-region-as-kill)
+     ;; abbreviated emacs
+     ("x" (("s" save-buffer)
+           ("f" find-file)
+           ("o" other-window)
+           ("c" save-buffers-kill-terminal)
+           ("e" eval-last-sexp)
+           ("0" delete-window)
+           ("1" delete-other-windows)
+           ("2" my/split-and-follow-horizontally)
+           ("3" my/split-and-follow-vertically)))
+     ("q" (("a" org-agenda)
+           ("d" org-journal-new-entry)
+           ("e" my/config-visit)
+           ;;("m" mu4e) ; set later after mu4e in mu4e specification section
+           ("s" consult-notes-search-in-all-notes)
+           ("t" my/todo-visit)
+           ("T" org-babel-tangle)
+           ("c" org-capture)))
+     ;; sugar
+     ("["  previous-buffer)
+     ("]"  next-buffer)
+     )
 
-      (ryo-modal-keys
-       ;; First argument to ryo-modal-keys may be a list of keywords.
-       ;; These keywords will be applied to all keybindings.
-       (:norepeat t)
-       ("0" "M-0")
-       ("1" "M-1")
-       ("2" "M-2")
-       ("3" "M-3")
-       ("4" "M-4")
-       ("5" "M-5")
-       ("6" "M-6")
-       ("7" "M-7")
-       ("8" "M-8")
-       ("9" "M-9"))
-      )
+    (ryo-modal-keys
+     ;; First argument to ryo-modal-keys may be a list of keywords.
+     ;; These keywords will be applied to all keybindings.
+     (:norepeat t)
+     ("0" "M-0")
+     ("1" "M-1")
+     ("2" "M-2")
+     ("3" "M-3")
+     ("4" "M-4")
+     ("5" "M-5")
+     ("6" "M-6")
+     ("7" "M-7")
+     ("8" "M-8")
+     ("9" "M-9"))
+    ) ; END ryo-modal, not ryo-modal-keys
 #+END_SRC
 
 One complication is if we run "emacs -nw" (terminal rather than GUI
@@ -784,8 +842,7 @@ Code completion and on-the-fly check/make.
   
 - IN-REGION (ie. buffer) completion is provided by Corfu (Completion
   Overlay Region FUnction). Corfu is configured in the completion
-  section above. This provides at-point completion in the main buffer
-  rather than via a mini-buffer.
+  section above. 
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; eglot is a simpler alternative to LSP-mode
@@ -844,95 +901,97 @@ A fairly standard Org mode configuration. Some minor tweaks to
 colourise bold/italic/underline for use with bitmap fonts.
 
 #+BEGIN_SRC  emacs-lisp :tangle yes
-  (use-package org
-    :init
-    (message "Use-package: Org") )
+    (use-package org
+      :init
+      (message "Use-package: Org") )
 
-  ;; fancy replace of *** etc
-  (use-package org-bullets
-    :after org
-    :init
-    (add-hook 'org-mode-hook 'org-bullets-mode)
-    (message "Use-package: Org-bullets") )
+    ;; fancy replace of *** etc
+    (use-package org-bullets
+      :after org
+      :init
+      (add-hook 'org-mode-hook 'org-bullets-mode)
+      (message "Use-package: Org-bullets") )
 
-  ;; replace emphasis with colors in Org files
-  (setq org-emphasis-alist
-        '(("*" my/org-emphasis-bold)
-          ("/" my/org-emphasis-italic)
-          ("_" my/org-emphasis-underline)
-          ("=" org-verbatim verbatim)
-          ("~" org-code verbatim)
-          ("+" (:strike-through t))))
+    ;; some appearance tweaks:
+    ;;
+    ;; replace emphasis with colors in Org files
+    (setq org-emphasis-alist
+          '(("*" my/org-emphasis-bold)
+            ("/" my/org-emphasis-italic)
+            ("_" my/org-emphasis-underline)
+            ("=" org-verbatim verbatim)
+            ("~" org-code verbatim)
+            ("+" (:strike-through t))))
+    ;;
+    ;; colorise text instead of changing the font weight.
+    (defface my/org-emphasis-bold
+      '((default :inherit bold)
+        (((class color) (min-colors 88) (background light))
+         :foreground "#a60000")
+        (((class color) (min-colors 88) (background dark))
+         :foreground "#ff8059"))
+      "My bold emphasis for Org.")
+    ;;
+    (defface my/org-emphasis-italic
+      '((default :inherit italic)
+        (((class color) (min-colors 88) (background light))
+         :foreground "#005e00")
+        (((class color) (min-colors 88) (background dark))
+         :foreground "#44bc44"))
+      "My italic emphasis for Org.")
+    ;;
+    (defface my/org-emphasis-underline
+      '((default :inherit underline)
+        (((class color) (min-colors 88) (background light))
+         :foreground "#813e00")
+        (((class color) (min-colors 88) (background dark))
+         :foreground "#d0bc00"))
+      "My underline emphasis for Org.")
 
-   ;; colorise text instead of changing the font weight.
-   (defface my/org-emphasis-bold
-     '((default :inherit bold)
-       (((class color) (min-colors 88) (background light))
-        :foreground "#a60000")
-       (((class color) (min-colors 88) (background dark))
-        :foreground "#ff8059"))
-     "My bold emphasis for Org.")
+    ;; custom capture
+    (require 'org-capture)
+    ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
+    (setq org-capture-templates
+          '(
+            ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+             "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+            ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+             "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+             :empty-lines 1)) )
 
-   (defface my/org-emphasis-italic
-     '((default :inherit italic)
-       (((class color) (min-colors 88) (background light))
-        :foreground "#005e00")
-       (((class color) (min-colors 88) (background dark))
-        :foreground "#44bc44"))
-     "My italic emphasis for Org.")
+    ;; Agenda is constructed from org files in ONE directory
+    (setq org-agenda-files '("~/Sync/Org"))
 
-   (defface my/org-emphasis-underline
-     '((default :inherit underline)
-       (((class color) (min-colors 88) (background light))
-        :foreground "#813e00")
-       (((class color) (min-colors 88) (background dark))
-        :foreground "#d0bc00"))
-     "My underline emphasis for Org.")
+    ;; refile to targets defined by the org-agenda-files list above
+    (setq org-refile-targets '((nil :maxlevel . 3)
+                               (org-agenda-files :maxlevel . 3)))
+    (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+    (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
 
-   ;; custom capture
-   (require 'org-capture)
-   ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
-   (setq org-capture-templates
-         '(
-           ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-            "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-           ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-            "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-            :empty-lines 1)) )
+    ;; store DONE time in the drawer
+    (setq org-log-done (quote time))
+    (setq org-log-into-drawer t)
 
-   ;; Agenda is constructed from org files in ONE directory
-   (setq org-agenda-files '("~/Sync/Org"))
+    ;; Ask and store note if rescheduling
+    (setq org-log-reschedule (quote note))
 
-   ;; refile to targets defined by the org-agenda-files list above
-   (setq org-refile-targets '((nil :maxlevel . 3)
-                              (org-agenda-files :maxlevel . 3)))
-   (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
-   (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+    ;; syntax highlight latex in org files
+    (setq org-highlight-latex-and-related '(latex script entities))
 
-   ;; store DONE time in the drawer
-   (setq org-log-done (quote time))
-   (setq org-log-into-drawer t)
+    ;; define the number of days to show in the agenda
+    (setq org-agenda-span 14
+          org-agenda-start-on-weekday nil
+          org-agenda-start-day "-3d")
 
-   ;; Ask and store note if rescheduling
-   (setq org-log-reschedule (quote note))
-
-   ;; syntax highlight latex in org files
-   (setq org-highlight-latex-and-related '(latex script entities))
-
-   ;; define the number of days to show in the agenda
-   (setq org-agenda-span 14
-         org-agenda-start-on-weekday nil
-         org-agenda-start-day "-3d")
-
-   ;; default duration of events
-   (setq org-agenda-default-appointment-duration 60)
-   (setq org-agenda-prefix-format '(
-    ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-                                    (agenda  . "  •  %-12:c%?-12t% s")
-                                    (timeline  . "  % s")
-                                    (todo  . " %i %-12:c")
-                                    (tags  . " %i %-12:c")
-                                    (search . " %i %-12:c")))
+    ;; default duration of events
+    (setq org-agenda-default-appointment-duration 60)
+    (setq org-agenda-prefix-format '(
+      ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                                     (agenda  . "  •  %-12:c%?-12t% s")
+                                     (timeline  . "  % s")
+                                     (todo  . " %i %-12:c")
+                                     (tags  . " %i %-12:c")
+                                     (search . " %i %-12:c")))
 #+END_SRC
 
 ** Org-babel
@@ -942,6 +1001,7 @@ Reproducible research aide.
   (use-package gnuplot
     :init
     (message "Use-package: gnuplot for babel installed"))
+  
   ;; languages I work in via babel
   (org-babel-do-load-languages
    'org-babel-load-languages
@@ -949,13 +1009,6 @@ Reproducible research aide.
   ;; stop it asking if I'm sure about evaluation
   (setq org-confirm-babel-evaluate nil)
 
-  ;; (defun my-tab-related-stuff ()
-  ;;   (setq indent-tabs-mode nil)
-  ;;   ;;(setq tab-stop-list (number-sequence 4 200 4))
-  ;;   (setq tab-width 2)
-  ;;   ;;(setq indent-line-function 'insert-tab) )
-
-  ;; (add-hook 'org-mode-hook 'my-tab-related-stuff)
 #+END_SRC
 
 ** Denote
@@ -999,23 +1052,23 @@ Searching the Denote files is done via the "consult-notes" package.
 
   ;; Denote does not define any key bindings.  This is for the user to
   ;; decide.  For example:
-  (let ((map global-map))
-    (define-key map (kbd "C-c n n") #'denote)
-    (define-key map (kbd "C-c n N") #'denote-type)
-    (define-key map (kbd "C-c n d") #'denote-date)
-    (define-key map (kbd "C-c n s") #'denote-subdirectory)
-    ;; If you intend to use Denote with a variety of file types, it is
-    ;; easier to bind the link-related commands to the `global-map', as
-    ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
-    ;; `markdown-mode-map', and/or `text-mode-map'.
-    (define-key map (kbd "C-c n i") #'denote-link) ; "insert" mnemonic
-    (define-key map (kbd "C-c n I") #'denote-link-add-links)
-    (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
-    (define-key map (kbd "C-c n b") #'denote-link-backlinks)
-    ;; Note that `denote-dired-rename-file' can work from any context, not
-    ;; just Dired bufffers.  That is why we bind it here to the
-    ;; `global-map'.
-    (define-key map (kbd "C-c n r") #'denote-dired-rename-file))
+  ;(let ((map global-map))
+  ;  (define-key map (kbd "C-c n n") #'denote)
+  ;  (define-key map (kbd "C-c n N") #'denote-type)
+  ;  (define-key map (kbd "C-c n d") #'denote-date)
+  ;  (define-key map (kbd "C-c n s") #'denote-subdirectory)
+  ;  ;; If you intend to use Denote with a variety of file types, it is
+  ;  ;; easier to bind the link-related commands to the `global-map', as
+  ;  ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
+  ;  ;; `markdown-mode-map', and/or `text-mode-map'.
+  ;  (define-key map (kbd "C-c n i") #'denote-link) ; "insert" mnemonic
+  ;  (define-key map (kbd "C-c n I") #'denote-link-add-links)
+  ;  (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
+  ;  (define-key map (kbd "C-c n b") #'denote-link-backlinks)
+  ;  ;; Note that `denote-dired-rename-file' can work from any context, not
+  ;  ;; just Dired bufffers.  That is why we bind it here to the
+  ;  ;; `global-map'.
+  ;  (define-key map (kbd "C-c n r") #'denote-dired-rename-file))
 
   (with-eval-after-load 'org-capture    
     (setq denote-org-capture-specifiers "%l\n%i\n%?")
@@ -1055,7 +1108,7 @@ than trying to scribble a hadnwritten note via other methods.
 #+END_SRC
  
 * Email/mu4e
-You need the "mu" package and also the executable "mbsync" (the
+We need the "mu" package and also the executable "mbsync" (the
 package that mbsync is in, is usually called "isync"). My existing
 workflow was broken by move to Oauth2 in O365. Now I run "davmail" as
 an intermediary, with IMAP/SMTP on localhost which seems to run well.
@@ -1063,120 +1116,121 @@ The "davmail" process is started as an asynchronous process under
 emacs as needed when 'mu4e' is started.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-    ;; defines mu4e exists, but holds off until needed
-    (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+  ;; defines mu4e exists, but holds off until needed
+  (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 
-    (ryo-modal-keys
-     ("q" (("m" mu4e))))
+  (ryo-modal-keys
+   ("q" (("m" mu4e))))
 
-    ;;
-    ;; GETTING new messages
-    ;;
-    ;; how to get mail
-    (setq mu4e-get-mail-command "mbsync Work"
-          mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
-          mu4e-mu-binary (executable-find "mu"))
-    ;; auto GET every 5 mins
-    (setq mu4e-update-interval 300)
-    ;; to stop mail draft/sent appearing in the recent files list of the dashboard add:
-    ;; (add-to-list 'recentf-exclude "\\mbsyncmail\\")
+  ;;
+  ;; GETTING new messages
+  ;;
+  ;; how to get mail
+  (setq mu4e-get-mail-command "mbsync Work"
+        mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
+        mu4e-mu-binary (executable-find "mu"))
+  ;; auto GET every 5 mins
+  (setq mu4e-update-interval 300)
+  ;; to stop mail draft/sent appearing in the recent files list of the dashboard add:
+  ;; (add-to-list 'recentf-exclude "\\mbsyncmail\\")
 
-    ;;
-    ;; READING and ORGANIZING mail
-    ;;
-    ;; I don't sync Deleted Items & largely do permanent
-    ;;  delete via "D" rather than move to trash via "d" 
-    (setq mu4e-trash-folder  "/Trash") 
-    ;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
-    (setq mu4e-change-filenames-when-moving t)
-    ;; show thread but don't bring back related emails that have been moved
-    (setq mu4e-headers-show-thread t
-          mu4e-headers-include-related nil
-          mu4e-headers-visible-lines 20
-          mu4e-headers-results-limit 200)
-    ;; rich text emails are converted using 'shr'
-    ;; they are displayed using 'shr-face'
-    ;; and for a dark background the 'mu4e' manual suggests:
-    (setq shr-color-visible-luminance-min 80)
-    ;; ;; show images inline
-    ;;(setq mu4e-show-images t)
-    ;; use imagemagick, if available
-    ;;(when (fboundp 'imagemagick-register-types)
-    ;;  (imagemagick-register-types) )
-    ;;
+  ;;
+  ;; READING and ORGANIZING mail
+  ;;
+  ;; I don't sync Deleted Items & largely do permanent
+  ;;  delete via "D" rather than move to trash via "d" 
+  (setq mu4e-trash-folder  "/Trash") 
+  ;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+  (setq mu4e-change-filenames-when-moving t)
+  ;; show thread but don't bring back related emails that have been moved
+  (setq mu4e-headers-show-thread t
+        mu4e-headers-include-related nil
+        mu4e-headers-visible-lines 20
+        mu4e-headers-results-limit 200)
+  ;; rich text emails are converted using 'shr'
+  ;; they are displayed using 'shr-face'
+  ;; and for a dark background the 'mu4e' manual suggests:
+  (setq shr-color-visible-luminance-min 80)
 
-    ;; Define what headers to sho w
-    ;; in the headers list -- a pair of a field
-    ;; and its width, with `nil' meaning 'unlimited'
-    ;; best to only use nil for the last field.
-    (setq mu4e-headers-fields
-          '((:human-date          .  10)   ;; alternatively, use :date
-            (:flags               .   5)
-            (:recipnum            .   3)
-            (:from-or-to          .  30)
-            (:thread-subject      . nil))  ;; alternatively, use :thread-subject
-          )
-    ;; shortcut keys are used in the main-view
-    (setq mu4e-maildir-shortcuts
-          '( ("/INBOX"          . ?i)
-             ("/Sent"           . ?s)
-             ("/Trash"          . ?t)
-             ("/Drafts"         . ?d)
-             ("/BULK"           . ?b)))
-    ;; bookmarks
-    (setq mu4e-bookmarks
-          ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK" :key 117) ; bu
-             (:name "Today" :query "date:today..now" :key 116)                   ; bt
-             (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
-             (:name "Attachment" :query "flag:a" :key 97)                        ; ba
-             (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
-             ))       
-    ;; don't auto update in the headers view, wait for return to main view
-    (setq mu4e-headers-auto-update nil) 
+  ;; ;; show images inline
+  ;;(setq mu4e-show-images t)
+  ;; use imagemagick, if available
+  ;;(when (fboundp 'imagemagick-register-types)
+  ;;  (imagemagick-register-types) )
+  ;;
 
-    ;; Couple to Org -- not sure if this is strictly required or not?
-    (require 'mu4e-org)
+  ;; Define what headers to sho w
+  ;; in the headers list -- a pair of a field
+  ;; and its width, with `nil' meaning 'unlimited'
+  ;; best to only use nil for the last field.
+  (setq mu4e-headers-fields
+        '((:human-date          .  10)   ;; alternatively, use :date
+          (:flags               .   5)
+          (:recipnum            .   3)
+          (:from-or-to          .  30)
+          (:thread-subject      . nil))  ;; alternatively, use :thread-subject
+        )
+  ;; shortcut keys are used in the main-view
+  (setq mu4e-maildir-shortcuts
+        '( ("/INBOX"          . ?i)
+           ("/Sent"           . ?s)
+           ("/Trash"          . ?t)
+           ("/Drafts"         . ?d)
+           ("/BULK"           . ?b)))
+  ;; bookmarks
+  (setq mu4e-bookmarks
+        ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK" :key 117) ; bu
+           (:name "Today" :query "date:today..now" :key 116)                   ; bt
+           (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
+           (:name "Attachment" :query "flag:a" :key 97)                        ; ba
+           (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
+           ))       
+  ;; don't auto update in the headers view, wait for return to main view
+  (setq mu4e-headers-auto-update nil) 
 
-    ;;
-    ;; SENDING and COMPOSING
-    ;;
-    ;; configure for msmtp as this is easy to test from the CLI
-    (setq send-mail-function 'sendmail-send-it
-          sendmail-program "msmtp"
-          mail-specify-envelope-from t
-          message-sendmail-envelope-from 'header
-          mail-envelope-from 'header)
-    ;; Note: sent mails should appear in O365 sent list
-    ;; O365 uses "Sent Items" in the web interface but this
-    ;; appears as just "Sent" with mbsync set to "Patterns *"
-    (setq mu4e-sent-folder   "/Sent")
-    ;; don't keep message buffers around
-    (setq message-kill-buffer-on-exit t)
-    ;; general emacs mail settings; used when composing e-mail
-    ;; the non-mu4e-* stuff is inherited from emacs/message-mode
-    (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
-          user-mail-address "richard.hewitt@manchester.ac.uk"
-          user-full-name  "Rich Hewitt")
-    ;; sent messages are copied into the 'mu4e-sent-folder' defined above
-    ;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
-    ;; 2 copies in the O365 "Sent Items" folder
-    (setq mu4e-sent-messages-behavior 'sent)
-    ;; compose signature
-    (setq message-signature-file "~/CURRENT/dot.signature")
-    (setq mu4e-compose-signature-auto-include t)
-    ;; don't wrap at 70-something columns
-    (setq mu4e-compose-format-flowed t)
-    ;; define where to put draft email
-    (setq mu4e-drafts-folder "/Drafts")
-    ;; spell check during compose
-    (add-hook 'mu4e-compose-mode-hook
-              (defun my/do-compose-stuff ()
-                "My settings for message composition."
-                ;;(set-fill-column 72)
-                (flyspell-mode)
-                ;; turn off autosave, otherwise we end up with multiple
-                ;; versions of sent/draft mail being sync'd
-                (auto-save-mode -1)))
+  ;; Couple to Org -- not sure if this is strictly required or not?
+  (require 'mu4e-org)
+
+  ;;
+  ;; SENDING and COMPOSING
+  ;;
+  ;; configure for msmtp as this is easy to test from the CLI
+  (setq send-mail-function 'sendmail-send-it
+        sendmail-program "msmtp"
+        mail-specify-envelope-from t
+        message-sendmail-envelope-from 'header
+        mail-envelope-from 'header)
+  ;; Note: sent mails should appear in O365 sent list
+  ;; O365 uses "Sent Items" in the web interface but this
+  ;; appears as just "Sent" with mbsync set to "Patterns *"
+  (setq mu4e-sent-folder   "/Sent")
+  ;; don't keep message buffers around
+  (setq message-kill-buffer-on-exit t)
+  ;; general emacs mail settings; used when composing e-mail
+  ;; the non-mu4e-* stuff is inherited from emacs/message-mode
+  (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
+        user-mail-address "richard.hewitt@manchester.ac.uk"
+        user-full-name  "Rich Hewitt")
+  ;; sent messages are copied into the 'mu4e-sent-folder' defined above
+  ;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
+  ;; 2 copies in the O365 "Sent Items" folder
+  (setq mu4e-sent-messages-behavior 'sent)
+  ;; compose signature
+  (setq message-signature-file "~/CURRENT/dot.signature")
+  (setq mu4e-compose-signature-auto-include t)
+  ;; don't wrap at 70-something columns
+  (setq mu4e-compose-format-flowed t)
+  ;; define where to put draft email
+  (setq mu4e-drafts-folder "/Drafts")
+  ;; spell check during compose
+  (add-hook 'mu4e-compose-mode-hook
+            (defun my/do-compose-stuff ()
+              "My settings for message composition."
+              ;;(set-fill-column 72)
+              (flyspell-mode)
+              ;; turn off autosave, otherwise we end up with multiple
+              ;; versions of sent/draft mail being sync'd
+              (auto-save-mode -1)))
 
 
 #+END_SRC
@@ -1215,8 +1269,8 @@ check every 15 minutes to see if 'mu4e' is still running or not.
 #+END_SRC
 
 * AGE encryption
-'AGE' is a (arguably) more modern and simpler
-replacement for the standard GPG applications.
+'AGE' is a (arguably) more modern and simpler replacement for the
+standard GPG applications.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package age
@@ -1230,11 +1284,6 @@ replacement for the standard GPG applications.
     :config
     (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
     (age-file-enable))
-
-  ;; never really used this - removed Jan 2024
-  ;;(straight-use-package
-  ;; '(passage :type git :host github :repo "anticomputer/passage.el"))
-  ;;(require 'passage)
 
 #+END_SRC
 

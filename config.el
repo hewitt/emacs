@@ -13,14 +13,16 @@
 
 ;; skip auto backups
 (setq make-backup-files nil)
-;; (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
-
+;; backups can all be pushed to a particular directory if needed
+;;(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+;; don't show the default startup screen
+(setq inhibit-startup-screen t)
 ;; have mouse input in the terminal -- the disadvantage is you
 ;; need to SHIFT+middle mouse to paste in the terminal
 (xterm-mouse-mode 1)
 ;; Turn off the menu/scroll/toolbar
 (menu-bar-mode -1)
-;;(scroll-bar-mode -1)
+(scroll-bar-mode -1)
 (tool-bar-mode -1)
 ;; replace annoying yes/no with y/n
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -37,28 +39,30 @@
 
 (global-auto-revert-mode)
 
+(use-package spacious-padding
+  :config  
+  (setq spacious-padding-widths
+        '( :internal-border-width 15
+           :header-line-width 4
+           :mode-line-width 6
+           :tab-width 2
+           :right-divider-width 30
+           :scroll-bar-width 8))
+  :init
+  (spacious-padding-mode 1) )
+
 ;; Prot ef-theme modeline tweak to add box around the modeline box is
 ;; the same colour as background, so looks like a 'fatter' mode line.
 (defun my-ef-themes-mode-line ()
   "Tweak the style of the mode lines."
   (ef-themes-with-colors
     (custom-set-faces
-     `(mode-line ((,c :background ,bg-mode-line :height 100
-                      :foreground ,fg-main :box (:line-width 6
-                                                             :color ,bg-mode-line))))
-     `(mode-line-inactive ((,c :box (:line-width 1 :color ,bg-active)))))))
+     `(mode-line ((,c :background ,bg-mode-line :height 110
+                      :foreground ,fg-main :box (:line-width 4 :color ,bg-mode-line))))
+     `(mode-line-inactive ((,c :background ,bg-inactive :box (:line-width 4 :color ,bg-inactive)))))))
 ;; hook to update the colours/style using the above function when
 ;; theme loaded
 (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
-
-;; use 'mu' as an external process to get the number of unread email
-;; the number is a string 'my-email-count-string'
-(defun my/unread-email-command ()
-  "Run mu to get how many unread email are in the INBOX"
-  (interactive)
-  (setq my/email-count-string (substring (shell-command-to-string "mu find date:1w..now maildir:/INBOX flag:unread 2>/dev/null | wc -l") 0 -1)))
-;; update 'my/email-count-string' every 5 mins with a 10 second delay
-(run-with-timer 0 60 'my/unread-email-command)
 
 ;; define the line/column information -- fixed 2 character width for columbn
 (setq mode-line-position (list "L%l C%02c"))
@@ -95,13 +99,15 @@
                             'face 'warning)
                          )
                        )
-                ;; everything after here goes on the right. This doesn' work for emacs 29 ... needs emacs 30+?
+                ;; everything after here goes on the right. This
+                ;; doesn' work for emacs 29 ... needs emacs 30+?
                 ;; mode-line-format-right-align
                 (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                my/email-count-string
+                ;; there is a default string for the modeline from the mu4e package
+                (:eval (mu4e--modeline-string))
                 (:eval (when (mode-line-window-selected-p) 
                          (if (buffer-live-p (get-buffer "*mu4e-main*"))
-                             " : 📫"
+                             " 📫"
                            " . ")))
                 ;; show ONLY the major mode (minor modes are not shown)
                 (:eval (propertize "   |   " 'face 'shadow) ) ; separator
@@ -121,7 +127,18 @@
                 )
               )
 
-;;(setq display-buffer-alist 'nil)
+(setq window-combination-resize t)
+(setq even-window-sizes 'height-only)
+; left/right occupies full window height
+(setq window-sides-vertical t)                    
+; pop new window if switching buffers from dedicated
+(setq switch-to-buffer-in-dedicated-window 'pop)  
+(setq split-height-threshold 80)
+(setq split-width-threshold 120)
+(setq window-min-height 5)
+(setq window-min-width 90)
+
+;;(setq display-buffer-alist 'nil) ; to remove all preferences
 (setq display-buffer-alist
       `(
         ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
@@ -129,16 +146,23 @@
           display-buffer-below-selected)
          (window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
          )
-        ("\\(\\*Org Agenda\\*\\|\\*mu4e-draft\\*\\)"        ; always put my calendar and compose windows on the right
+        ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
-         (side . right)
+         (side . right)                                     ; put it on the right side
+         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )	
+        ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
+         (display-buffer-in-side-window)
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         (window-width . 100)
+         (side . right)                                     ; put it on the right side
          (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )	
         ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
          (display-buffer-reuse-mode-window)                 ; don't always open a new window
          (dedicated . t)                                    ; don't reuse this buffer for other things
-         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+                                        ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )
         ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
          (display-buffer-in-side-window)
@@ -149,22 +173,13 @@
         )
       )
 
-;; Disable all other themes to avoid awkward blending:    
 (use-package ef-themes
   :init
+  ;; Disable all other themes to avoid awkward blending
   (mapc #'disable-theme custom-enabled-themes)
   ;; Make customisations that affect Emacs faces BEFORE loading a theme
   ;; (any change needs a theme re-load to take effect).
-
-  (setq ef-themes-to-toggle '(ef-symbiosis ef-frost))
-  ;;:config
-  ;; Load the theme of choice:
-  ;;(load-theme 'ef-summer :no-confirm)
-  ;; Light: `ef-day', `ef-light', `ef-spring', `ef-summer'.
-  ;; Dark:  `ef-autumn', `ef-dark', `ef-night', `ef-winter'.
-
-  ;; I set the theme at the end of this configuration because of
-  ;; some minor issues with code comments showing as underlined [2022]
+  (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light))
   )
 
 ;; DONT add a little bit of transparency
@@ -172,7 +187,7 @@
 ;;(add-to-list 'default-frame-alist '(alpha-background . 95))
 
 ;; select a default theme
-(ef-themes-select 'ef-symbiosis)
+(ef-themes-select 'ef-maris-dark)
 
 (use-package rainbow-delimiters
   :init
@@ -211,7 +226,7 @@
   :init
   (message "Use-package: consult")
   :bind
-  ;; see also key-chords elsewhere
+  ;; some standard emacs-chord bindings -- but see also RYO modal section.
   ("C-x b" . consult-buffer)
   ("M-g g" . consult-goto-line)
   ("M-y"   . consult-yank-pop)
@@ -244,25 +259,28 @@
   ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
   ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
   ;; Enable Corfu only for certain modes.
   :hook ((prog-mode . corfu-mode)
          (latex-mode . corfu-mode)
          (shell-mode . corfu-mode)
          (eshell-mode . corfu-mode))
+
   ;; Recommended: Enable Corfu globally.
   ;; This is recommended since Dabbrev can be used globally (M-/).
-  ;; See also `corfu-exclude-modes'.
+  ;; See also `global-corfu-modes' to exclude certain modes.
   :init
   ;;(setq tab-always-indent 'complete)
   (global-corfu-mode)
   (corfu-prescient-mode))
 
-(use-package corfu-terminal
-  :init
-  (message "Use-package: corfu-terminal")
-  :config
-  ;; let's default to the terminal mode
-  (corfu-terminal-mode))
+; you might need this for emacs -nw
+;(use-package corfu-terminal
+;  :init
+;  (message "Use-package: corfu-terminal")
+;  :config
+;  ;; let's default to the terminal mode
+;  (corfu-terminal-mode))
 
 (use-package prescient
   :init
@@ -310,95 +328,95 @@
 (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
 
 ;; edit the init.el configuration file
-  (defun my/config-visit ()
-    (interactive)
-    (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
+(defun my/config-visit ()
+  (interactive)
+  (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
 
 ;; edit the init.el configuration file
-  (defun my/todo-visit ()
-    (interactive)
-    (find-file "~/Sync/Org/Todo.org") )
+(defun my/todo-visit ()
+  (interactive)
+  (find-file "~/Sync/Org/Todo.org") )
 
 ;; I want the modal change to apply to all buffers not on
-;; a per-buffer basis
+;; a per-buffer basis.
 (define-global-minor-mode ryo-global-mode ryo-modal-mode
- (lambda ()
+  (lambda () ; only if not already active
     (unless (minibufferp)
-     (ryo-modal-mode 1))))
+      (ryo-modal-mode 1))))
 
-  (use-package ryo-modal
-    :commands ryo-modal-mode
-    :bind ("<escape>" . ryo-global-mode)
-    :after org 
-    :config
-    (ryo-modal-keys
-     ;; vi like
-     ("."  ryo-modal-repeat)
-     ("/"  consult-line)
-     ("i"  ryo-modal-mode)
-     ;; navigation
-     ("h"  backward-char)
-     ("j"  next-line)
-     ("k"  previous-line)
-     ("l"  forward-char)
-     ("H"  left-word)
-     ("J"  forward-paragraph)
-     ("K"  backward-paragraph)
-     ("L"  right-word)
-     ;; edt
-     ("a" beginning-of-line)
-     ("e" end-of-line)
-     ("K" kill-line)     
-     ;; tab-bar
-     ("n"  tab-next)
-     ("p"  tab-previous)
-     ;; list buffers
-     ("b"  consult-buffer) 
-     ;; jump to line
-     ("g"  consult-goto-line)
-     ;; recall clipboard content
-     ("Y"  consult-yank-pop)     
-     ("y"  yank)
-     ("w"  kill-region)
-     ("W"  copy-region-as-kill)
-     ;; abbreviated emacs
-     ("x" (("s" save-buffer)
-           ("f" find-file)
-           ("o" other-window)
-           ("c" save-buffers-kill-terminal)
-           ("e" eval-last-sexp)
-           ("0" delete-window)
-           ("1" delete-other-windows)
-           ("2" my/split-and-follow-horizontally)
-           ("3" my/split-and-follow-vertically)))
-     ("q" (("a" org-agenda)
-           ("d" org-journal-new-entry)
-           ("e" my/config-visit)
-           ;;("m" mu4e) ; set later after mu4e in mu4e specification section
-           ("s" consult-notes-search-in-all-notes)
-           ("t" my/todo-visit)
-           ("T" org-babel-tangle)
-           ("c" org-capture)))
-     ;; sugar
-     ("["  previous-buffer)
-     ("]"  next-buffer)
-     )
+(use-package ryo-modal
+  :commands ryo-modal-mode
+  :bind ("<escape>" . ryo-global-mode)
+  :after org 
+  :config
+  (ryo-modal-keys
+   ;; vi like
+   ("."  ryo-modal-repeat)
+   ("/"  consult-line)
+   ("i"  ryo-modal-mode)
+   ;; navigation
+   ("h"  backward-char)
+   ("j"  next-line)
+   ("k"  previous-line)
+   ("l"  forward-char)
+   ("H"  left-word)
+   ("J"  forward-paragraph)
+   ("K"  backward-paragraph)
+   ("L"  right-word)
+   ;; edt
+   ("a" beginning-of-line)
+   ("e" end-of-line)
+   ("K" kill-line)     
+   ;; tab-bar
+   ("n"  tab-next)
+   ("p"  tab-previous)
+   ;; list buffers
+   ("b"  consult-buffer) 
+   ;; jump to line
+   ("g"  consult-goto-line)
+   ;; recall clipboard content
+   ("Y"  consult-yank-pop)     
+   ("y"  yank)
+   ("w"  kill-region)
+   ("W"  copy-region-as-kill)
+   ;; abbreviated emacs
+   ("x" (("s" save-buffer)
+         ("f" find-file)
+         ("o" other-window)
+         ("c" save-buffers-kill-terminal)
+         ("e" eval-last-sexp)
+         ("0" delete-window)
+         ("1" delete-other-windows)
+         ("2" my/split-and-follow-horizontally)
+         ("3" my/split-and-follow-vertically)))
+   ("q" (("a" org-agenda)
+         ("d" org-journal-new-entry)
+         ("e" my/config-visit)
+         ;;("m" mu4e) ; set later after mu4e in mu4e specification section
+         ("s" consult-notes-search-in-all-notes)
+         ("t" my/todo-visit)
+         ("T" org-babel-tangle)
+         ("c" org-capture)))
+   ;; sugar
+   ("["  previous-buffer)
+   ("]"  next-buffer)
+   )
 
-    (ryo-modal-keys
-     ;; First argument to ryo-modal-keys may be a list of keywords.
-     ;; These keywords will be applied to all keybindings.
-     (:norepeat t)
-     ("0" "M-0")
-     ("1" "M-1")
-     ("2" "M-2")
-     ("3" "M-3")
-     ("4" "M-4")
-     ("5" "M-5")
-     ("6" "M-6")
-     ("7" "M-7")
-     ("8" "M-8")
-     ("9" "M-9"))
-    )
+  (ryo-modal-keys
+   ;; First argument to ryo-modal-keys may be a list of keywords.
+   ;; These keywords will be applied to all keybindings.
+   (:norepeat t)
+   ("0" "M-0")
+   ("1" "M-1")
+   ("2" "M-2")
+   ("3" "M-3")
+   ("4" "M-4")
+   ("5" "M-5")
+   ("6" "M-6")
+   ("7" "M-7")
+   ("8" "M-8")
+   ("9" "M-9"))
+  ) ; END ryo-modal, not ryo-modal-keys
 
 (defvar my/ryo-fast-keyseq-timeout 200)
 
@@ -519,6 +537,8 @@
   (add-hook 'org-mode-hook 'org-bullets-mode)
   (message "Use-package: Org-bullets") )
 
+;; some appearance tweaks:
+;;
 ;; replace emphasis with colors in Org files
 (setq org-emphasis-alist
       '(("*" my/org-emphasis-bold)
@@ -527,94 +547,87 @@
         ("=" org-verbatim verbatim)
         ("~" org-code verbatim)
         ("+" (:strike-through t))))
+;;
+;; colorise text instead of changing the font weight.
+(defface my/org-emphasis-bold
+  '((default :inherit bold)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#a60000")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#ff8059"))
+  "My bold emphasis for Org.")
+;;
+(defface my/org-emphasis-italic
+  '((default :inherit italic)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#005e00")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#44bc44"))
+  "My italic emphasis for Org.")
+;;
+(defface my/org-emphasis-underline
+  '((default :inherit underline)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#813e00")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#d0bc00"))
+  "My underline emphasis for Org.")
 
- ;; colorise text instead of changing the font weight.
- (defface my/org-emphasis-bold
-   '((default :inherit bold)
-     (((class color) (min-colors 88) (background light))
-      :foreground "#a60000")
-     (((class color) (min-colors 88) (background dark))
-      :foreground "#ff8059"))
-   "My bold emphasis for Org.")
+;; custom capture
+(require 'org-capture)
+;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
+(setq org-capture-templates
+      '(
+        ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+         "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+        ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+         "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+         :empty-lines 1)) )
 
- (defface my/org-emphasis-italic
-   '((default :inherit italic)
-     (((class color) (min-colors 88) (background light))
-      :foreground "#005e00")
-     (((class color) (min-colors 88) (background dark))
-      :foreground "#44bc44"))
-   "My italic emphasis for Org.")
+;; Agenda is constructed from org files in ONE directory
+(setq org-agenda-files '("~/Sync/Org"))
 
- (defface my/org-emphasis-underline
-   '((default :inherit underline)
-     (((class color) (min-colors 88) (background light))
-      :foreground "#813e00")
-     (((class color) (min-colors 88) (background dark))
-      :foreground "#d0bc00"))
-   "My underline emphasis for Org.")
+;; refile to targets defined by the org-agenda-files list above
+(setq org-refile-targets '((nil :maxlevel . 3)
+                           (org-agenda-files :maxlevel . 3)))
+(setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+(setq org-refile-use-outline-path t)                  ; Show full paths for refiling
 
- ;; custom capture
- (require 'org-capture)
- ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
- (setq org-capture-templates
-       '(
-         ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-          "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-         ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-          "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-          :empty-lines 1)) )
+;; store DONE time in the drawer
+(setq org-log-done (quote time))
+(setq org-log-into-drawer t)
 
- ;; Agenda is constructed from org files in ONE directory
- (setq org-agenda-files '("~/Sync/Org"))
+;; Ask and store note if rescheduling
+(setq org-log-reschedule (quote note))
 
- ;; refile to targets defined by the org-agenda-files list above
- (setq org-refile-targets '((nil :maxlevel . 3)
-                            (org-agenda-files :maxlevel . 3)))
- (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
- (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+;; syntax highlight latex in org files
+(setq org-highlight-latex-and-related '(latex script entities))
 
- ;; store DONE time in the drawer
- (setq org-log-done (quote time))
- (setq org-log-into-drawer t)
+;; define the number of days to show in the agenda
+(setq org-agenda-span 14
+      org-agenda-start-on-weekday nil
+      org-agenda-start-day "-3d")
 
- ;; Ask and store note if rescheduling
- (setq org-log-reschedule (quote note))
-
- ;; syntax highlight latex in org files
- (setq org-highlight-latex-and-related '(latex script entities))
-
- ;; define the number of days to show in the agenda
- (setq org-agenda-span 14
-       org-agenda-start-on-weekday nil
-       org-agenda-start-day "-3d")
-
- ;; default duration of events
- (setq org-agenda-default-appointment-duration 60)
- (setq org-agenda-prefix-format '(
+;; default duration of events
+(setq org-agenda-default-appointment-duration 60)
+(setq org-agenda-prefix-format '(
   ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-                                  (agenda  . "  •  %-12:c%?-12t% s")
-                                  (timeline  . "  % s")
-                                  (todo  . " %i %-12:c")
-                                  (tags  . " %i %-12:c")
-                                  (search . " %i %-12:c")))
+                                 (agenda  . "  •  %-12:c%?-12t% s")
+                                 (timeline  . "  % s")
+                                 (todo  . " %i %-12:c")
+                                 (tags  . " %i %-12:c")
+                                 (search . " %i %-12:c")))
 
 (use-package gnuplot
   :init
   (message "Use-package: gnuplot for babel installed"))
+
 ;; languages I work in via babel
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
 ;; stop it asking if I'm sure about evaluation
 (setq org-confirm-babel-evaluate nil)
-
-;; (defun my-tab-related-stuff ()
-;;   (setq indent-tabs-mode nil)
-;;   ;;(setq tab-stop-list (number-sequence 4 200 4))
-;;   (setq tab-width 2)
-;;   ;;(setq indent-line-function 'insert-tab) )
-
-;; (add-hook 'org-mode-hook 'my-tab-related-stuff)
 
 (require 'denote)
 
@@ -649,23 +662,23 @@
 
 ;; Denote does not define any key bindings.  This is for the user to
 ;; decide.  For example:
-(let ((map global-map))
-  (define-key map (kbd "C-c n n") #'denote)
-  (define-key map (kbd "C-c n N") #'denote-type)
-  (define-key map (kbd "C-c n d") #'denote-date)
-  (define-key map (kbd "C-c n s") #'denote-subdirectory)
-  ;; If you intend to use Denote with a variety of file types, it is
-  ;; easier to bind the link-related commands to the `global-map', as
-  ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
-  ;; `markdown-mode-map', and/or `text-mode-map'.
-  (define-key map (kbd "C-c n i") #'denote-link) ; "insert" mnemonic
-  (define-key map (kbd "C-c n I") #'denote-link-add-links)
-  (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
-  (define-key map (kbd "C-c n b") #'denote-link-backlinks)
-  ;; Note that `denote-dired-rename-file' can work from any context, not
-  ;; just Dired bufffers.  That is why we bind it here to the
-  ;; `global-map'.
-  (define-key map (kbd "C-c n r") #'denote-dired-rename-file))
+;(let ((map global-map))
+;  (define-key map (kbd "C-c n n") #'denote)
+;  (define-key map (kbd "C-c n N") #'denote-type)
+;  (define-key map (kbd "C-c n d") #'denote-date)
+;  (define-key map (kbd "C-c n s") #'denote-subdirectory)
+;  ;; If you intend to use Denote with a variety of file types, it is
+;  ;; easier to bind the link-related commands to the `global-map', as
+;  ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
+;  ;; `markdown-mode-map', and/or `text-mode-map'.
+;  (define-key map (kbd "C-c n i") #'denote-link) ; "insert" mnemonic
+;  (define-key map (kbd "C-c n I") #'denote-link-add-links)
+;  (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
+;  (define-key map (kbd "C-c n b") #'denote-link-backlinks)
+;  ;; Note that `denote-dired-rename-file' can work from any context, not
+;  ;; just Dired bufffers.  That is why we bind it here to the
+;  ;; `global-map'.
+;  (define-key map (kbd "C-c n r") #'denote-dired-rename-file))
 
 (with-eval-after-load 'org-capture    
   (setq denote-org-capture-specifiers "%l\n%i\n%?")
@@ -730,6 +743,7 @@
 ;; they are displayed using 'shr-face'
 ;; and for a dark background the 'mu4e' manual suggests:
 (setq shr-color-visible-luminance-min 80)
+
 ;; ;; show images inline
 ;;(setq mu4e-show-images t)
 ;; use imagemagick, if available
@@ -848,11 +862,6 @@
   :config
   (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
   (age-file-enable))
-
-;; never really used this - removed Jan 2024
-;;(straight-use-package
-;; '(passage :type git :host github :repo "anticomputer/passage.el"))
-;;(require 'passage)
 
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
