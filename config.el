@@ -7,9 +7,11 @@
         ("MELPA"        . 5 )))
 (package-initialize)
 
-;; Keep custom settings in a separate file to not pollute this one
 (setq custom-file "~/.emacs.d/custom-settings.el")
 (load custom-file t)
+
+;; add a location for supporting elisp code
+(add-to-list 'load-path "~/.emacs.d/elisp")
 
 ;; skip auto backups
 (setq make-backup-files nil)
@@ -39,93 +41,17 @@
 
 (global-auto-revert-mode)
 
-(use-package spacious-padding
-  :config  
-  (setq spacious-padding-widths
-        '( :internal-border-width 15
-           :header-line-width 4
-           :mode-line-width 6
-           :tab-width 2
-           :right-divider-width 30
-           :scroll-bar-width 8))
+(use-package rh-ef-modeline
   :init
-  (spacious-padding-mode 1) )
-
-;; Prot ef-theme modeline tweak to add box around the modeline box is
-;; the same colour as background, so looks like a 'fatter' mode line.
-(defun my-ef-themes-mode-line ()
-  "Tweak the style of the mode lines."
-  (ef-themes-with-colors
-    (custom-set-faces
-     `(mode-line ((,c :background ,bg-mode-line :height 110
-                      :foreground ,fg-main :box (:line-width 4 :color ,bg-mode-line))))
-     `(mode-line-inactive ((,c :background ,bg-inactive :box (:line-width 4 :color ,bg-inactive)))))))
-;; hook to update the colours/style using the above function when
-;; theme loaded
-(add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
-
-;; define the line/column information -- fixed 2 character width for columbn
-(setq mode-line-position (list "L%l C%02c"))
-
-;; fire symbol for unsaved buffer is selected via (C-x 8 RET)
-(setq-default mode-line-format
-              '(
-                (:eval (cond
-                        (ryo-modal-mode
-                         (propertize " ♌ " 'face 'error)) ;; obvious modal indicator
-                        (t
-                         (propertize " - " 'face 'shadow))))
-                (:eval (if (buffer-modified-p)
-                           (propertize " 🔥   " 'face 'error)
-                         (propertize " -    " 'face 'shadow)
-                         )
-                       )
-                ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
-                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
-                           (when (mode-line-window-selected-p) 
-                             (propertize 
-                              (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
-                              'face 'shadow)                                      
-                             ) 
-                         ) 
-                       )
-                ;; ALWAYS show the final filename even if inactive
-                ;; final separator is in usual font
-                "/"
-                ;; filename in a more obvious (warning) colour
-                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
-                           (propertize 
-                            (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
-                            'face 'warning)
-                         )
-                       )
-                ;; everything after here goes on the right. This
-                ;; doesn' work for emacs 29 ... needs emacs 30+?
-                ;; mode-line-format-right-align
-                (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                ;; there is a default string for the modeline from the mu4e package
-                (:eval (mu4e--modeline-string))
-                (:eval (when (mode-line-window-selected-p) 
-                         (if (buffer-live-p (get-buffer "*mu4e-main*"))
-                             " 📫"
-                           " . ")))
-                ;; show ONLY the major mode (minor modes are not shown)
-                (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                ;; strip "-Mode" from the end
-                (:eval (when (mode-line-window-selected-p) 
-                         (propertize (nth 0
-                                          (split-string
-                                           (capitalize (symbol-name major-mode)) "-Mode")
-                                          )
-                                     'face 'success)
-                         )
-                       )
-                " "
-                (vc-mode vc-mode)
-                (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                mode-line-position        ; show lines and columns as specified above
-                )
-              )
+  (message "Use-package: rh-ef-modeline")
+  ;; use both line & column numbers
+  (setq mode-line-position (list "L%l C%c"))
+  :after ef-themes
+  ;; this hook will reset modeline colours when the ef-theme is updated
+  :hook (ef-themes-post-load . rh-ef-modeline-update)
+  :config    
+  ;; turn on the mode
+  (rh-ef-modeline-mode t))
 
 (setq window-combination-resize t)
 (setq even-window-sizes 'height-only)
@@ -155,14 +81,14 @@
         ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
-         (window-width . 100)
+         (window-width . 120)
          (side . right)                                     ; put it on the right side
          (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )	
         ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
          (display-buffer-reuse-mode-window)                 ; don't always open a new window
          (dedicated . t)                                    ; don't reuse this buffer for other things
-                                        ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )
         ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
          (display-buffer-in-side-window)
@@ -170,32 +96,22 @@
          (side . bottom)
          (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )          
-        )
-      )
+        ))
 
 (use-package ef-themes
   :init
   ;; Disable all other themes to avoid awkward blending
   (mapc #'disable-theme custom-enabled-themes)
-  ;; Make customisations that affect Emacs faces BEFORE loading a theme
-  ;; (any change needs a theme re-load to take effect).
-  (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light))
-  )
-
-;; DONT add a little bit of transparency
-;;(set-frame-parameter nil 'alpha-background 100)
-;;(add-to-list 'default-frame-alist '(alpha-background . 95))
-
+  (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
 ;; select a default theme
 (ef-themes-select 'ef-maris-dark)
 
 (use-package rainbow-delimiters
   :init
   (message "Use-package: Rainbow delimiters")
-  :config
-  ;(rainbow-delimiters-mode)
-  (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-  (add-hook 'latex-mode-hook 'rainbow-delimiters-mode))
+  :hook
+  (prog-mode . rainbow-delimiters-mode)
+  (latex-mode . rainbow-delimiters-mode))
 
 (use-package which-key
   :init 
@@ -206,17 +122,6 @@
   (which-key-setup-minibuffer)       ; use the minibuffer to show help
   (which-key-mode))
 
-(defun my-display-line-numbers-hook ()
-  (display-line-numbers-mode 1))
-;; latex 
-(add-hook 'latex-mode-hook 'hl-line-mode)
-(add-hook 'latex-mode-hook 'flyspell-mode)
-(add-hook 'latex-mode-hook 'visual-line-mode)
-(add-hook 'latex-mode-hook 'my-display-line-numbers-hook)
-;; programming
-(add-hook 'prog-mode-hook 'hl-line-mode)
-(add-hook 'prog-mode-hook 'eglot-ensure)
-(add-hook 'prog-mode-hook 'my-display-line-numbers-hook)
 ;; org-mode
 (add-hook 'org-mode-hook 'hl-line-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
@@ -235,6 +140,7 @@
   ("M-g o" . consult-outline))
 
 (use-package consult-notes
+  :defer t
   :commands (consult-notes consult-notes-search-in-all-notes)
   :config
   (consult-notes-denote-mode))
@@ -245,42 +151,6 @@
   :init
   (message "Use-package: vertico")
   (vertico-mode))
-
-;; (code) completion via in-buffer pop-up choices
-(use-package corfu
-  :init (message "Use-package: Corfu")
-  :custom
-  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-  (corfu-auto t)                 ;; Enable auto completion
-  ;; (corfu-separator ?\s)          ;; Orderless field separator
-  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-
-  ;; Enable Corfu only for certain modes.
-  :hook ((prog-mode . corfu-mode)
-         (latex-mode . corfu-mode)
-         (shell-mode . corfu-mode)
-         (eshell-mode . corfu-mode))
-
-  ;; Recommended: Enable Corfu globally.
-  ;; This is recommended since Dabbrev can be used globally (M-/).
-  ;; See also `global-corfu-modes' to exclude certain modes.
-  :init
-  ;;(setq tab-always-indent 'complete)
-  (global-corfu-mode)
-  (corfu-prescient-mode))
-
-; you might need this for emacs -nw
-;(use-package corfu-terminal
-;  :init
-;  (message "Use-package: corfu-terminal")
-;  :config
-;  ;; let's default to the terminal mode
-;  (corfu-terminal-mode))
 
 (use-package prescient
   :init
@@ -297,10 +167,7 @@
   :config
   (vertico-prescient-mode))
 
-(use-package corfu-prescient
-  :init
-  (message "Use-package: corfu-prescient") )
-
+;; not sure I need the matching to be orderless?
 ;; (use-package orderless
 ;;  :custom (completion-styles '(orderless)))
 
@@ -448,7 +315,8 @@
   )
 (setq interprogram-cut-function 'my/txt-cut-function)
 
-;; editorconfig allows specification of tab/space/indent
+;; editorconfig allows local specification of tab/space/indent
+;; using a config file in the directory
 (use-package editorconfig
   :init
   (message "Use-package: EditorConfig")
@@ -486,6 +354,25 @@
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all) )
 
+;; GIT-GUTTER: SHOW changes relative to git repo
+(use-package git-gutter
+  :defer t
+  :init
+  (message "Use-package: Git-Gutter")
+  :hook
+  (prog-mode . git-gutter-mode)
+  (org-mode . git-gutter-mode)
+  (latex-mode . git-gutter-mode))
+
+(add-hook 'latex-mode-hook 'hl-line-mode)
+(add-hook 'latex-mode-hook 'flyspell-mode)
+(add-hook 'latex-mode-hook 'visual-line-mode)
+(add-hook 'latex-mode-hook 'display-line-numbers-mode)
+
+;; setup files ending in “.m4” to open in LaTeX-mode
+;; for use in lecture note construction
+(add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
   :init
@@ -496,21 +383,56 @@
   (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
   (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
-;; GIT-GUTTER: SHOW changes relative to git repo
-(use-package git-gutter
-  :defer t
+;; (code) completion via in-buffer pop-up choices
+(use-package corfu
+  :init (message "Use-package: Corfu")
+  :custom
+  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  (corfu-auto t)                 ;; Enable auto completion
+  ;; (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+  ;; Enable Corfu only for certain modes.
+  :hook ((prog-mode . corfu-mode)
+         (latex-mode . corfu-mode)
+         (shell-mode . corfu-mode)
+         (eshell-mode . corfu-mode))
+
+  ;; Recommended: Enable Corfu globally.
+  ;; This is recommended since Dabbrev can be used globally (M-/).
+  ;; See also `global-corfu-modes' to exclude certain modes.
   :init
-  (message "Use-package: Git-Gutter")
-  ;:hook
-  ;(prog-mode . git-gutter-mode)
-  ;(org-mode . git-gutter-mode)
-  )
-;; activate globally
-(global-git-gutter-mode +1)
+  ;;(setq tab-always-indent 'complete)
+  (global-corfu-mode)
+  (corfu-prescient-mode))
+
+; you might need this for emacs -nw
+;(use-package corfu-terminal
+;  :init
+;  (message "Use-package: corfu-terminal")
+;  :config
+;  ;; let's default to the terminal mode
+;  (corfu-terminal-mode))
+
+(use-package corfu-prescient
+  :init
+  (message "Use-package: corfu-prescient") )
 
 ;; NIX language mode
 (use-package nix-mode
   :mode "\\.nix\\'" )
+
+;; my default gnuplot extension
+(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+;; Octave/Matlab
+(add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
+;; Nix language
+(add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 
 (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
 (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
@@ -862,13 +784,3 @@
   :config
   (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
   (age-file-enable))
-
-;; setup files ending in “.m4” to open in LaTeX-mode
-;; for use in lecture note construction
-(add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
-;; my default gnuplot extension
-(add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
-;; Octave/Matlab
-(add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
-;; Nix language
-(add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))

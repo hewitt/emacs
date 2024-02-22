@@ -6,7 +6,7 @@
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
-* Notes before we start
+* Notes/preamble
 + Originally my Emacs packages were installed by use-package using the
   ':ensure t' mechanism. As of 2022+ this is replaced in favour of a
   NixOS Home-Manager configuration. This config therefore assumes each
@@ -47,16 +47,12 @@ To convert this to "./config.el" do M-x org-babel-tangle.
     e.g. 'emacsclient -cn --alternate-editor=""'
 
 * Basic setup
-** Package archives: ELPA/MELPA
-Standard content to configure ELPA and MELPA for packages.
-
-I typically do package provision via NixOS and Home-Manager, but
+** Source locations for settings/packages
+Define where to find packages/libraries.
+*** ELPA/MELPA
+Standard content follows to configure ELPA and MELPA for packages. I
+typically do package provision via NixOS and Home-Manager, but
 sometimes an interactive interface can still be useful.
-
-Custom settings points to ~/.emacs.d/custom-settings.el. This is not
-controlled by "home-manager" in my NixOS configuration so these custom
-settings should be treated as both transient and machine specific.
-This is usually just a font choice for a given display.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (require 'package)
@@ -67,13 +63,33 @@ This is usually just a font choice for a given display.
         '(("GNU ELPA"     . 10)
           ("MELPA"        . 5 )))
   (package-initialize)
+#+END_SRC
 
-  ;; Keep custom settings in a separate file to not pollute this one
+*** Custom settings
+Custom settings points to ~/.emacs.d/custom-settings.el. This is not
+controlled by "home-manager" in my NixOS configuration so these custom
+settings should be treated as both transient and machine specific.
+This is usually just a font choice for a given display.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
   (setq custom-file "~/.emacs.d/custom-settings.el")
   (load custom-file t)
 #+END_SRC
 
-** Straight [inactive]
+*** Custom functionality
+Avoid adding too much 'functionality' code to this 'config' file.
+Anything that is overly customised is moved into its own package.
+Again this directory is linked outOfStore by home-manager.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; add a location for supporting elisp code
+  (add-to-list 'load-path "~/.emacs.d/elisp")
+#+END_SRC
+
+The load-path is already auto-configured to match the Nix locations
+for content installed by home-manager.
+
+** Straight :inactive:
 Recently a package I rely on had a problem. Rather than revert the
 package to an older version via NixOS, it was quicker to remove the
 package from the OS configuration and just switch to directly
@@ -139,103 +155,42 @@ that we update any open buffers to show the on-file current status.
 #+END_SRC
 
 * Appearance
-** Spacious padding
-Visual tweaks using Prot's 'spacious padding' code. Put before the modeline config.
+** Spacious padding :inactive:
+Visual tweaks.
+*Not currently in use, and left untangled.*
 
-#+BEGIN_SRC emacs-lisp :tangle yes
-    (use-package spacious-padding
-      :config  
-      (setq spacious-padding-widths
-            '( :internal-border-width 15
-               :header-line-width 4
-               :mode-line-width 6
-               :tab-width 2
-               :right-divider-width 30
-               :scroll-bar-width 8))
-      :init
-      (spacious-padding-mode 1) )
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package spacious-padding    
+    :config  
+    (setq spacious-padding-widths
+          '( :internal-border-width 15
+             :header-line-width 4
+             :mode-line-width 6
+             :tab-width 2
+             :right-divider-width 30
+             :scroll-bar-width 8))
+    :init
+    (spacious-padding-mode 1) )
 #+END_SRC
 
 ** Modeline
-This is a simplified home-brew modeline. Set this before calling an
-ef-theme since there is a 'ef-themes-post-load-hook' defined below.
+This is a simplified home-brew modeline with the package stored in the
+=elisp= folder. Colours are defined to match the =ef-themes= choices.
+There is a hook to =ef-themes-post-load-hook= to ensure that these are
+updated if the =ef-theme= is updated.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; Prot ef-theme modeline tweak to add box around the modeline box is
-  ;; the same colour as background, so looks like a 'fatter' mode line.
-  (defun my-ef-themes-mode-line ()
-    "Tweak the style of the mode lines."
-    (ef-themes-with-colors
-      (custom-set-faces
-       `(mode-line ((,c :background ,bg-mode-line :height 110
-                        :foreground ,fg-main :box (:line-width 4 :color ,bg-mode-line))))
-       `(mode-line-inactive ((,c :background ,bg-inactive :box (:line-width 4 :color ,bg-inactive)))))))
-  ;; hook to update the colours/style using the above function when
-  ;; theme loaded
-  (add-hook 'ef-themes-post-load-hook #'my-ef-themes-mode-line)
-
-  ;; define the line/column information -- fixed 2 character width for columbn
-  (setq mode-line-position (list "L%l C%02c"))
-
-  ;; fire symbol for unsaved buffer is selected via (C-x 8 RET)
-  (setq-default mode-line-format
-                '(
-                  (:eval (cond
-                          (ryo-modal-mode
-                           (propertize " ♌ " 'face 'error)) ;; obvious modal indicator
-                          (t
-                           (propertize " - " 'face 'shadow))))
-                  (:eval (if (buffer-modified-p)
-                             (propertize " 🔥   " 'face 'error)
-                           (propertize " -    " 'face 'shadow)
-                           )
-                         )
-                  ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
-                  (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
-                             (when (mode-line-window-selected-p) 
-                               (propertize 
-                                (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
-                                'face 'shadow)                                      
-                               ) 
-                           ) 
-                         )
-                  ;; ALWAYS show the final filename even if inactive
-                  ;; final separator is in usual font
-                  "/"
-                  ;; filename in a more obvious (warning) colour
-                  (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
-                             (propertize 
-                              (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
-                              'face 'warning)
-                           )
-                         )
-                  ;; everything after here goes on the right. This
-                  ;; doesn' work for emacs 29 ... needs emacs 30+?
-                  ;; mode-line-format-right-align
-                  (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                  ;; there is a default string for the modeline from the mu4e package
-                  (:eval (mu4e--modeline-string))
-                  (:eval (when (mode-line-window-selected-p) 
-                           (if (buffer-live-p (get-buffer "*mu4e-main*"))
-                               " 📫"
-                             " . ")))
-                  ;; show ONLY the major mode (minor modes are not shown)
-                  (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                  ;; strip "-Mode" from the end
-                  (:eval (when (mode-line-window-selected-p) 
-                           (propertize (nth 0
-                                            (split-string
-                                             (capitalize (symbol-name major-mode)) "-Mode")
-                                            )
-                                       'face 'success)
-                           )
-                         )
-                  " "
-                  (vc-mode vc-mode)
-                  (:eval (propertize "   |   " 'face 'shadow) ) ; separator
-                  mode-line-position        ; show lines and columns as specified above
-                  )
-                )
+  (use-package rh-ef-modeline
+    :init
+    (message "Use-package: rh-ef-modeline")
+    ;; use both line & column numbers
+    (setq mode-line-position (list "L%l C%c"))
+    :after ef-themes
+    ;; this hook will reset modeline colours when the ef-theme is updated
+    :hook (ef-themes-post-load . rh-ef-modeline-update)
+    :config    
+    ;; turn on the mode
+    (rh-ef-modeline-mode t))
 #+END_SRC
 
 ** Buffer management alist
@@ -285,8 +240,7 @@ Specify some specific buffer placement/appearance rules.
            (side . bottom)
            (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
            )          
-          )
-        )
+          ))
 #+END_SRC
 
 ** Theme
@@ -301,19 +255,11 @@ is machine specific given each has its own DPI settings.
     :init
     ;; Disable all other themes to avoid awkward blending
     (mapc #'disable-theme custom-enabled-themes)
-    ;; Make customisations that affect Emacs faces BEFORE loading a theme
-    ;; (any change needs a theme re-load to take effect).
-    (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light))
-    )
-
-  ;; DONT add a little bit of transparency
-  ;;(set-frame-parameter nil 'alpha-background 100)
-  ;;(add-to-list 'default-frame-alist '(alpha-background . 95))
-
+    (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
   ;; select a default theme
   (ef-themes-select 'ef-maris-dark)
-  #+END_SRC
-  
+#+END_SRC
+
 ** Rainbow-delimiters
 Colorised brackets to make matching easier.
 
@@ -321,10 +267,9 @@ Colorised brackets to make matching easier.
   (use-package rainbow-delimiters
     :init
     (message "Use-package: Rainbow delimiters")
-    :config
-    ;(rainbow-delimiters-mode)
-    (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
-    (add-hook 'latex-mode-hook 'rainbow-delimiters-mode))  
+    :hook
+    (prog-mode . rainbow-delimiters-mode)
+    (latex-mode . rainbow-delimiters-mode))
 #+END_SRC
 
 ** Which-key
@@ -341,21 +286,9 @@ Pop-up a description of key combinations after a delay.
     (which-key-mode))
 #+END_SRC
 
-
 * Mode hooks
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (defun my-display-line-numbers-hook ()
-    (display-line-numbers-mode 1))
-  ;; latex 
-  (add-hook 'latex-mode-hook 'hl-line-mode)
-  (add-hook 'latex-mode-hook 'flyspell-mode)
-  (add-hook 'latex-mode-hook 'visual-line-mode)
-  (add-hook 'latex-mode-hook 'my-display-line-numbers-hook)
-  ;; programming
-  (add-hook 'prog-mode-hook 'hl-line-mode)
-  (add-hook 'prog-mode-hook 'eglot-ensure)
-  (add-hook 'prog-mode-hook 'my-display-line-numbers-hook)
   ;; org-mode
   (add-hook 'org-mode-hook 'hl-line-mode)
   (add-hook 'org-mode-hook 'flyspell-mode)
@@ -363,7 +296,7 @@ Pop-up a description of key combinations after a delay.
 #+END_SRC
 
 * Narrowing and completion
-** Overview
+** Overview/background
 A useful overview from: https://www.reddit.com/r/emacs/comments/k3c0u7/consult_counselswiper_alternative_for/
 
 The minibuffer completion uses:
@@ -460,6 +393,7 @@ Modes that don't attempt to interoperate (and I avoid):
     ("M-g o" . consult-outline))
 
   (use-package consult-notes
+    :defer t
     :commands (consult-notes consult-notes-search-in-all-notes)
     :config
     (consult-notes-denote-mode))
@@ -470,42 +404,6 @@ Modes that don't attempt to interoperate (and I avoid):
     :init
     (message "Use-package: vertico")
     (vertico-mode))
-
-  ;; (code) completion via in-buffer pop-up choices
-  (use-package corfu
-    :init (message "Use-package: Corfu")
-    :custom
-    (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
-    (corfu-auto t)                 ;; Enable auto completion
-    ;; (corfu-separator ?\s)          ;; Orderless field separator
-    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
-    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-
-    ;; Enable Corfu only for certain modes.
-    :hook ((prog-mode . corfu-mode)
-           (latex-mode . corfu-mode)
-           (shell-mode . corfu-mode)
-           (eshell-mode . corfu-mode))
-
-    ;; Recommended: Enable Corfu globally.
-    ;; This is recommended since Dabbrev can be used globally (M-/).
-    ;; See also `global-corfu-modes' to exclude certain modes.
-    :init
-    ;;(setq tab-always-indent 'complete)
-    (global-corfu-mode)
-    (corfu-prescient-mode))
-
-  ; you might need this for emacs -nw
-  ;(use-package corfu-terminal
-  ;  :init
-  ;  (message "Use-package: corfu-terminal")
-  ;  :config
-  ;  ;; let's default to the terminal mode
-  ;  (corfu-terminal-mode))
 
   (use-package prescient
     :init
@@ -522,10 +420,7 @@ Modes that don't attempt to interoperate (and I avoid):
     :config
     (vertico-prescient-mode))
 
-  (use-package corfu-prescient
-    :init
-    (message "Use-package: corfu-prescient") )
-
+  ;; not sure I need the matching to be orderless?
   ;; (use-package orderless
   ;;  :custom (completion-styles '(orderless)))
 
@@ -559,7 +454,7 @@ Global keys to split the window AND follow by moving point to the new window.
   (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
 #+END_SRC
 
-** Tabspaces [inactive]
+** Tabspaces :inactive:
 Tabspaces groups buffers under the tab interface provided by tab-bar mode.
 
 *tried it, didn't like it*
@@ -709,7 +604,7 @@ employed by xah-fly-keys (or Evil mode too I think).
   (my/ryo-catch-tty-ESC)
 #+END_SRC
 
-** Scrolling
+** Scrolling :inactive:
 #+BEGIN_SRC emacs-lisp :tangle no
   (setq-default scroll-conservatively 20)
   ;; how close to the edge of the buffer does point get when scrolling up/down
@@ -746,7 +641,7 @@ I use Wayland (no X11), and this interacts with wl-copy.
   (setq interprogram-cut-function 'my/txt-cut-function)
 #+END_SRC
 
-** Key-chord
+** Key-chord :inactive:
 
 Keyboard shortcuts based on double pressing of low-popularity key
 combinations (e.g. 'qq'). Key-chord doesn't take account of order
@@ -787,18 +682,19 @@ combinations (e.g. 'qq'). Key-chord doesn't take account of order
 Set configuration on a per directory basis via .editorconfig.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  ;; editorconfig allows specification of tab/space/indent
+  ;; editorconfig allows local specification of tab/space/indent
+  ;; using a config file in the directory
   (use-package editorconfig
     :init
     (message "Use-package: EditorConfig")
     :config
     (editorconfig-mode 1) )
-  
+
   (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
 #+END_SRC
 
 ** Yasnippet
-Expand roots to standard text snippets with M-].
+Expand roots to standard text snippets with M-<square closing bracket>.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; location of my snippets -- has to go before yas-reload-all
@@ -831,11 +727,45 @@ Expand roots to standard text snippets with M-].
     (yas-reload-all) )
 #+END_SRC
 
-* Coding environment
+* Git 
+Show changes to most recent git status in repos.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; GIT-GUTTER: SHOW changes relative to git repo
+  (use-package git-gutter
+    :defer t
+    :init
+    (message "Use-package: Git-Gutter")
+    :hook
+    (prog-mode . git-gutter-mode)
+    (org-mode . git-gutter-mode)
+    (latex-mode . git-gutter-mode))
+#+END_SRC
+
+* LaTeX
+Hook into latex mode to set up a few simple things.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (add-hook 'latex-mode-hook 'hl-line-mode)
+  (add-hook 'latex-mode-hook 'flyspell-mode)
+  (add-hook 'latex-mode-hook 'visual-line-mode)
+  (add-hook 'latex-mode-hook 'display-line-numbers-mode)
+#+END_SRC
+
+I use "m4" to update headers/footers/dates in LaTeX files for leccture
+course material. So here we default to latex-mode for .m4 extensions
+too.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; setup files ending in “.m4” to open in LaTeX-mode
+  ;; for use in lecture note construction
+  (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+#+END_SRC
+
+* Coding/development 
 Code completion and on-the-fly check/make.
 
 - interaction with a language back-end is done via 'eglot' which is an
-  alternative to lsp-mode. The backend is currently set to 'ccls'.
+  alternative to lsp-mode. The backend is currently set to 'ccls' for C++.
 
 - To parse appropriate header files requires a 'compile_commands.json'
   file that is consistent with the local machine filesystem.
@@ -855,24 +785,65 @@ Code completion and on-the-fly check/make.
     (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
     (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
 
-  ;; GIT-GUTTER: SHOW changes relative to git repo
-  (use-package git-gutter
-    :defer t
+  ;; (code) completion via in-buffer pop-up choices
+  (use-package corfu
+    :init (message "Use-package: Corfu")
+    :custom
+    (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+    (corfu-auto t)                 ;; Enable auto completion
+    ;; (corfu-separator ?\s)          ;; Orderless field separator
+    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+    ;; Enable Corfu only for certain modes.
+    :hook ((prog-mode . corfu-mode)
+           (latex-mode . corfu-mode)
+           (shell-mode . corfu-mode)
+           (eshell-mode . corfu-mode))
+
+    ;; Recommended: Enable Corfu globally.
+    ;; This is recommended since Dabbrev can be used globally (M-/).
+    ;; See also `global-corfu-modes' to exclude certain modes.
     :init
-    (message "Use-package: Git-Gutter")
-    ;:hook
-    ;(prog-mode . git-gutter-mode)
-    ;(org-mode . git-gutter-mode)
-    )
-  ;; activate globally
-  (global-git-gutter-mode +1)
+    ;;(setq tab-always-indent 'complete)
+    (global-corfu-mode)
+    (corfu-prescient-mode))
+
+  ; you might need this for emacs -nw
+  ;(use-package corfu-terminal
+  ;  :init
+  ;  (message "Use-package: corfu-terminal")
+  ;  :config
+  ;  ;; let's default to the terminal mode
+  ;  (corfu-terminal-mode))
+
+  (use-package corfu-prescient
+    :init
+    (message "Use-package: corfu-prescient") )
 
   ;; NIX language mode
   (use-package nix-mode
     :mode "\\.nix\\'" ) 
 #+END_SRC
 
+Add the usual file extensions to drive appropriate dev modes in emacs.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; my default gnuplot extension
+  (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+  ;; Octave/Matlab
+  (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
+  ;; Nix language
+  (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
+#+END_SRC
+
 ** Remap default C++/C major modes to tree-sitter alternatives
+
+As per https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
@@ -1287,21 +1258,3 @@ standard GPG applications.
 
 #+END_SRC
 
-* Wrap up
-** Add custom file extensions to set major modes
-I use "m4" to update headers/footers/dates in LaTeX files for leccture
-course material. So here we default to latex-mode for .m4 extensions
-too. In addition ".gnu" for Gnuplot, ".m" for Octave and ".nix" for
-NixOS.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-  ;; setup files ending in “.m4” to open in LaTeX-mode
-  ;; for use in lecture note construction
-  (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
-  ;; my default gnuplot extension
-  (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
-  ;; Octave/Matlab
-  (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
-  ;; Nix language
-  (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
-#+END_SRC
