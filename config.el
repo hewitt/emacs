@@ -41,18 +41,6 @@
 
 (global-auto-revert-mode)
 
-(use-package rh-ef-modeline
-  :init
-  (message "Use-package: rh-ef-modeline")
-  ;; use both line & column numbers
-  (setq mode-line-position (list "L%l C%c"))
-  :after ef-themes
-  ;; this hook will reset modeline colours when the ef-theme is updated
-  :hook (ef-themes-post-load . rh-ef-modeline-update)
-  :config    
-  ;; turn on the mode
-  (rh-ef-modeline-mode t))
-
 (setq window-combination-resize t)
 (setq even-window-sizes 'height-only)
 ; left/right occupies full window height
@@ -98,12 +86,22 @@
          )          
         ))
 
+(use-package rh-ef-modeline
+  :init
+  (message "Use-package: rh-ef-modeline")
+  ;; use both line & column numbers
+  (setq mode-line-position (list "L%l C%c"))
+  ;; this hook will reset modeline colours when the ef-theme is updated
+  :hook (ef-themes-post-load . rh-ef-modeline-update)
+  :config    
+  ;; turn on the mode
+  (rh-ef-modeline-mode t))
+
 (use-package ef-themes
   :init
   ;; Disable all other themes to avoid awkward blending
   (mapc #'disable-theme custom-enabled-themes)
   (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
-;; select a default theme
 (ef-themes-select 'ef-maris-dark)
 
 (use-package rainbow-delimiters
@@ -632,25 +630,17 @@
 
 ;; defines mu4e exists, but holds off until needed
 (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
-
+;; add a key sequence to ryo-modal 
 (ryo-modal-keys
  ("q" (("m" mu4e))))
 
-;;
-;; GETTING new messages
-;;
 ;; how to get mail
 (setq mu4e-get-mail-command "mbsync Work"
       mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
       mu4e-mu-binary (executable-find "mu"))
 ;; auto GET every 5 mins
 (setq mu4e-update-interval 300)
-;; to stop mail draft/sent appearing in the recent files list of the dashboard add:
-;; (add-to-list 'recentf-exclude "\\mbsyncmail\\")
 
-;;
-;; READING and ORGANIZING mail
-;;
 ;; I don't sync Deleted Items & largely do permanent
 ;;  delete via "D" rather than move to trash via "d" 
 (setq mu4e-trash-folder  "/Trash") 
@@ -666,14 +656,7 @@
 ;; and for a dark background the 'mu4e' manual suggests:
 (setq shr-color-visible-luminance-min 80)
 
-;; ;; show images inline
-;;(setq mu4e-show-images t)
-;; use imagemagick, if available
-;;(when (fboundp 'imagemagick-register-types)
-;;  (imagemagick-register-types) )
-;;
-
-;; Define what headers to sho w
+;; Define what headers to show
 ;; in the headers list -- a pair of a field
 ;; and its width, with `nil' meaning 'unlimited'
 ;; best to only use nil for the last field.
@@ -700,14 +683,8 @@
          (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
          ))       
 ;; don't auto update in the headers view, wait for return to main view
-(setq mu4e-headers-auto-update nil) 
+(setq mu4e-headers-auto-update nil)
 
-;; Couple to Org -- not sure if this is strictly required or not?
-(require 'mu4e-org)
-
-;;
-;; SENDING and COMPOSING
-;;
 ;; configure for msmtp as this is easy to test from the CLI
 (setq send-mail-function 'sendmail-send-it
       sendmail-program "msmtp"
@@ -718,6 +695,11 @@
 ;; O365 uses "Sent Items" in the web interface but this
 ;; appears as just "Sent" with mbsync set to "Patterns *"
 (setq mu4e-sent-folder   "/Sent")
+;; sent messages are copied into the 'mu4e-sent-folder' defined above
+;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
+;; 2 copies in the O365 "Sent Items" folder
+(setq mu4e-sent-messages-behavior 'sent)
+
 ;; don't keep message buffers around
 (setq message-kill-buffer-on-exit t)
 ;; general emacs mail settings; used when composing e-mail
@@ -725,53 +707,34 @@
 (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
       user-mail-address "richard.hewitt@manchester.ac.uk"
       user-full-name  "Rich Hewitt")
-;; sent messages are copied into the 'mu4e-sent-folder' defined above
-;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
-;; 2 copies in the O365 "Sent Items" folder
-(setq mu4e-sent-messages-behavior 'sent)
 ;; compose signature
 (setq message-signature-file "~/CURRENT/dot.signature")
 (setq mu4e-compose-signature-auto-include t)
 ;; don't wrap at 70-something columns
-(setq mu4e-compose-format-flowed t)
+;(setq mu4e-compose-format-flowed t)
 ;; define where to put draft email
 (setq mu4e-drafts-folder "/Drafts")
 ;; spell check during compose
 (add-hook 'mu4e-compose-mode-hook
           (defun my/do-compose-stuff ()
             "My settings for message composition."
-            ;;(set-fill-column 72)
+            (set-fill-column 72)
             (flyspell-mode)
             ;; turn off autosave, otherwise we end up with multiple
             ;; versions of sent/draft mail being sync'd
             (auto-save-mode -1)))
+;; Couple to Org -- not sure if this is strictly required or not?
+;(require 'mu4e-org)
 
-(defun my/davmail-start ()
-  "Start davmail process for mu4e."
-  (interactive)
-  (if (get-process "davmail") ; look for the started process 
-      (message "[debug] davmail process already running for mu4e") ; don't start more than one davmail process
-    (let ((default-directory "~/"))
-      (start-process "davmail" "*davmail*" "~/.nix-profile/bin/davmail" "-server"))))
-
-(defun my/davmail-stop ()
-  "Stop davmain if mu4e is not active."
-  (interactive)
-  ;; check if mu4e-main buffer is present as a proxy for mu4e running
-  ;; the 'mu4e-running-p' function will only be available IF I've started mu4e
-  (if (buffer-live-p (get-buffer "*mu4e-main*"))
-      ;; mu4e IS running so DONT stop davmail
-      (message "[debug] mu4e still active, not stopping davmail process")
-    ;; mu4e is NOT running so try to kill davmail ONLY IF it is running
-    (if (process-status "davmail")
-        (kill-process "davmail"))))
-
-;; start davmail when entering mu4e
-(add-hook 'mu4e-main-mode-hook 'my/davmail-start)
-
-;; I can't find any suitable exit hooks in mu4e so a quick hack is to
-;; stop 'davmail' every 5 mins if mu4e is not active
-(run-with-timer 0 (* 5 60) 'my/davmail-stop)
+(add-to-list 'load-path "~/.emacs.d/elisp/pod")
+(use-package pod
+  :init
+  (setq pod-process-exe "~/.nix-profile/bin/davmail")
+  (setq pod-process-options "-server")
+  (setq pod-timeout-minutes 2)
+  (setq pod-continue-symbol 'mu4e-running-p)
+  :hook
+  (mu4e-main-mode . pod-process-start))
 
 (use-package age
   :demand

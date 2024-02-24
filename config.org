@@ -155,43 +155,6 @@ that we update any open buffers to show the on-file current status.
 #+END_SRC
 
 * Appearance
-** Spacious padding :inactive:
-Visual tweaks.
-*Not currently in use, and left untangled.*
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package spacious-padding    
-    :config  
-    (setq spacious-padding-widths
-          '( :internal-border-width 15
-             :header-line-width 4
-             :mode-line-width 6
-             :tab-width 2
-             :right-divider-width 30
-             :scroll-bar-width 8))
-    :init
-    (spacious-padding-mode 1) )
-#+END_SRC
-
-** Modeline
-This is a simplified home-brew modeline with the package stored in the
-=elisp= folder. Colours are defined to match the =ef-themes= choices.
-There is a hook to =ef-themes-post-load-hook= to ensure that these are
-updated if the =ef-theme= is updated.
-
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package rh-ef-modeline
-    :init
-    (message "Use-package: rh-ef-modeline")
-    ;; use both line & column numbers
-    (setq mode-line-position (list "L%l C%c"))
-    :after ef-themes
-    ;; this hook will reset modeline colours when the ef-theme is updated
-    :hook (ef-themes-post-load . rh-ef-modeline-update)
-    :config    
-    ;; turn on the mode
-    (rh-ef-modeline-mode t))
-#+END_SRC
 
 ** Buffer management alist
 Specify some specific buffer placement/appearance rules.
@@ -243,11 +206,31 @@ Specify some specific buffer placement/appearance rules.
           ))
 #+END_SRC
 
+** Modeline
+This is a simplified home-brew modeline with the package stored in the
+=elisp= folder. Colours are defined to match the =ef-themes= choices.
+There is a hook to =ef-themes-post-load-hook= to ensure that these are
+updated if the =ef-theme= is updated.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package rh-ef-modeline
+    :init
+    (message "Use-package: rh-ef-modeline")
+    ;; use both line & column numbers
+    (setq mode-line-position (list "L%l C%c"))
+    ;; this hook will reset modeline colours when the ef-theme is updated
+    :hook (ef-themes-post-load . rh-ef-modeline-update)
+    :config    
+    ;; turn on the mode
+    (rh-ef-modeline-mode t))
+#+END_SRC
+
+
 ** Theme
 I've switched to the more systematic themes from Protesilaos Stavrou,
-and most recently his 'ef-themes'.
+and most recently his =ef-themes=.
 
-Fonts: The default font is now set via 'custom-settings.el' since it
+Fonts: The default font is now set via =custom-settings.el= since it
 is machine specific given each has its own DPI settings.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -256,7 +239,6 @@ is machine specific given each has its own DPI settings.
     ;; Disable all other themes to avoid awkward blending
     (mapc #'disable-theme custom-enabled-themes)
     (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
-  ;; select a default theme
   (ef-themes-select 'ef-maris-dark)
 #+END_SRC
 
@@ -1079,35 +1061,38 @@ than trying to scribble a hadnwritten note via other methods.
 #+END_SRC
  
 * Email/mu4e
-We need the "mu" package and also the executable "mbsync" (the
-package that mbsync is in, is usually called "isync"). My existing
-workflow was broken by move to Oauth2 in O365. Now I run "davmail" as
+We need the =mu= package and also the executable =mbsync= (the
+package that =mbsync= is in, is usually called =isync=). My existing
+workflow was broken by move to Oauth2 in O365. Now I run =davmail= as
 an intermediary, with IMAP/SMTP on localhost which seems to run well.
-The "davmail" process is started as an asynchronous process under
-emacs as needed when 'mu4e' is started.
+The =davmail= process is started as an asynchronous process under
+emacs as needed when =mu4e= is started -- see =pod= section below.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; defines mu4e exists, but holds off until needed
   (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
-
+  ;; add a key sequence to ryo-modal 
   (ryo-modal-keys
    ("q" (("m" mu4e))))
+#+END_SRC
 
-  ;;
-  ;; GETTING new messages
-  ;;
+First, let's define how we get messages using the 'Work' profile set
+up in the =mbsync=/=isync= profile. We then also specify where the
+email is to be stored.
+
+#+BEGIN_SRC emacs-lisp :tangle yes  
   ;; how to get mail
   (setq mu4e-get-mail-command "mbsync Work"
         mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
         mu4e-mu-binary (executable-find "mu"))
   ;; auto GET every 5 mins
   (setq mu4e-update-interval 300)
-  ;; to stop mail draft/sent appearing in the recent files list of the dashboard add:
-  ;; (add-to-list 'recentf-exclude "\\mbsyncmail\\")
+#+END_SRC
 
-  ;;
-  ;; READING and ORGANIZING mail
-  ;;
+Now, we can define the look/feel of how email is read and organized.
+Most of this relates to the =mu4e-headers= configuration.
+
+#+BEGIN_SRC emacs-lisp :tangle yes  
   ;; I don't sync Deleted Items & largely do permanent
   ;;  delete via "D" rather than move to trash via "d" 
   (setq mu4e-trash-folder  "/Trash") 
@@ -1123,14 +1108,7 @@ emacs as needed when 'mu4e' is started.
   ;; and for a dark background the 'mu4e' manual suggests:
   (setq shr-color-visible-luminance-min 80)
 
-  ;; ;; show images inline
-  ;;(setq mu4e-show-images t)
-  ;; use imagemagick, if available
-  ;;(when (fboundp 'imagemagick-register-types)
-  ;;  (imagemagick-register-types) )
-  ;;
-
-  ;; Define what headers to sho w
+  ;; Define what headers to show
   ;; in the headers list -- a pair of a field
   ;; and its width, with `nil' meaning 'unlimited'
   ;; best to only use nil for the last field.
@@ -1159,12 +1137,16 @@ emacs as needed when 'mu4e' is started.
   ;; don't auto update in the headers view, wait for return to main view
   (setq mu4e-headers-auto-update nil) 
 
-  ;; Couple to Org -- not sure if this is strictly required or not?
-  (require 'mu4e-org)
+#+END_SRC
 
-  ;;
-  ;; SENDING and COMPOSING
-  ;;
+Now we define things related to sending email. The sendmail route is
+via =msmtp= which stores a configuration (typically) in =~/.msmtprc=.
+
+Note: if using =davmail= you probably want =~/davmail.properties= to
+contain =davmail.smtpSaveInSent=false= otherwise there may be two
+copies of sent emails.
+
+#+BEGIN_SRC emacs-lisp :tangle yes  
   ;; configure for msmtp as this is easy to test from the CLI
   (setq send-mail-function 'sendmail-send-it
         sendmail-program "msmtp"
@@ -1175,6 +1157,17 @@ emacs as needed when 'mu4e' is started.
   ;; O365 uses "Sent Items" in the web interface but this
   ;; appears as just "Sent" with mbsync set to "Patterns *"
   (setq mu4e-sent-folder   "/Sent")
+  ;; sent messages are copied into the 'mu4e-sent-folder' defined above
+  ;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
+  ;; 2 copies in the O365 "Sent Items" folder
+  (setq mu4e-sent-messages-behavior 'sent)
+#+END_SRC
+
+Finally we move on to composing emails, including default email
+addresses. In the compose window we want spell-checking enabled, hence
+the mode-hook defined below.
+
+#+BEGIN_SRC emacs-lisp :tangle yes  
   ;; don't keep message buffers around
   (setq message-kill-buffer-on-exit t)
   ;; general emacs mail settings; used when composing e-mail
@@ -1182,28 +1175,24 @@ emacs as needed when 'mu4e' is started.
   (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
         user-mail-address "richard.hewitt@manchester.ac.uk"
         user-full-name  "Rich Hewitt")
-  ;; sent messages are copied into the 'mu4e-sent-folder' defined above
-  ;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
-  ;; 2 copies in the O365 "Sent Items" folder
-  (setq mu4e-sent-messages-behavior 'sent)
   ;; compose signature
   (setq message-signature-file "~/CURRENT/dot.signature")
   (setq mu4e-compose-signature-auto-include t)
   ;; don't wrap at 70-something columns
-  (setq mu4e-compose-format-flowed t)
+  ;(setq mu4e-compose-format-flowed t)
   ;; define where to put draft email
   (setq mu4e-drafts-folder "/Drafts")
   ;; spell check during compose
   (add-hook 'mu4e-compose-mode-hook
             (defun my/do-compose-stuff ()
               "My settings for message composition."
-              ;;(set-fill-column 72)
+              (set-fill-column 72)
               (flyspell-mode)
               ;; turn off autosave, otherwise we end up with multiple
               ;; versions of sent/draft mail being sync'd
               (auto-save-mode -1)))
-
-
+  ;; Couple to Org -- not sure if this is strictly required or not?
+  ;(require 'mu4e-org)
 #+END_SRC
 
 We need some quick elisp to start 'davmail' when 'mu4e' starts in order to connect
@@ -1211,32 +1200,15 @@ to O365 with MFA. We do a bit of a hack to stop the 'davmail' process with a tim
 check every 15 minutes to see if 'mu4e' is still running or not.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (defun my/davmail-start ()
-    "Start davmail process for mu4e."
-    (interactive)
-    (if (get-process "davmail") ; look for the started process 
-        (message "[debug] davmail process already running for mu4e") ; don't start more than one davmail process
-      (let ((default-directory "~/"))
-        (start-process "davmail" "*davmail*" "~/.nix-profile/bin/davmail" "-server"))))
-
-  (defun my/davmail-stop ()
-    "Stop davmain if mu4e is not active."
-    (interactive)
-    ;; check if mu4e-main buffer is present as a proxy for mu4e running
-    ;; the 'mu4e-running-p' function will only be available IF I've started mu4e
-    (if (buffer-live-p (get-buffer "*mu4e-main*"))
-        ;; mu4e IS running so DONT stop davmail
-        (message "[debug] mu4e still active, not stopping davmail process")
-      ;; mu4e is NOT running so try to kill davmail ONLY IF it is running
-      (if (process-status "davmail")
-          (kill-process "davmail"))))
-
-  ;; start davmail when entering mu4e
-  (add-hook 'mu4e-main-mode-hook 'my/davmail-start)
-
-  ;; I can't find any suitable exit hooks in mu4e so a quick hack is to
-  ;; stop 'davmail' every 5 mins if mu4e is not active
-  (run-with-timer 0 (* 5 60) 'my/davmail-stop)
+  (add-to-list 'load-path "~/.emacs.d/elisp/pod")
+  (use-package pod
+    :init
+    (setq pod-process-exe "~/.nix-profile/bin/davmail")
+    (setq pod-process-options "-server")
+    (setq pod-timeout-minutes 2)
+    (setq pod-continue-symbol 'mu4e-running-p)
+    :hook
+    (mu4e-main-mode . pod-process-start))
 #+END_SRC
 
 * AGE encryption
@@ -1255,6 +1227,5 @@ standard GPG applications.
     :config
     (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
     (age-file-enable))
-
 #+END_SRC
 
