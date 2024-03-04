@@ -86,16 +86,16 @@
          )          
         ))
 
-(use-package rh-ef-modeline
+(use-package my-modeline
   :init
-  (message "Use-package: rh-ef-modeline")
+  (message "Use-package: my-modeline")
   ;; use both line & column numbers
   (setq mode-line-position (list "L%l C%c"))
   ;; this hook will reset modeline colours when the ef-theme is updated
-  :hook (ef-themes-post-load . rh-ef-modeline-update)
+  :hook (ef-themes-post-load . my-modeline-update)
   :config    
   ;; turn on the mode
-  (rh-ef-modeline-mode t))
+  (my-modeline-mode t))
 
 (use-package ef-themes
   :init
@@ -726,15 +726,15 @@
 ;; Couple to Org -- not sure if this is strictly required or not?
 ;(require 'mu4e-org)
 
-(add-to-list 'load-path "~/.emacs.d/elisp/pod")
+;(add-to-list 'load-path "~/.emacs.d/elisp/pod")
 (use-package pod
-  :init
-  (setq pod-process-exe "~/.nix-profile/bin/davmail")
-  (setq pod-process-options "-server")
-  (setq pod-timeout-minutes 2)
-  (setq pod-continue-symbol 'mu4e-running-p)
+  :load-path "~/.emacs.d/elisp/pod"
+  :config
+  (setq pod-process-plist '(davmail ("dav" "~/.nix-profile/bin/davmail" "-server" 2 mu4e-running-p)))
   :hook
-  (mu4e-main-mode . pod-process-start))
+  (mu4e-main-mode . (lambda() (pod-process-start 'davmail) ))
+  (mu4e-main-mode . (lambda() (ryo-global-mode -1) ))
+  )
 
 (use-package age
   :demand

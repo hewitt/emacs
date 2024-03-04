@@ -2,25 +2,19 @@
 (require 'ef-themes)
 (require 'ryo-modal)
 
-;(defgroup rh-ef-modeline nil
-;  "My slightly customise mode line."
-;  :prefix "rh-ef-modeline-"
-;  :group 'mode-line)
 
-(defvar rh-ef-modeline--default-mode-line mode-line-format
+(defvar my-modeline--default-mode-line mode-line-format
   "A copy of the previous value of `mode-line-format'.")
 
-(defun rh-ef-modeline-update ()
-  "Update style of the modeline faces to match the choice of ef-theme"
+(defun my-modeline-update ()
+  "Update style of the modeline faces to match the choice of ef-theme."
   (ef-themes-with-colors
     (custom-set-faces
      `(mode-line ((,c :background ,bg-mode-line :height 120
                       :foreground ,fg-main :box (:line-width (1 . 6) :color ,bg-mode-line))))
-     `(mode-line-inactive ((,c :background ,bg-inactive :box (:line-width (1 . 6) :color ,bg-inactive)))))))
+     `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))))
 
-
-
-;;There are four ways to specify text properties for text in the mode line:
+;; There are four ways to specify text properties for text in the mode line:
 ;;
 ;;    1. Put a string with a text property directly into the mode line
 ;;    data structure, but see The Data Structure of the Mode Line for
@@ -32,22 +26,24 @@
 ;;
 ;;    3. Use a (:propertize elt props…) construct to give elt a text
 ;;    property specified by props.
-;;;
+;;
 ;;    4. Use a list containing :eval form in the mode line data
 ;;    structure, and make form evaluate to a string that has a text
 ;;    property.
 ;;
-(setq-default rh-ef-modeline-format
+(setq-default my-modeline-format
               '(
+		" "
                 (:eval (cond
                         (ryo-modal-mode
-                         (propertize " ♌ " 'face 'error)) ;; obvious modal indicator
+                         (propertize "♌" 'face 'error)) ;; obvious modal indicator
                         (t
-                         (propertize " - " 'face 'shadow))))
+                         (propertize "-" 'face 'shadow))))
+		" "
 		;; e.g. fire symbol below for unsaved buffer is selected via (C-x 8 RET)
                 (:eval (if (buffer-modified-p)
-                           (propertize " 🔥   " 'face 'error)
-                         (propertize " -    " 'face 'shadow)
+                           (propertize "🔥" 'face 'error)
+                         (propertize "-" 'face 'shadow)
                          )
                        )
                 ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
@@ -72,18 +68,15 @@
                 ;; everything after here goes on the right. This
                 ;; doesn' work for emacs 29 ... needs emacs 30+?
                 ;; mode-line-format-right-align
-                (:eval (propertize "  |  " 'face 'shadow) ) ; separator
+                (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; there is a default string for the modeline from the mu4e package
                 (:eval (mu4e--modeline-string))
                 (:eval (when (mode-line-window-selected-p) 
-                         (if (buffer-live-p (get-buffer "*mu4e-main*"))
-                             " 📫"
-                           " . ")))
-		( " foo " )
-		(:eval (when (pod-process-running-p)
-			 " 📨 "))
+			 (if (mu4e-running-p)
+                             "📫"
+                           ".")))
                 ;; show ONLY the major mode (minor modes are not shown)
-                (:eval (propertize "  |  " 'face 'shadow) ) ; separator
+                (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; strip "-Mode" from the end
                 (:eval (when (mode-line-window-selected-p) 
                          (propertize (nth 0
@@ -95,23 +88,23 @@
                        )
                 " "
                 (vc-mode vc-mode)
-                (:eval (propertize "  |  " 'face 'shadow) ) ; separator
+                (:eval (propertize " | " 'face 'shadow) ) ; separator
                 mode-line-position        ; show lines and columns as specified above
                 )
               )
 
-(define-minor-mode rh-ef-modeline-mode
+(define-minor-mode my-modeline-mode
   "Minor mode to set the mode line."
   :init-value nil
   :keymap nil
-  :lighter "rh-ef-modeline"
+  :lighter "my-modeline"
   :global t
-  (if rh-ef-modeline-mode
+  (if my-modeline-mode
       (progn
         ;; Set the new mode-line-format
-        (setq-default mode-line-format rh-ef-modeline-format))
+        (setq-default mode-line-format my-modeline-format))
     (progn
       ;; Restore the original mode-line format
-      (setq-default mode-line-format rh-ef-modeline--default-mode-line))))
+      (setq-default mode-line-format my-modeline--default-mode-line))))
 
-(provide 'rh-ef-modeline)
+(provide 'my-modeline)
