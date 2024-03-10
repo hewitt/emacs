@@ -1,7 +1,5 @@
 ;; makes use of ef-theme colours in the modeline
 (require 'ef-themes)
-(require 'ryo-modal)
-
 
 (defvar my-modeline--default-mode-line mode-line-format
   "A copy of the previous value of `mode-line-format'.")
@@ -33,17 +31,11 @@
 ;;
 (setq-default my-modeline-format
               '(
-		" "
-                (:eval (cond
-                        (ryo-modal-mode
-                         (propertize "♌" 'face 'error)) ;; obvious modal indicator
-                        (t
-                         (propertize "-" 'face 'shadow))))
-		" "
+		"%e" mode-line-front-space
 		;; e.g. fire symbol below for unsaved buffer is selected via (C-x 8 RET)
                 (:eval (if (buffer-modified-p)
-                           (propertize "🔥" 'face 'error)
-                         (propertize "-" 'face 'shadow)
+                           (propertize "🔥 " 'face 'error)
+                         (propertize "- " 'face 'shadow)
                          )
                        )
                 ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
@@ -71,10 +63,6 @@
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; there is a default string for the modeline from the mu4e package
                 (:eval (mu4e--modeline-string))
-                (:eval (when (mode-line-window-selected-p) 
-			 (if (mu4e-running-p)
-                             "📫"
-                           ".")))
                 ;; show ONLY the major mode (minor modes are not shown)
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; strip "-Mode" from the end

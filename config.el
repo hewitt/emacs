@@ -19,15 +19,6 @@
 ;;(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
 ;; don't show the default startup screen
 (setq inhibit-startup-screen t)
-;; have mouse input in the terminal -- the disadvantage is you
-;; need to SHIFT+middle mouse to paste in the terminal
-(xterm-mouse-mode 1)
-;; Turn off the menu/scroll/toolbar
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
-;; replace annoying yes/no with y/n
-(fset 'yes-or-no-p 'y-or-n-p)
 ;; don't end sentences with a double space
 (setq sentence-end-double-space nil)
 ;; the frequency of garbage collection
@@ -39,52 +30,19 @@
 ;; always follow the symlink
 (setq vc-follow-symlinks t)
 
+;; keep track of recently opened files
+(recentf-mode 1)
+;; have mouse input in the terminal -- the disadvantage is you
+;; need to SHIFT+middle mouse to paste in the terminal
+(xterm-mouse-mode 1)
+;; Turn off the menu/scroll/toolbar
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
+;; replace annoying yes/no with y/n
+(fset 'yes-or-no-p 'y-or-n-p)
+
 (global-auto-revert-mode)
-
-(setq window-combination-resize t)
-(setq even-window-sizes 'height-only)
-; left/right occupies full window height
-(setq window-sides-vertical t)                    
-; pop new window if switching buffers from dedicated
-(setq switch-to-buffer-in-dedicated-window 'pop)  
-(setq split-height-threshold 80)
-(setq split-width-threshold 120)
-(setq window-min-height 5)
-(setq window-min-width 90)
-
-;;(setq display-buffer-alist 'nil) ; to remove all preferences
-(setq display-buffer-alist
-      `(
-        ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
-         (display-buffer-reuse-mode-window
-          display-buffer-below-selected)
-         (window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
-         )
-        ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
-         (display-buffer-in-side-window)
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         (side . right)                                     ; put it on the right side
-         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
-         )	
-        ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
-         (display-buffer-in-side-window)
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         (window-width . 120)
-         (side . right)                                     ; put it on the right side
-         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
-         )	
-        ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
-         (display-buffer-reuse-mode-window)                 ; don't always open a new window
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
-         )
-        ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
-         (display-buffer-in-side-window)
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         (side . bottom)
-         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
-         )          
-        ))
 
 (use-package my-modeline
   :init
@@ -104,6 +62,11 @@
   (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
 (ef-themes-select 'ef-maris-dark)
 
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'org-mode-hook 'display-line-numbers-mode)
+(add-hook 'latex-mode-hook 'display-line-numbers-mode)
+(setq display-line-numbers-type 'relative)
+
 (use-package rainbow-delimiters
   :init
   (message "Use-package: Rainbow delimiters")
@@ -120,16 +83,11 @@
   (which-key-setup-minibuffer)       ; use the minibuffer to show help
   (which-key-mode))
 
-;; org-mode
-(add-hook 'org-mode-hook 'hl-line-mode)
-(add-hook 'org-mode-hook 'flyspell-mode)
-(add-hook 'org-mode-hook 'visual-line-mode)
-
 (use-package consult
   :init
   (message "Use-package: consult")
   :bind
-  ;; some standard emacs-chord bindings -- but see also RYO modal section.
+  ;; some standard emacs-chord bindings -- but see also evil section.
   ("C-x b" . consult-buffer)
   ("M-g g" . consult-goto-line)
   ("M-y"   . consult-yank-pop)
@@ -165,9 +123,8 @@
   :config
   (vertico-prescient-mode))
 
-;; not sure I need the matching to be orderless?
-;; (use-package orderless
-;;  :custom (completion-styles '(orderless)))
+(use-package orderless
+  :custom (completion-styles '(orderless)))
 
 (use-package marginalia
   :after vertico
@@ -176,6 +133,52 @@
   :init
   (message "Use-package: marginalia")
   (marginalia-mode))
+
+(setq window-combination-resize t)
+(setq even-window-sizes 'height-only)
+; left/right occupies full window height
+(setq window-sides-vertical t)                    
+; pop new window if switching buffers from dedicated
+(setq switch-to-buffer-in-dedicated-window 'pop)  
+(setq split-height-threshold 80)
+(setq split-width-threshold 120)
+(setq window-min-height 5)
+(setq window-min-width 90)
+
+;;(setq display-buffer-alist 'nil) ; to remove all preferences
+(setq display-buffer-alist
+      `(
+        ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
+         (display-buffer-reuse-mode-window
+          display-buffer-below-selected)
+         (window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
+         )
+        ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
+         (display-buffer-in-side-window)
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         (window-width . 120)
+         (side . right)                                     ; put it on the right side
+         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )	
+        ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
+         (display-buffer-in-side-window)
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         (window-width . 120)
+         (side . right)                                     ; put it on the right side
+         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )	
+        ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
+         (display-buffer-reuse-mode-window)                 ; don't always open a new window
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )
+        ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
+         (display-buffer-in-side-window)
+         (dedicated . t)                                    ; don't reuse this buffer for other things
+         (side . bottom)
+         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         )          
+        ))
 
 ;; move focus when splitting a window
 (defun my/split-and-follow-horizontally ()
@@ -202,106 +205,61 @@
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 
-;; I want the modal change to apply to all buffers not on
-;; a per-buffer basis.
-(define-global-minor-mode ryo-global-mode ryo-modal-mode
-  (lambda () ; only if not already active
-    (unless (minibufferp)
-      (ryo-modal-mode 1))))
-
-(use-package ryo-modal
-  :commands ryo-modal-mode
-  :bind ("<escape>" . ryo-global-mode)
-  :after org 
+(use-package general
   :config
-  (ryo-modal-keys
-   ;; vi like
-   ("."  ryo-modal-repeat)
-   ("/"  consult-line)
-   ("i"  ryo-modal-mode)
-   ;; navigation
-   ("h"  backward-char)
-   ("j"  next-line)
-   ("k"  previous-line)
-   ("l"  forward-char)
-   ("H"  left-word)
-   ("J"  forward-paragraph)
-   ("K"  backward-paragraph)
-   ("L"  right-word)
-   ;; edt
-   ("a" beginning-of-line)
-   ("e" end-of-line)
-   ("K" kill-line)     
-   ;; tab-bar
-   ("n"  tab-next)
-   ("p"  tab-previous)
-   ;; list buffers
-   ("b"  consult-buffer) 
-   ;; jump to line
-   ("g"  consult-goto-line)
-   ;; recall clipboard content
-   ("Y"  consult-yank-pop)     
-   ("y"  yank)
-   ("w"  kill-region)
-   ("W"  copy-region-as-kill)
-   ;; abbreviated emacs
-   ("x" (("s" save-buffer)
-         ("f" find-file)
-         ("o" other-window)
-         ("c" save-buffers-kill-terminal)
-         ("e" eval-last-sexp)
-         ("0" delete-window)
-         ("1" delete-other-windows)
-         ("2" my/split-and-follow-horizontally)
-         ("3" my/split-and-follow-vertically)))
-   ("q" (("a" org-agenda)
-         ("d" org-journal-new-entry)
-         ("e" my/config-visit)
-         ;;("m" mu4e) ; set later after mu4e in mu4e specification section
-         ("s" consult-notes-search-in-all-notes)
-         ("t" my/todo-visit)
-         ("T" org-babel-tangle)
-         ("c" org-capture)))
-   ;; sugar
-   ("["  previous-buffer)
-   ("]"  next-buffer)
-   )
+  (general-evil-setup t)
 
-  (ryo-modal-keys
-   ;; First argument to ryo-modal-keys may be a list of keywords.
-   ;; These keywords will be applied to all keybindings.
-   (:norepeat t)
-   ("0" "M-0")
-   ("1" "M-1")
-   ("2" "M-2")
-   ("3" "M-3")
-   ("4" "M-4")
-   ("5" "M-5")
-   ("6" "M-6")
-   ("7" "M-7")
-   ("8" "M-8")
-   ("9" "M-9"))
-  ) ; END ryo-modal, not ryo-modal-keys
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC"))
 
-(defvar my/ryo-fast-keyseq-timeout 200)
+(my/leader-keys
+  "q"  '(:ignore t :which-key "quick")
+  "qa" '(org-agenda                       :which-key "agenda")
+  "qT" '(org-babel-tangle                 :which-key "tangle")
+  "qt" '(my/todo-visit                    :which-key "to-do")
+  "qe" '(my/config-visit                  :which-key "config")
+  "qs" '(consult-notes-search-in-all-notes :which-key "search notes")
+  "qc" '(org-capture                      :which-key "capture")
+  "qd" '(org-journal-new-entry            :which-key "journal" )
+  "qm" '(mu4e                             :which-key "mu4e")
+  "x"  '(:ignore t :which-key "windows")
+  "xo" '(other-window                     :which-key "other")
+  "x0" '(delete-window                    :which-key "del-this")
+  "x1" '(delete-other-windows             :which-key "del-others")
+  "x2" '(my/split-and-follow-horizontally :which-key "h-split")
+  "x3" '(my/split-and-follow-vertically   :which-key "v-split")
+  ;; no prefix for the most commonly used things
+  "s"  '(save-buffer                      :which-key "save")
+  "f"  '(find-file                        :which-key "file")
+  "o"  '(other-window                     :which-key "other-window")
+  "b"  '(consult-buffer                   :which-key "buffers"))
 
-(defun my/ryo-tty-ESC-filter (map)
-  (if (and (equal (this-single-command-keys) [?\e])
-           (sit-for (/ my/ryo-fast-keyseq-timeout 1000.0)))
-      [escape] map))
+(use-package evil
+  :init
+  (setq evil-want-keybinding nil)
+  ;; put the indicator at the left of the mode line
+  (setq evil-mode-line-format '(before . mode-line-front-space))
+  ;; associate cursor colour with evil state ... red is Normal
+  ;; doesn't work in terminal mode I think.
+  (setq evil-default-cursor (quote (t "#ffffff"))
+    evil-visual-state-cursor '("green" box)
+    evil-normal-state-cursor '("red" box)
+    evil-insert-state-cursor '("yellow" box))
+  ;; match normal tag to red colour of the cursor
+  (setq evil-normal-state-tag   (propertize " <N> " 'face '((:foreground "red"))))
+  :config
+  (evil-mode 1)
 
-(defun my/ryo-lookup-key (map key)
-  (catch 'found
-    (map-keymap (lambda (k b) (if (equal key k) (throw 'found b))) map)))
+  ;; Use visual line motions even outside of visual-line-mode buffers
+  (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+  (evil-global-set-key 'motion "k" 'evil-previous-visual-line))
 
-(defun my/ryo-catch-tty-ESC ()
-  "Setup key mappings of current terminal to turn a tty's ESC into `escape'."
-  (when (memq (terminal-live-p (frame-terminal)) '(t pc))
-    (let ((esc-binding (my/ryo-lookup-key input-decode-map ?\e)))
-      (define-key input-decode-map
-        [?\e] `(menu-item "" ,esc-binding :filter my/ryo-tty-ESC-filter)))))
-
-(my/ryo-catch-tty-ESC)
+(use-package evil-collection
+  :after evil
+  :config
+  (evil-collection-init))
 
 ;; - cut and paste in Wayland environment
 ;; - this puts selected text into the Wayland clipboard
@@ -362,15 +320,6 @@
   (org-mode . git-gutter-mode)
   (latex-mode . git-gutter-mode))
 
-(add-hook 'latex-mode-hook 'hl-line-mode)
-(add-hook 'latex-mode-hook 'flyspell-mode)
-(add-hook 'latex-mode-hook 'visual-line-mode)
-(add-hook 'latex-mode-hook 'display-line-numbers-mode)
-
-;; setup files ending in “.m4” to open in LaTeX-mode
-;; for use in lecture note construction
-(add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
-
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
   :init
@@ -419,7 +368,7 @@
 
 (use-package corfu-prescient
   :init
-  (message "Use-package: corfu-prescient") )
+  (message "Use-package: corfu-prescient"))
 
 ;; NIX language mode
 (use-package nix-mode
@@ -444,7 +393,7 @@
   :bind
   ("C-x g" . magit-status)
   :init
-  (message "Use-package: Magit installed") )
+  (message "Use-package: Magit installed"))
 
 (use-package org
   :init
@@ -580,26 +529,6 @@
 
 (add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
 
-;; Denote does not define any key bindings.  This is for the user to
-;; decide.  For example:
-;(let ((map global-map))
-;  (define-key map (kbd "C-c n n") #'denote)
-;  (define-key map (kbd "C-c n N") #'denote-type)
-;  (define-key map (kbd "C-c n d") #'denote-date)
-;  (define-key map (kbd "C-c n s") #'denote-subdirectory)
-;  ;; If you intend to use Denote with a variety of file types, it is
-;  ;; easier to bind the link-related commands to the `global-map', as
-;  ;; shown here.  Otherwise follow the same pattern for `org-mode-map',
-;  ;; `markdown-mode-map', and/or `text-mode-map'.
-;  (define-key map (kbd "C-c n i") #'denote-link) ; "insert" mnemonic
-;  (define-key map (kbd "C-c n I") #'denote-link-add-links)
-;  (define-key map (kbd "C-c n l") #'denote-link-find-file) ; "list" links
-;  (define-key map (kbd "C-c n b") #'denote-link-backlinks)
-;  ;; Note that `denote-dired-rename-file' can work from any context, not
-;  ;; just Dired bufffers.  That is why we bind it here to the
-;  ;; `global-map'.
-;  (define-key map (kbd "C-c n r") #'denote-dired-rename-file))
-
 (with-eval-after-load 'org-capture    
   (setq denote-org-capture-specifiers "%l\n%i\n%?")
   (add-to-list 'org-capture-templates
@@ -621,18 +550,29 @@
         org-journal-file-format "%Y_%m_%d"
         org-journal-time-prefix "  - "
         org-journal-time-format nil
-        org-journal-file-type 'monthly)  )
+        org-journal-file-type 'monthly))
+
+;; org-mode
+(add-hook 'org-mode-hook 'hl-line-mode)
+(add-hook 'org-mode-hook 'flyspell-mode)
+(add-hook 'org-mode-hook 'visual-line-mode)
+
+(add-hook 'latex-mode-hook 'hl-line-mode)
+(add-hook 'latex-mode-hook 'flyspell-mode)
+(add-hook 'latex-mode-hook 'visual-line-mode)
+(add-hook 'latex-mode-hook 'display-line-numbers-mode)
+
+;; setup files ending in “.m4” to open in LaTeX-mode
+;; for use in lecture note construction
+(add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
 
 ;; pdf tools for organising and annotating PDF
 (use-package pdf-tools
   :config
-  (pdf-tools-install) )
+  (pdf-tools-install))
 
 ;; defines mu4e exists, but holds off until needed
 (autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
-;; add a key sequence to ryo-modal 
-(ryo-modal-keys
- ("q" (("m" mu4e))))
 
 ;; how to get mail
 (setq mu4e-get-mail-command "mbsync Work"
@@ -732,9 +672,7 @@
   :config
   (setq pod-process-plist '(davmail ("dav" "~/.nix-profile/bin/davmail" "-server" 2 mu4e-running-p)))
   :hook
-  (mu4e-main-mode . (lambda() (pod-process-start 'davmail) ))
-  (mu4e-main-mode . (lambda() (ryo-global-mode -1) ))
-  )
+  (mu4e-main-mode . (lambda() (pod-process-start 'davmail) )))
 
 (use-package age
   :demand
