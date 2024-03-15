@@ -151,21 +151,21 @@
         ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
          (display-buffer-reuse-mode-window
           display-buffer-below-selected)
-         (window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
+         ;(window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
          )
         ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
          (window-width . 120)
          (side . right)                                     ; put it on the right side
-         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )	
         ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
          (window-width . 120)
          (side . right)                                     ; put it on the right side
-         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )	
         ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
          (display-buffer-reuse-mode-window)                 ; don't always open a new window
@@ -176,7 +176,7 @@
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
          (side . bottom)
-         (window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )          
         ))
 
@@ -232,8 +232,9 @@
   "x3" '(my/split-and-follow-vertically   :which-key "v-split")
   ;; no prefix for the most commonly used things
   "s"  '(save-buffer                      :which-key "save")
+  "l"  '(consult-line                     :which-key "consult-line")
   "f"  '(find-file                        :which-key "file")
-  "o"  '(other-window                     :which-key "other-window")
+  "k"  '(kill-buffer                      :which-key "kill")
   "b"  '(consult-buffer                   :which-key "buffers"))
 
 (use-package evil
@@ -243,10 +244,10 @@
   (setq evil-mode-line-format '(before . mode-line-front-space))
   ;; associate cursor colour with evil state ... red is Normal
   ;; doesn't work in terminal mode I think.
-  (setq evil-default-cursor (quote (t "#ffffff"))
-    evil-visual-state-cursor '("green" box)
-    evil-normal-state-cursor '("red" box)
-    evil-insert-state-cursor '("yellow" box))
+  ;:(setq evil-default-cursor (quote (t "#ffffff"))
+  ;  evil-visual-state-cursor '("green" box)
+  ;  evil-normal-state-cursor '("red" box)
+  ;  evil-insert-state-cursor '("yellow" box))
   ;; match normal tag to red colour of the cursor
   (setq evil-normal-state-tag   (propertize " <N> " 'face '((:foreground "red"))))
   :config
@@ -666,13 +667,17 @@
 ;; Couple to Org -- not sure if this is strictly required or not?
 ;(require 'mu4e-org)
 
-;(add-to-list 'load-path "~/.emacs.d/elisp/pod")
+;;(add-to-list 'load-path "~/.emacs.d/elisp/pod")
 (use-package pod
   :load-path "~/.emacs.d/elisp/pod"
   :config
-  (setq pod-process-plist '(davmail ("dav" "~/.nix-profile/bin/davmail" "-server" 2 mu4e-running-p)))
+  (setq pod-process-plist '(davmail (:name "dav"
+                                      :exe  "~/.nix-profile/bin/davmail"
+                                      :args "-server"
+                                      :mins 2
+                                      :pred mu4e-running-p)))
   :hook
-  (mu4e-main-mode . (lambda() (pod-process-start 'davmail) )))
+  (mu4e-main-mode . (lambda() (pod-process-start 'davmail))) )
 
 (use-package age
   :demand
