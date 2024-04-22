@@ -62,7 +62,8 @@
                 ;; mode-line-format-right-align
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; there is a default string for the modeline from the mu4e package
-                (:eval (mu4e--modeline-string))
+                (:eval (if (mu4e-modeline-mode)
+			   mu4e--modeline-string))
                 ;; show ONLY the major mode (minor modes are not shown)
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; strip "-Mode" from the end

@@ -1,3 +1,5 @@
+(setq-default untrusted-content t)
+
 (require 'package)
 (setq package-archives
       '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
@@ -44,16 +46,73 @@
 
 (global-auto-revert-mode)
 
-(use-package my-modeline
-  :init
-  (message "Use-package: my-modeline")
-  ;; use both line & column numbers
-  (setq mode-line-position (list "L%l C%c"))
-  ;; this hook will reset modeline colours when the ef-theme is updated
-  :hook (ef-themes-post-load . my-modeline-update)
-  :config    
-  ;; turn on the mode
-  (my-modeline-mode t))
+;; use both line & column numbers
+(setq mode-line-position (list "L%l C%c"))
+;; this gets hooked later to update modeline colours when the theme is changed
+(defun my-modeline-update ()
+  "Update style of the modeline faces to match the choice of ef-theme."
+  (ef-themes-with-colors
+    (custom-set-faces
+     `(mode-line ((,c :background ,bg-mode-line :height 120
+                      :foreground ,fg-main :box (:line-width (1 . 6) :color ,bg-mode-line))))
+     `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))))
+
+(setq-default my-modeline-format
+              '(
+                "%e" mode-line-front-space
+                ;; e.g. fire symbol below for unsaved buffer is selected via (C-x 8 RET)
+                (:eval (if (buffer-modified-p)
+                           (propertize "🔥 " 'face 'error)
+                         (propertize "- " 'face 'shadow)
+                         )
+                       )
+                ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
+                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
+                           (when (mode-line-window-selected-p) 
+                             (propertize 
+                              (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
+                              'face 'shadow)                                      
+                             ) 
+                         ) 
+                       )
+                ;; ALWAYS show the final filename even if inactive
+                ;; final separator is in usual font
+                "/"
+                ;; filename in a more obvious (warning) colour
+                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
+                           (propertize 
+                            (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
+                            'face 'warning)
+                         )
+                       )
+                ;; everything after here goes on the right. This
+                ;; doesn' work for emacs 29 ... needs emacs 30+?
+                ;; mode-line-format-right-align
+                (:eval (propertize " | " 'face 'shadow) ) ; separator
+                ;; there is a default string for the modeline from the mu4e package
+                (:eval (propertize (mu4e--modeline-string) 'face 'shadow))
+                ;; show ONLY the major mode (minor modes are not shown)
+                (:eval (propertize " | " 'face 'shadow) ) ; separator
+                ;; strip "-Mode" from the end
+                (:eval (when (mode-line-window-selected-p) 
+                         (propertize (nth 0
+                                          (split-string
+                                           (capitalize (symbol-name major-mode)) "-Mode")
+                                          )
+                                     'face 'success)
+                         )
+                       )
+                " "
+                (vc-mode vc-mode)
+                (:eval (propertize " | " 'face 'shadow) ) ; separator
+                mode-line-position        ; show lines and columns as specified above
+                )
+              )
+
+;; make the above definition the mode-line
+(setq-default mode-line-format my-modeline-format)
+;; apply the hook to keep modeline colours up to date with current theme
+(add-hook 'ef-themes-post-load-hook #'my-modeline-update)
 
 (use-package ef-themes
   :init
@@ -82,6 +141,68 @@
   (setq max-mini-window-height 0.25) ; don't show bigger than 1/4 of the frame height
   (which-key-setup-minibuffer)       ; use the minibuffer to show help
   (which-key-mode))
+
+(require 'fontaine)
+
+(setq fontaine-latest-state-file
+      (locate-user-emacs-file "fontaine-latest-state.eld"))
+
+(setq fontaine-presets
+      '((bitmap
+         :default-family "envypn"
+         :default-weight regular
+         :default-height 113
+         :fixed-pitch-family nil
+         :fixed-pitch-weight nil ; falls back to :default-weight
+         :fixed-pitch-height 1.0
+         :variable-pitch-family nil
+         :variable-pitch-weight normal
+         :variable-pitch-height 1.0
+         :bold-family nil ; use whatever the underlying face has
+         :bold-weight bold
+         :italic-family nil
+         :italic-slant italic
+         :line-spacing 1)
+        (iosevka
+         :default-family "Iosevka"
+         :default-weight normal
+         :default-height 120
+         :fixed-pitch-family nil ; falls back to :default-family
+         :fixed-pitch-weight nil ; falls back to :default-weight
+         :fixed-pitch-height 1.0
+         :variable-pitch-family nil
+         :variable-pitch-weight normal
+         :variable-pitch-height 1.0
+         :bold-family nil ; use whatever the underlying face has
+         :bold-weight bold
+         :italic-family nil ; use whatever the underlying face has
+         :italic-slant italic
+         :line-spacing 1)
+        (terminus
+         :default-family "Terminus"
+         :default-weight normal
+         :default-height 150
+         :fixed-pitch-family nil ; falls back to :default-family
+         :fixed-pitch-weight nil ; falls back to :default-weight
+         :fixed-pitch-height 1.0
+         :variable-pitch-family nil
+         :variable-pitch-weight normal
+         :variable-pitch-height 1.0
+         :bold-family nil ; use whatever the underlying face has
+         :bold-weight bold
+         :italic-family nil ; use whatever the underlying face has
+         :italic-slant italic
+         :line-spacing 1)))
+
+;; Persist the latest font preset when closing/starting Emacs and
+;; while switching between themes.
+                                        ;(fontaine-mode 1)
+
+;; fontaine does not define any key bindings.  This is just a sample that
+;; respects the key binding conventions.  Evaluate:
+;;
+;;     (info "(elisp) Key Binding Conventions")
+(define-key global-map (kbd "C-c f") #'fontaine-set-preset)
 
 (use-package consult
   :init
@@ -136,9 +257,9 @@
 
 (setq window-combination-resize t)
 (setq even-window-sizes 'height-only)
-; left/right occupies full window height
+                                        ; left/right occupies full window height
 (setq window-sides-vertical t)                    
-; pop new window if switching buffers from dedicated
+                                        ; pop new window if switching buffers from dedicated
 (setq switch-to-buffer-in-dedicated-window 'pop)  
 (setq split-height-threshold 80)
 (setq split-width-threshold 120)
@@ -151,32 +272,35 @@
         ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
          (display-buffer-reuse-mode-window
           display-buffer-below-selected)
-         ;(window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
+                                        ;(window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
          )
         ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
          (window-width . 120)
          (side . right)                                     ; put it on the right side
-         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+                                        ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )	
         ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
          (window-width . 120)
          (side . right)                                     ; put it on the right side
-         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+                                        ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )	
-        ("\\*mu4e.*\\*"                                     ; other mu4e stuff remains dedicated
+        ((or (derived-mode . mu4e-headers-mode)
+             (derived-mode . mu4e-main-mode ))              ; other mu4e stuff remains dedicated
          (display-buffer-reuse-mode-window)                 ; don't always open a new window
          (dedicated . t)                                    ; don't reuse this buffer for other things
          ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )
+        ((derived-mode . pdf-view-mode)
+         (display-buffer-in-side-window))
         ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
          (display-buffer-in-side-window)
          (dedicated . t)                                    ; don't reuse this buffer for other things
          (side . bottom)
-         ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
          )          
         ))
 
@@ -195,60 +319,61 @@
   (other-window 1))
 (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
 
-;; edit the init.el configuration file
+;; short-cut to edit the init.el configuration file
 (defun my/config-visit ()
   (interactive)
   (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
 
-;; edit the init.el configuration file
+;; short-cut to edit the init.el configuration file
 (defun my/todo-visit ()
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 
-(use-package general
+(use-package  general
   :config
   (general-evil-setup t)
 
   (general-create-definer my/leader-keys
     :keymaps '(normal insert visual emacs)
     :prefix "SPC"
-    :global-prefix "C-SPC"))
+    :global-prefix "C-SPC"
+    )) 
 
-(my/leader-keys
-  "q"  '(:ignore t :which-key "quick")
-  "qa" '(org-agenda                       :which-key "agenda")
-  "qT" '(org-babel-tangle                 :which-key "tangle")
-  "qt" '(my/todo-visit                    :which-key "to-do")
-  "qe" '(my/config-visit                  :which-key "config")
-  "qs" '(consult-notes-search-in-all-notes :which-key "search notes")
-  "qc" '(org-capture                      :which-key "capture")
-  "qd" '(org-journal-new-entry            :which-key "journal" )
-  "qm" '(mu4e                             :which-key "mu4e")
-  "x"  '(:ignore t :which-key "windows")
-  "xo" '(other-window                     :which-key "other")
-  "x0" '(delete-window                    :which-key "del-this")
-  "x1" '(delete-other-windows             :which-key "del-others")
-  "x2" '(my/split-and-follow-horizontally :which-key "h-split")
-  "x3" '(my/split-and-follow-vertically   :which-key "v-split")
-  ;; no prefix for the most commonly used things
-  "s"  '(save-buffer                      :which-key "save")
-  "l"  '(consult-line                     :which-key "consult-line")
-  "f"  '(find-file                        :which-key "file")
-  "k"  '(kill-buffer                      :which-key "kill")
-  "b"  '(consult-buffer                   :which-key "buffers"))
+  (my/leader-keys
+    "q"  '(:ignore t :which-key "quick")
+    "qa" '(org-agenda                       :which-key "agenda")
+    "qc" '(org-capture                      :which-key "capture")
+    "qd" '(org-journal-new-entry            :which-key "journal" )
+    "qe" '(my/config-visit                  :which-key "config")
+    "qm" '(mu4e                             :which-key "mu4e")
+    "qs" '(consult-notes-search-in-all-notes :which-key "search notes")
+    "qt" '(my/todo-visit                    :which-key "to-do")
+    "qT" '(org-babel-tangle                 :which-key "tangle")
+    "q+" '(text-scale-adjust                :which-key "font scale")
+    ;; mirror some emacs-chord definitions for window management
+    "x"  '(:ignore t :which-key "windows")
+    "xo" '(other-window                     :which-key "other")
+    "x0" '(delete-window                    :which-key "del-this")
+    "x1" '(delete-other-windows             :which-key "del-others")
+    "x2" '(my/split-and-follow-horizontally :which-key "h-split")
+    "x3" '(my/split-and-follow-vertically   :which-key "v-split")
+    "xt" '(transpose-frame                  :which-key "transpose")
+    ;; no prefix for the most commonly used things
+    "b"  '(consult-buffer                   :which-key "buffers")
+    "k"  '(kill-buffer                      :which-key "kill-buffer")
+    )
 
 (use-package evil
   :init
+  (setq evil-want-integration t)
+  (setq evil-want-C-u-scroll t)
+  (setq evil-want-C-i-jump nil)
   (setq evil-want-keybinding nil)
+  (setq evil-want-fine-undo t)
+  (setq evil-undo-system 'undo-redo)
   ;; put the indicator at the left of the mode line
   (setq evil-mode-line-format '(before . mode-line-front-space))
-  ;; associate cursor colour with evil state ... red is Normal
-  ;; doesn't work in terminal mode I think.
-  ;:(setq evil-default-cursor (quote (t "#ffffff"))
-  ;  evil-visual-state-cursor '("green" box)
-  ;  evil-normal-state-cursor '("red" box)
-  ;  evil-insert-state-cursor '("yellow" box))
-  ;; match normal tag to red colour of the cursor
+  ;; make normal tag a red colour in the modeline
   (setq evil-normal-state-tag   (propertize " <N> " 'face '((:foreground "red"))))
   :config
   (evil-mode 1)
@@ -311,6 +436,8 @@
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all) )
 
+(require 'transpose-frame)
+
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
   :defer t
@@ -321,15 +448,45 @@
   (org-mode . git-gutter-mode)
   (latex-mode . git-gutter-mode))
 
+(add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
+(add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
+(add-to-list 'major-mode-remap-alist '(c-or-c++-mode . c-or-c++-ts-mode))
+(add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
+;; maximum level of highlighting
+(setq treesit-font-lock-level 4)
+
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
   :init
   (message "Use-package: Eglot")
-  (add-hook 'c++-mode-hook 'eglot-ensure)
+  ;; start eglot in my usual prog modes
+  (add-hook 'c++-ts-mode-hook 'eglot-ensure)
   (add-hook 'latex-mode-hook 'eglot-ensure) 
+  (add-hook 'python-ts-mode-hook 'eglot-ensure)
   :custom
-  (add-to-list 'eglot-server-programs '(c++-mode . ("ccls")))
-  (add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) )
+  (add-to-list 'eglot-server-programs '(c++-ts-mode . ("ccls")))
+  (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+  (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp")))  )
+
+(use-package direnv
+  :config
+  (direnv-mode))
+
+(use-package pyvenv-auto
+  :hook ((python-ts-mode . pyvenv-auto-run)))
+
+(use-package flymake-ruff
+  :ensure t
+  :hook (eglot-managed-mode . flymake-ruff-load))
+
+(use-package reformatter
+  :hook 
+  (python-mode . ruff-format-on-save-mode)
+  (python-ts-mode . ruff-format-on-save-mode)
+  :config
+  (reformatter-define ruff-format
+    :program "ruff"
+    :args `("format" "--stdin-filename" ,buffer-file-name "-")))
 
 ;; (code) completion via in-buffer pop-up choices
 (use-package corfu
@@ -381,12 +538,6 @@
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
 ;; Nix language
 (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
-
-(add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
-(add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
-(add-to-list 'major-mode-remap-alist '(c-or-c++-mode . c-or-c++-ts-mode))
-;; maximum level of highlighting
-(setq treesit-font-lock-level 4)
 
 ;; MAGIT
 (use-package magit
@@ -573,7 +724,8 @@
   (pdf-tools-install))
 
 ;; defines mu4e exists, but holds off until needed
-(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+;;(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+(require 'mu4e)
 
 ;; how to get mail
 (setq mu4e-get-mail-command "mbsync Work"
