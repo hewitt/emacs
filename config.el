@@ -329,63 +329,135 @@
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 
-(use-package  general
-  :config
-  (general-evil-setup t)
+(defvar-keymap my-prefix-org-map
+  :doc "Prefix map for Org mode"
+  "c" #'org-capture
+  "a" #'org-agenda
+  "j" #'org-journal-new-entry
+  "t" #'org-babel-tangle)
 
-  (general-create-definer my/leader-keys
-    :keymaps '(normal insert visual emacs)
-    :prefix "SPC"
-    :global-prefix "C-SPC"
-    )) 
+(defvar-keymap my-prefix-display-map
+  :doc "Prefix map for display features"
+  "+" #'text-scale-adjust
+  "f" #'fontaine-set-preset)
 
-  (my/leader-keys
-    "q"  '(:ignore t :which-key "quick")
-    "qa" '(org-agenda                       :which-key "agenda")
-    "qc" '(org-capture                      :which-key "capture")
-    "qd" '(org-journal-new-entry            :which-key "journal" )
-    "qe" '(my/config-visit                  :which-key "config")
-    "qm" '(mu4e                             :which-key "mu4e")
-    "qs" '(consult-notes-search-in-all-notes :which-key "search notes")
-    "qt" '(my/todo-visit                    :which-key "to-do")
-    "qT" '(org-babel-tangle                 :which-key "tangle")
-    "q+" '(text-scale-adjust                :which-key "font scale")
-    ;; mirror some emacs-chord definitions for window management
-    "x"  '(:ignore t :which-key "windows")
-    "xo" '(other-window                     :which-key "other")
-    "x0" '(delete-window                    :which-key "del-this")
-    "x1" '(delete-other-windows             :which-key "del-others")
-    "x2" '(my/split-and-follow-horizontally :which-key "h-split")
-    "x3" '(my/split-and-follow-vertically   :which-key "v-split")
-    "xt" '(transpose-frame                  :which-key "transpose")
-    ;; no prefix for the most commonly used things
-    "b"  '(consult-buffer                   :which-key "buffers")
-    "k"  '(kill-buffer                      :which-key "kill-buffer")
-    )
+;; Define a key map with commands and (potentially nested) key maps
+(defvar-keymap my-prefix-map
+  :doc "My prefix key map."
+  "o" my-prefix-org-map
+  "d" my-prefix-display-map
+  "s" #'gconsult-notes-search-in-all-notes
+  "t" #'my/todo-visit
+  "e" #'my/config-visit
+  "m" #'mu4e
+  "f" #'dired
+  )
 
-(use-package evil
-  :init
-  (setq evil-want-integration t)
-  (setq evil-want-C-u-scroll t)
-  (setq evil-want-C-i-jump nil)
-  (setq evil-want-keybinding nil)
-  (setq evil-want-fine-undo t)
-  (setq evil-undo-system 'undo-redo)
-  ;; put the indicator at the left of the mode line
-  (setq evil-mode-line-format '(before . mode-line-front-space))
-  ;; make normal tag a red colour in the modeline
-  (setq evil-normal-state-tag   (propertize " <N> " 'face '((:foreground "red"))))
-  :config
-  (evil-mode 1)
+;; Define how the nested keymaps are labelled in `which-key-mode'.
+(which-key-add-keymap-based-replacements my-prefix-map
+  "o" `("Org" . ,my-prefix-org-map)
+  "d" `("display" . ,my-prefix-display-map)
+  )
 
-  ;; Use visual line motions even outside of visual-line-mode buffers
-  (evil-global-set-key 'motion "j" 'evil-next-visual-line)
-  (evil-global-set-key 'motion "k" 'evil-previous-visual-line))
+;; Bind the prefix key map to a key.  Notice the absence of a quote for
+;; the map's symbol.
+(keymap-set global-map "C-c r" my-prefix-map)
 
-(use-package evil-collection
-  :after evil
-  :config
-  (evil-collection-init))
+(meow-define-state disable "dummy state")
+(add-to-list 'meow-mode-state-list '(mu4e-headers-mode . disable))
+
+(defun meow-setup ()
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+  (meow-motion-overwrite-define-key
+   ;'("j" . meow-next)
+   ;'("k" . meow-prev)
+   '("<escape>" . ignore))
+  (meow-leader-define-key
+   ;; SPC j/k will run the original command in MOTION state.
+   ;'("j" . "H-j")
+   ;'("k" . "H-k")
+   ;; Use SPC (0-9) for digit arguments.
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("b" . consult-buffer)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
+
+  (meow-normal-define-key
+   '("0" . meow-expand-0)
+   '("9" . meow-expand-9)
+   '("8" . meow-expand-8)
+   '("7" . meow-expand-7)
+   '("6" . meow-expand-6)
+   '("5" . meow-expand-5)
+   '("4" . meow-expand-4)
+   '("3" . meow-expand-3)
+   '("2" . meow-expand-2)
+   '("1" . meow-expand-1)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-next)
+   '("J" . meow-next-expand)
+   '("k" . meow-prev)
+   '("K" . meow-prev-expand)
+   '("l" . meow-right)
+   '("L" . meow-right-expand)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("q" . meow-quit)
+   '("Q" . meow-goto-line)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("t" . meow-till)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-mark-word)
+   '("W" . meow-mark-symbol)
+   '("x" . meow-line)
+   '("X" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . ignore)))
+
+(require 'meow)
+(meow-setup)
+(meow-global-mode 1)
+(meow-setup-indicator)
 
 ;; - cut and paste in Wayland environment
 ;; - this puts selected text into the Wayland clipboard
@@ -476,11 +548,11 @@
   :hook ((python-ts-mode . pyvenv-auto-run)))
 
 (use-package flymake-ruff
-  :ensure t
   :hook (eglot-managed-mode . flymake-ruff-load))
 
 (use-package reformatter
   :hook 
+  ; mostly "OK" but sometimes makes stupid formatting decisions
   (python-mode . ruff-format-on-save-mode)
   (python-ts-mode . ruff-format-on-save-mode)
   :config
