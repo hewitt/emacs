@@ -87,7 +87,7 @@
                        )
                 ;; everything after here goes on the right. This
                 ;; doesn' work for emacs 29 ... needs emacs 30+?
-                ;; mode-line-format-right-align
+                mode-line-format-right-align
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; there is a default string for the modeline from the mu4e package
                 (:eval (propertize (mu4e--modeline-string) 'face 'shadow))
@@ -106,6 +106,7 @@
                 (vc-mode vc-mode)
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 mode-line-position        ; show lines and columns as specified above
+		"  "
                 )
               )
 
@@ -330,14 +331,14 @@
   (find-file "~/Sync/Org/Todo.org") )
 
 (defvar-keymap my-prefix-org-map
-  :doc "Prefix map for Org mode"
+  :doc "Prefix map for Org mode."
   "c" #'org-capture
   "a" #'org-agenda
   "j" #'org-journal-new-entry
   "t" #'org-babel-tangle)
 
 (defvar-keymap my-prefix-display-map
-  :doc "Prefix map for display features"
+  :doc "Prefix map for display features."
   "+" #'text-scale-adjust
   "f" #'fontaine-set-preset)
 
@@ -346,7 +347,7 @@
   :doc "My prefix key map."
   "o" my-prefix-org-map
   "d" my-prefix-display-map
-  "s" #'gconsult-notes-search-in-all-notes
+  "s" #'consult-notes-search-in-all-notes
   "t" #'my/todo-visit
   "e" #'my/config-visit
   "m" #'mu4e
@@ -362,102 +363,6 @@
 ;; Bind the prefix key map to a key.  Notice the absence of a quote for
 ;; the map's symbol.
 (keymap-set global-map "C-c r" my-prefix-map)
-
-(meow-define-state disable "dummy state")
-(add-to-list 'meow-mode-state-list '(mu4e-headers-mode . disable))
-
-(defun meow-setup ()
-  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-  (meow-motion-overwrite-define-key
-   ;'("j" . meow-next)
-   ;'("k" . meow-prev)
-   '("<escape>" . ignore))
-  (meow-leader-define-key
-   ;; SPC j/k will run the original command in MOTION state.
-   ;'("j" . "H-j")
-   ;'("k" . "H-k")
-   ;; Use SPC (0-9) for digit arguments.
-   '("1" . meow-digit-argument)
-   '("2" . meow-digit-argument)
-   '("3" . meow-digit-argument)
-   '("4" . meow-digit-argument)
-   '("5" . meow-digit-argument)
-   '("6" . meow-digit-argument)
-   '("7" . meow-digit-argument)
-   '("8" . meow-digit-argument)
-   '("9" . meow-digit-argument)
-   '("0" . meow-digit-argument)
-   '("b" . consult-buffer)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet))
-
-  (meow-normal-define-key
-   '("0" . meow-expand-0)
-   '("9" . meow-expand-9)
-   '("8" . meow-expand-8)
-   '("7" . meow-expand-7)
-   '("6" . meow-expand-6)
-   '("5" . meow-expand-5)
-   '("4" . meow-expand-4)
-   '("3" . meow-expand-3)
-   '("2" . meow-expand-2)
-   '("1" . meow-expand-1)
-   '("-" . negative-argument)
-   '(";" . meow-reverse)
-   '("," . meow-inner-of-thing)
-   '("." . meow-bounds-of-thing)
-   '("[" . meow-beginning-of-thing)
-   '("]" . meow-end-of-thing)
-   '("a" . meow-append)
-   '("A" . meow-open-below)
-   '("b" . meow-back-word)
-   '("B" . meow-back-symbol)
-   '("c" . meow-change)
-   '("d" . meow-delete)
-   '("D" . meow-backward-delete)
-   '("e" . meow-next-word)
-   '("E" . meow-next-symbol)
-   '("f" . meow-find)
-   '("g" . meow-cancel-selection)
-   '("G" . meow-grab)
-   '("h" . meow-left)
-   '("H" . meow-left-expand)
-   '("i" . meow-insert)
-   '("I" . meow-open-above)
-   '("j" . meow-next)
-   '("J" . meow-next-expand)
-   '("k" . meow-prev)
-   '("K" . meow-prev-expand)
-   '("l" . meow-right)
-   '("L" . meow-right-expand)
-   '("m" . meow-join)
-   '("n" . meow-search)
-   '("o" . meow-block)
-   '("O" . meow-to-block)
-   '("p" . meow-yank)
-   '("q" . meow-quit)
-   '("Q" . meow-goto-line)
-   '("r" . meow-replace)
-   '("R" . meow-swap-grab)
-   '("s" . meow-kill)
-   '("t" . meow-till)
-   '("u" . meow-undo)
-   '("U" . meow-undo-in-selection)
-   '("v" . meow-visit)
-   '("w" . meow-mark-word)
-   '("W" . meow-mark-symbol)
-   '("x" . meow-line)
-   '("X" . meow-goto-line)
-   '("y" . meow-save)
-   '("Y" . meow-sync-grab)
-   '("z" . meow-pop-selection)
-   '("'" . repeat)
-   '("<escape>" . ignore)))
-
-(require 'meow)
-(meow-setup)
-(meow-global-mode 1)
-(meow-setup-indicator)
 
 ;; - cut and paste in Wayland environment
 ;; - this puts selected text into the Wayland clipboard
@@ -497,7 +402,7 @@
   (define-key yas-minor-mode-map (kbd "<tab>") nil)
   (define-key yas-minor-mode-map (kbd "TAB") nil)
   ;; redefine my own key
-  (define-key yas-minor-mode-map (kbd "M-]") yas-maybe-expand)
+  (define-key yas-minor-mode-map (kbd "M-<tab>") yas-maybe-expand)
   ;; remove default keys for navigation
   (define-key yas-keymap [(tab)]       nil)
   (define-key yas-keymap (kbd "TAB")   nil)
@@ -533,11 +438,11 @@
   (message "Use-package: Eglot")
   ;; start eglot in my usual prog modes
   (add-hook 'c++-ts-mode-hook 'eglot-ensure)
-  (add-hook 'latex-mode-hook 'eglot-ensure) 
+  ;; (add-hook 'latex-mode-hook 'eglot-ensure) 
   (add-hook 'python-ts-mode-hook 'eglot-ensure)
   :custom
   (add-to-list 'eglot-server-programs '(c++-ts-mode . ("ccls")))
-  (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+  ;;(add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) ; more annoying than helpful!
   (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp")))  )
 
 (use-package direnv
@@ -546,6 +451,11 @@
 
 (use-package pyvenv-auto
   :hook ((python-ts-mode . pyvenv-auto-run)))
+
+(use-package highlight-indentation
+  :after python
+  :hook (python-ts-mode . highlight-indentation-mode)
+  )
 
 (use-package flymake-ruff
   :hook (eglot-managed-mode . flymake-ruff-load))
@@ -610,14 +520,6 @@
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
 ;; Nix language
 (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
-
-;; MAGIT
-(use-package magit
-  :defer t
-  :bind
-  ("C-x g" . magit-status)
-  :init
-  (message "Use-package: Magit installed"))
 
 (use-package org
   :init
@@ -803,8 +705,8 @@
 (setq mu4e-get-mail-command "mbsync Work"
       mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
       mu4e-mu-binary (executable-find "mu"))
-;; auto GET every 5 mins
-(setq mu4e-update-interval 300)
+;; auto GET? 
+;; (setq mu4e-update-interval 300)
 
 ;; I don't sync Deleted Items & largely do permanent
 ;;  delete via "D" rather than move to trash via "d" 

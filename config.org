@@ -12,12 +12,11 @@ To convert this to "./config.el" do M-x org-babel-tangle.
   NixOS Home-Manager configuration. This config therefore assumes each
   package is already installed and available.
   
-+ I'm using Emacs 29.x so 'use-package' (and some other things) are
++ I'm using Emacs 30+ so 'use-package' (and some other things) are
   built-in, notably 'treesitter'.
 
-+ If using Emacs 30+ you might want to look into adding
-  'mode-line-format-right-align' in the modeline configuration below.
-  I currently don't do any alignment hacks in the modeline text.
++ Emacs 30+ is required to use 'mode-line-format-right-align' in the
+  modeline configuration below. 
 
 + Terminal vs GUI.
   - There are issues in the way <escape> is treated in a terminal
@@ -67,7 +66,6 @@ To get back previous insecure behavior, set the variable
 
 ** Org mode now considers contents of remote files to be untrusted.
 Remote files are recognized by calling 'file-remote-p'.
-
 
 
 
@@ -232,7 +230,7 @@ updated if the =ef-theme= is updated.
                          )
                   ;; everything after here goes on the right. This
                   ;; doesn' work for emacs 29 ... needs emacs 30+?
-                  ;; mode-line-format-right-align
+                  mode-line-format-right-align
                   (:eval (propertize " | " 'face 'shadow) ) ; separator
                   ;; there is a default string for the modeline from the mu4e package
                   (:eval (propertize (mu4e--modeline-string) 'face 'shadow))
@@ -251,6 +249,7 @@ updated if the =ef-theme= is updated.
                   (vc-mode vc-mode)
                   (:eval (propertize " | " 'face 'shadow) ) ; separator
                   mode-line-position        ; show lines and columns as specified above
+  		"  "
                   )
                 )
 
@@ -623,7 +622,7 @@ translated to "C-c r" internally.
     :doc "My prefix key map."
     "o" my-prefix-org-map
     "d" my-prefix-display-map
-    "s" #'gconsult-notes-search-in-all-notes
+    "s" #'consult-notes-search-in-all-notes
     "t" #'my/todo-visit
     "e" #'my/config-visit
     "m" #'mu4e
@@ -681,7 +680,7 @@ translated to "C-c r" internally.
 #+END_SRC
 
 ** Meow mode
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (meow-define-state disable "dummy state")
   (add-to-list 'meow-mode-state-list '(mu4e-headers-mode . disable))
 
@@ -738,7 +737,7 @@ translated to "C-c r" internally.
      '("E" . meow-next-symbol)
      '("f" . meow-find)
      '("g" . meow-cancel-selection)
-     '("G" . meow-grab)
+     '("G" . meow-grab)          ; see BEACON mode
      '("h" . meow-left)
      '("H" . meow-left-expand)
      '("i" . meow-insert)
@@ -750,7 +749,7 @@ translated to "C-c r" internally.
      '("l" . meow-right)
      '("L" . meow-right-expand)
      '("m" . meow-join)
-     '("n" . meow-search)
+     '("n" . meow-search)        ; select a word then cycle through other instances with 'n'
      '("o" . meow-block)
      '("O" . meow-to-block)
      '("p" . meow-yank)
@@ -766,10 +765,11 @@ translated to "C-c r" internally.
      '("w" . meow-mark-word)
      '("W" . meow-mark-symbol)
      '("x" . meow-line)
-     '("X" . meow-goto-line)
+     '("X" . meow-goto-line)     ; repeat of Q in the default map
      '("y" . meow-save)
      '("Y" . meow-sync-grab)
      '("z" . meow-pop-selection)
+     '("/" . avy-goto-char-timer)
      '("'" . repeat)
      '("<escape>" . ignore)))
 
@@ -859,7 +859,7 @@ Expand roots to standard text snippets with M-<square closing bracket>.
     (define-key yas-minor-mode-map (kbd "<tab>") nil)
     (define-key yas-minor-mode-map (kbd "TAB") nil)
     ;; redefine my own key
-    (define-key yas-minor-mode-map (kbd "M-]") yas-maybe-expand)
+    (define-key yas-minor-mode-map (kbd "M-<tab>") yas-maybe-expand)
     ;; remove default keys for navigation
     (define-key yas-keymap [(tab)]       nil)
     (define-key yas-keymap (kbd "TAB")   nil)
@@ -882,7 +882,6 @@ This gives some dynamic window management via the functions
 #+BEGIN_SRC emacs-lisp :tangle yes 
   (require 'transpose-frame)
 #+END_SRC
-
 
 * Git 
 Show changes to most recent git status in repos.
@@ -932,8 +931,6 @@ non-tree-sitter folder (in this case it would contain) the single line
   ;; maximum level of highlighting
   (setq treesit-font-lock-level 4)
 #+END_SRC
-
-  
 ** Eglot
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; eglot is a simpler alternative to LSP-mode
@@ -942,11 +939,11 @@ non-tree-sitter folder (in this case it would contain) the single line
     (message "Use-package: Eglot")
     ;; start eglot in my usual prog modes
     (add-hook 'c++-ts-mode-hook 'eglot-ensure)
-    (add-hook 'latex-mode-hook 'eglot-ensure) 
+    ;; (add-hook 'latex-mode-hook 'eglot-ensure) 
     (add-hook 'python-ts-mode-hook 'eglot-ensure)
     :custom
     (add-to-list 'eglot-server-programs '(c++-ts-mode . ("ccls")))
-    (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+    ;;(add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) ; more annoying than helpful!
     (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp")))  )
 #+END_SRC
 
@@ -982,6 +979,16 @@ Black
     :after python
     :hook (python-ts-mode . python-black-on-save-mode-enable-dwim))
 #+END_SRC
+
+Highlighting indentation
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package highlight-indentation
+    :after python
+    :hook (python-ts-mode . highlight-indentation-mode)
+    )
+#+END_SRC
+
 
 Ruff
 
@@ -1065,7 +1072,7 @@ Add the usual file extensions to drive appropriate dev modes in emacs.
 * Magit
 Git interface within emacs.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   ;; MAGIT
   (use-package magit
     :defer t
@@ -1319,8 +1326,8 @@ email is to be stored.
   (setq mu4e-get-mail-command "mbsync Work"
         mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
         mu4e-mu-binary (executable-find "mu"))
-  ;; auto GET every 5 mins
-  (setq mu4e-update-interval 300)
+  ;; auto GET? 
+  ;; (setq mu4e-update-interval 300)
 #+END_SRC
 
 Now, we can define the look/feel of how email is read and organized.
