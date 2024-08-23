@@ -1,0 +1,1233 @@
+#+TITLE: EmacsConfig minimal version
+#+AUTHOR: Rich Hewitt
+#+EMAIL: richard.hewitt@manchester.ac.uk
+#+STARTUP: indent
+#+PROPERTY: header-args :results silent
+
+To convert this to "./config.el" do M-x org-babel-tangle.
+
+
+* Basic setup
+** Source locations for settings/packages
+Define where to find packages/libraries.
+*** ELPA/MELPA
+Standard content follows to configure ELPA and MELPA for packages. I
+typically do package provision via NixOS and Home-Manager, but
+sometimes an interactive interface can still be useful.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'package)
+  (setq package-archives
+        '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
+          ("MELPA"        . "https://melpa.org/packages/"))
+        package-archive-priorities ; prefer ELPA to MELPA
+        '(("GNU ELPA"     . 10)
+          ("MELPA"        . 5 )))
+  (package-initialize)
+  (setq use-package-always-ensure t)
+#+END_SRC
+
+*** Custom settings
+Custom settings points to ~/.emacs.d/custom-settings.el. This is not
+controlled by "home-manager" in my NixOS configuration so these custom
+settings should be treated as both transient and machine specific.
+This is usually just a font choice for a given display.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq custom-file "~/.emacs.d/custom-settings.el")
+  (load custom-file t)
+#+END_SRC
+
+*** Load path
+Avoid adding too much 'functionality' code to this 'config' file.
+Anything that is overly customised is moved into its own package.
+Again this directory is linked outOfStore by home-manager.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; add a location for supporting elisp code
+  (add-to-list 'load-path "~/.emacs.d/elisp")
+#+END_SRC
+
+The load-path is already auto-configured to match the Nix locations
+for content installed by home-manager.
+
+** Change some of the default emacs settings
+Some random minor tweaks: scroll bar, tool bar, menu bar, garbage
+collection.
+
+Note that file backups are turned *off*.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; skip auto backups
+  (setq make-backup-files nil)
+  ;; backups can all be pushed to a particular directory if needed
+  ;;(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+  ;; don't show the default startup screen
+  (setq inhibit-startup-screen t)
+  ;; don't end sentences with a double space
+  (setq sentence-end-double-space nil)
+  ;; the frequency of garbage collection
+  (setq gc-cons-threshold 8000000 ) ; i.e., every ~8MB
+  ;; report GC events
+  (setq garbage-collection-messages t)
+  ;; warn when opening files bigger than 80MB
+  (setq large-file-warning-threshold 80000000)
+  ;; always follow the symlink
+  (setq vc-follow-symlinks t)
+
+  ;; keep track of recently opened files
+  (recentf-mode 1)
+  ;; have mouse input in the terminal -- the disadvantage is you
+  ;; need to SHIFT+middle mouse to paste in the terminal
+  (xterm-mouse-mode 1)
+  ;; Turn off the menu/scroll/toolbar
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1)
+  ;; replace annoying yes/no with y/n
+  (fset 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+** Update buffer contents when file changes on "disk"
+When editing the same file on a shared drive/remote machine, make sure
+that we update any open buffers to show the on-file current status.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (global-auto-revert-mode)
+#+END_SRC
+
+** Straight :inactive:
+Recently a package I rely on had a problem. Rather than revert the
+package to an older version via NixOS, it was quicker to remove the
+package from the OS configuration and just switch to directly
+installing the correct revision with 'straight'.
+
+*Not currently in use, and left untangled.*
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 6))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+END_SRC
+
+* Appearance
+** Modeline
+This is a simplified home-brew modeline with the package stored in the
+=elisp= folder. Colours are defined to match the =ef-themes= choices.
+There is a hook to =ef-themes-post-load-hook= to ensure that these are
+updated if the =ef-theme= is updated.
+
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; use both line & column numbers
+  (setq mode-line-position (list "L%l C%c"))
+  ;; this gets hooked later to update modeline colours when the theme is changed
+  (defun my-modeline-update ()
+    "Update style of the modeline faces to match the choice of ef-theme."
+    (ef-themes-with-colors
+      (custom-set-faces
+       `(mode-line ((,c :background ,bg-mode-line :height 120
+                        :foreground ,fg-main :box (:line-width (1 . 6) :color ,bg-mode-line))))
+       `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))))
+
+  (setq-default my-modeline-format
+                '(
+                  "%e" mode-line-front-space
+                  ;; e.g. fire symbol below for unsaved buffer is selected via (C-x 8 RET)
+                  (:eval (if (buffer-modified-p)
+                             (propertize "🔥 " 'face 'error)
+                           (propertize "- " 'face 'shadow)
+                           )
+                         )
+                  ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
+                  (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
+                             (when (mode-line-window-selected-p) 
+                               (propertize 
+                                (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
+                                'face 'shadow)                                      
+                               ) 
+                           ) 
+                         )
+                  ;; ALWAYS show the final filename even if inactive
+                  ;; final separator is in usual font
+                  "/"
+                  ;; filename in a more obvious (warning) colour
+                  (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
+                             (propertize 
+                              (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
+                              'face 'warning)
+                           )
+                         )
+                  ;; everything after here goes on the right. This
+                  ;; doesn' work for emacs 29 ... needs emacs 30+?
+                  mode-line-format-right-align
+                  (:eval (propertize " | " 'face 'shadow) ) ; separator
+                  ;; there is a default string for the modeline from the mu4e package
+                  ;;(:eval (propertize (mu4e--modeline-string) 'face 'shadow))
+                  ;; show ONLY the major mode (minor modes are not shown)
+                  (:eval (propertize " | " 'face 'shadow) ) ; separator
+                  ;; strip "-Mode" from the end
+                  (:eval (when (mode-line-window-selected-p) 
+                           (propertize (nth 0
+                                            (split-string
+                                             (capitalize (symbol-name major-mode)) "-Mode")
+                                            )
+                                       'face 'success)
+                           )
+                         )
+                  " "
+                  (vc-mode vc-mode)
+                  (:eval (propertize " | " 'face 'shadow) ) ; separator
+                  mode-line-position        ; show lines and columns as specified above
+  		"  "
+                  )
+                )
+
+  ;; make the above definition the mode-line
+  (setq-default mode-line-format my-modeline-format)
+  ;; apply the hook to keep modeline colours up to date with current theme
+  (add-hook 'ef-themes-post-load-hook #'my-modeline-update)
+#+END_SRC
+
+** Theme
+I've switched to the more systematic themes from Protesilaos Stavrou,
+and most recently his =ef-themes=.
+
+Fonts: The default font is now set via =custom-settings.el= since it
+is machine specific given each has its own DPI settings.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package ef-themes
+    :init
+    ;; Disable all other themes to avoid awkward blending
+    (mapc #'disable-theme custom-enabled-themes)
+    (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
+  (ef-themes-select 'ef-maris-dark)
+#+END_SRC
+
+** Relative line numbers
+Show relative line numbers in all =prog-mode=, =org-mode= and
+=latex-mode=. To do this globally would mean line numbers in email and
+other aspects of Emacs that we don't want. 
+
+#+BEGIN_SRC emacs-lisp :tangle yes 
+  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+  (add-hook 'org-mode-hook 'display-line-numbers-mode)
+  (add-hook 'latex-mode-hook 'display-line-numbers-mode)
+  (setq display-line-numbers-type 'relative)
+#+END_SRC
+
+** Rainbow-delimiters
+Colorised brackets to make matching easier.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package rainbow-delimiters
+    :init
+    (message "Use-package: Rainbow delimiters")
+    :hook
+    (prog-mode . rainbow-delimiters-mode)
+    (latex-mode . rainbow-delimiters-mode))
+#+END_SRC
+
+** Which-key
+Pop-up a description of key combinations after a delay.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package which-key
+    :init 
+    (message "Use-package: Which-key mode")
+    :config
+    (setq which-key-idle-delay 0.25) 
+    (setq max-mini-window-height 0.25) ; don't show bigger than 1/4 of the frame height
+    (which-key-setup-minibuffer)       ; use the minibuffer to show help
+    (which-key-mode))
+#+END_SRC
+
+** Fontaine
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'fontaine)
+
+  (setq fontaine-latest-state-file
+        (locate-user-emacs-file "fontaine-latest-state.eld"))
+
+  (setq fontaine-presets
+        '((bitmap
+           :default-family "envypn"
+           :default-weight regular
+           :default-height 113
+           :fixed-pitch-family nil
+           :fixed-pitch-weight nil ; falls back to :default-weight
+           :fixed-pitch-height 1.0
+           :variable-pitch-family nil
+           :variable-pitch-weight normal
+           :variable-pitch-height 1.0
+           :bold-family nil ; use whatever the underlying face has
+           :bold-weight bold
+           :italic-family nil
+           :italic-slant italic
+           :line-spacing 1)
+          (iosevka
+           :default-family "Iosevka"
+           :default-weight normal
+           :default-height 120
+           :fixed-pitch-family nil ; falls back to :default-family
+           :fixed-pitch-weight nil ; falls back to :default-weight
+           :fixed-pitch-height 1.0
+           :variable-pitch-family nil
+           :variable-pitch-weight normal
+           :variable-pitch-height 1.0
+           :bold-family nil ; use whatever the underlying face has
+           :bold-weight bold
+           :italic-family nil ; use whatever the underlying face has
+           :italic-slant italic
+           :line-spacing 1)
+          (terminus
+           :default-family "Terminus"
+           :default-weight normal
+           :default-height 150
+           :fixed-pitch-family nil ; falls back to :default-family
+           :fixed-pitch-weight nil ; falls back to :default-weight
+           :fixed-pitch-height 1.0
+           :variable-pitch-family nil
+           :variable-pitch-weight normal
+           :variable-pitch-height 1.0
+           :bold-family nil ; use whatever the underlying face has
+           :bold-weight bold
+           :italic-family nil ; use whatever the underlying face has
+           :italic-slant italic
+           :line-spacing 1)))
+
+  ;; Persist the latest font preset when closing/starting Emacs and
+  ;; while switching between themes.
+                                          ;(fontaine-mode 1)
+
+  ;; fontaine does not define any key bindings.  This is just a sample that
+  ;; respects the key binding conventions.  Evaluate:
+  ;;
+  ;;     (info "(elisp) Key Binding Conventions")
+  (define-key global-map (kbd "C-c f") #'fontaine-set-preset)
+#+END_SRC
+
+* Narrowing and completion
+** Overview/background
+A useful overview from:
+https://www.reddit.com/r/emacs/comments/k3c0u7/consult_counselswiper_alternative_for/
+
+The minibuffer completion uses:
+
++ "completing-read" to define what the completion UI looks like and
+  how it behaves.
+
++ "completing-styles" to define how completion filter/sorts results
+  (e.g. does typing "fi fil" match "find-file").
+
+In terms of packages:
+
++ "icomplete", "fido" and "selectrum" all just define a
+  "completing-read" function and implement continuous completion on
+  each key press (not technically true for "icomplete" but close
+  enough).
+
++ "Orderless", "Prescient", and the built-in "flex" are
+  completion-styles to allow convenient filters like regex, and
+  sorting by frequency/recency.
+
++ "icomplete-vertical" is a minor mode to make "icomplete" vertical.
+
++ "Consult" is a set of functions to use various Emacs facilities via
+  completing-read.
+
++ "Embark" is a minor mode to allow each minibuffer entry to have
+  multiple actions.
+
+All of the above try to use the minibuffer's existing hooks and
+extension mechanisms, and benefit from large parts of the rest of
+Emacs using those mechanisms too. Consequently, they all interoperate
+with each other and other parts of the Emacs ecosystem. You can pick
+which you want.
+
+Modes that don't attempt to interoperate (and I avoid):
+
++ "Ido" performs the same role as "completing-read", but doesn't set
+  "completing-read" and so only works for functions that use Ido's own
+  completing function. "ido-ubiquitious" sets ido to be
+  completing-read. ido appears to be considered somewhat deprecated on
+  emacs-devel, in favour of icomplete.
+
++ "Ivy" doesn't use completing-read at all, and does its own filtering
+  (rather than use completion-styles).
+
++ "Swiper" uses Ivy. I replace with just `C-s`.
+
++ "Counsel" is a set of functions to use various parts of Emacs via
+  minibuffer completion. Very convenient, but only works if you also
+  have "Ivy/Swiper". "Consult" is like "Counsel" but uses the built-in
+  minibuffer completion.
+
++ "Helm" doesn't use "completing-read", but does add multiple actions
+  on each selection. I would use "embark" if I wanted this
+  functionality, but I don't.
+
+** Using standard completing-read interface
+- Use 'vertico' as a smaller solution for incremental completion in
+  Emacs.
+
+- 'marginalia-mode' adds marginalia to the minibuffer completions.
+  Marginalia can only add annotations to be displayed with the
+  completion candidates.
+
+- 'consult' provides various practical commands based on the Emacs
+  completion function 'completing-read', which allows to quickly select
+  an item from a list of candidates with completion. Consult offers in
+  particular an advanced buffer switching command 'consult-buffer' to
+  switch between buffers and recently opened files. Multiple search
+  commands are provided, an asynchronous 'consult-grep',
+  'consult-ripgrep' and 'consult-line', which resembles 'swiper'.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package consult
+    :init
+    (message "Use-package: consult")
+    :bind
+    ;; some standard emacs-chord bindings -- but see also evil section.
+    ("C-x b" . consult-buffer)
+    ("M-g g" . consult-goto-line)
+    ("M-y"   . consult-yank-pop)
+    ("C-y"   . yank)
+    ("C-s"   . consult-line)
+    ("M-g o" . consult-outline))
+
+  (use-package consult-notes
+    :defer t
+    :commands (consult-notes consult-notes-search-in-all-notes)
+    :config
+    (consult-notes-denote-mode))
+
+  (use-package vertico
+    :custom
+    (vertico-cycle t)
+    :init
+    (message "Use-package: vertico")
+    (vertico-mode))
+
+  (use-package prescient
+    :init
+    (message "Use-package: prescient")
+    :config
+    ;; you have to set the completion-style(s) to be used
+    (setq completion-styles '(substring prescient basic))
+    ;; retain completion statistics over restart of emacs
+    (prescient-persist-mode))
+
+  (use-package vertico-prescient
+    :init
+    (message "Use-package: vertico-prescient")
+    :config
+    (vertico-prescient-mode))
+
+  (use-package orderless
+    :custom (completion-styles '(orderless)))
+
+  (use-package marginalia
+    :after vertico
+    :custom
+    (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
+    :init
+    (message "Use-package: marginalia")
+    (marginalia-mode))
+#+END_SRC
+
+* Other interaction
+** Buffer management alist
+Specify some specific buffer placement/appearance rules.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq window-combination-resize t)
+  (setq even-window-sizes 'height-only)
+                                          ; left/right occupies full window height
+  (setq window-sides-vertical t)                    
+                                          ; pop new window if switching buffers from dedicated
+  (setq switch-to-buffer-in-dedicated-window 'pop)  
+  (setq split-height-threshold 80)
+  (setq split-width-threshold 120)
+  (setq window-min-height 5)
+  (setq window-min-width 90)
+
+  ;;(setq display-buffer-alist 'nil) ; to remove all preferences
+  (setq display-buffer-alist
+        `(
+          ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
+           (display-buffer-reuse-mode-window
+            display-buffer-below-selected)
+                                          ;(window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
+           )
+          ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
+           (display-buffer-in-side-window)
+           (dedicated . t)                                    ; don't reuse this buffer for other things
+           (window-width . 120)
+           (side . right)                                     ; put it on the right side
+                                          ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+           )	
+          ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
+           (display-buffer-in-side-window)
+           (dedicated . t)                                    ; don't reuse this buffer for other things
+           (window-width . 120)
+           (side . right)                                     ; put it on the right side
+                                          ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+           )	
+          ((or (derived-mode . mu4e-headers-mode)
+               (derived-mode . mu4e-main-mode ))              ; other mu4e stuff remains dedicated
+           (display-buffer-reuse-mode-window)                 ; don't always open a new window
+           (dedicated . t)                                    ; don't reuse this buffer for other things
+           ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+           )
+          ((derived-mode . pdf-view-mode)
+           (display-buffer-in-side-window))
+          ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
+           (display-buffer-in-side-window)
+           (dedicated . t)                                    ; don't reuse this buffer for other things
+           (side . bottom)
+           ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+           )          
+          ))
+#+END_SRC
+
+** Splitting window behaviour
+Global keys to split the window AND follow by moving point to the new window.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; move focus when splitting a window
+  (defun my/split-and-follow-horizontally ()
+    (interactive)
+    (split-window-below)
+    (balance-windows)
+    (other-window 1))
+  (global-set-key (kbd "C-x 2") 'my/split-and-follow-horizontally)
+  ;; move focus when splitting a window
+  (defun my/split-and-follow-vertically ()
+    (interactive)
+    (split-window-right)
+    (balance-windows)
+    (other-window 1))
+  (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
+#+END_SRC
+
+** Leader/prefix key binding
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; short-cut to edit the init.el configuration file
+  (defun my/config-visit ()
+    (interactive)
+    (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
+
+  ;; short-cut to edit the init.el configuration file
+  (defun my/todo-visit ()
+    (interactive)
+    (find-file "~/Sync/Org/Todo.org") )
+#+END_SRC
+
+
+Following Prot's leader key video. This makes the key choices largely
+independent of any choice of modal editing via Meow/Evil below.
+However =meow= calls this shortcut via the keymap "SPC r" since it is
+translated to "C-c r" internally.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+
+  (defvar-keymap my-prefix-org-map
+    :doc "Prefix map for Org mode."
+    "c" #'org-capture
+    "a" #'org-agenda
+    "j" #'org-journal-new-entry
+    "t" #'org-babel-tangle)
+
+  (defvar-keymap my-prefix-display-map
+    :doc "Prefix map for display features."
+    "+" #'text-scale-adjust
+    "f" #'fontaine-set-preset)
+
+  ;; Define a key map with commands and (potentially nested) key maps
+  (defvar-keymap my-prefix-map
+    :doc "My prefix key map."
+    "o" my-prefix-org-map
+    "d" my-prefix-display-map
+    "s" #'consult-notes-search-in-all-notes
+    "t" #'my/todo-visit
+    "e" #'my/config-visit
+    "m" #'mu4e
+    "f" #'dired
+    )
+
+  ;; Define how the nested keymaps are labelled in `which-key-mode'.
+  (which-key-add-keymap-based-replacements my-prefix-map
+    "o" `("Org" . ,my-prefix-org-map)
+    "d" `("display" . ,my-prefix-display-map)
+    )
+
+  ;; Bind the prefix key map to a key.  Notice the absence of a quote for
+  ;; the map's symbol.
+  (keymap-set global-map "C-c r" my-prefix-map)
+#+END_SRC
+
+
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package  general
+    :config
+    (general-evil-setup t)
+
+    (general-create-definer my/leader-keys
+      :keymaps '(normal insert visual emacs)
+      :prefix "SPC"
+      :global-prefix "C-SPC"
+      )) 
+
+    (my/leader-keys
+      "q"  '(:ignore t :which-key "quick")
+      "qa" '(org-agenda                       :which-key "agenda")
+      "qc" '(org-capture                      :which-key "capture")
+      "qd" '(org-journal-new-entry            :which-key "journal" )
+      "qe" '(my/config-visit                  :which-key "config")
+      "qm" '(mu4e                             :which-key "mu4e")
+      "qs" '(consult-notes-search-in-all-notes :which-key "search notes")
+      "qt" '(my/todo-visit                    :which-key "to-do")
+      "qT" '(org-babel-tangle                 :which-key "tangle")
+      "q+" '(text-scale-adjust                :which-key "font scale")
+      ;; mirror some emacs-chord definitions for window management
+      "x"  '(:ignore t :which-key "windows")
+      "xo" '(other-window                     :which-key "other")
+      "x0" '(delete-window                    :which-key "del-this")
+      "x1" '(delete-other-windows             :which-key "del-others")
+      "x2" '(my/split-and-follow-horizontally :which-key "h-split")
+      "x3" '(my/split-and-follow-vertically   :which-key "v-split")
+      "xt" '(transpose-frame                  :which-key "transpose")
+      ;; no prefix for the most commonly used things
+      "b"  '(consult-buffer                   :which-key "buffers")
+      "k"  '(kill-buffer                      :which-key "kill-buffer")
+      )
+    
+#+END_SRC
+
+** Meow mode
+#+BEGIN_SRC emacs-lisp :tangle no
+  (meow-define-state disable "dummy state")
+  (add-to-list 'meow-mode-state-list '(mu4e-headers-mode . disable))
+
+  (defun meow-setup ()
+    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+    (meow-motion-overwrite-define-key
+     ;'("j" . meow-next)
+     ;'("k" . meow-prev)
+     '("<escape>" . ignore))
+    (meow-leader-define-key
+     ;; SPC j/k will run the original command in MOTION state.
+     ;'("j" . "H-j")
+     ;'("k" . "H-k")
+     ;; Use SPC (0-9) for digit arguments.
+     '("1" . meow-digit-argument)
+     '("2" . meow-digit-argument)
+     '("3" . meow-digit-argument)
+     '("4" . meow-digit-argument)
+     '("5" . meow-digit-argument)
+     '("6" . meow-digit-argument)
+     '("7" . meow-digit-argument)
+     '("8" . meow-digit-argument)
+     '("9" . meow-digit-argument)
+     '("0" . meow-digit-argument)
+     '("b" . consult-buffer)
+     '("/" . meow-keypad-describe-key)
+     '("?" . meow-cheatsheet))
+
+    (meow-normal-define-key
+     '("0" . meow-expand-0)
+     '("9" . meow-expand-9)
+     '("8" . meow-expand-8)
+     '("7" . meow-expand-7)
+     '("6" . meow-expand-6)
+     '("5" . meow-expand-5)
+     '("4" . meow-expand-4)
+     '("3" . meow-expand-3)
+     '("2" . meow-expand-2)
+     '("1" . meow-expand-1)
+     '("-" . negative-argument)
+     '(";" . meow-reverse)
+     '("," . meow-inner-of-thing)
+     '("." . meow-bounds-of-thing)
+     '("[" . meow-beginning-of-thing)
+     '("]" . meow-end-of-thing)
+     '("a" . meow-append)
+     '("A" . meow-open-below)
+     '("b" . meow-back-word)
+     '("B" . meow-back-symbol)
+     '("c" . meow-change)
+     '("d" . meow-delete)
+     '("D" . meow-backward-delete)
+     '("e" . meow-next-word)
+     '("E" . meow-next-symbol)
+     '("f" . meow-find)
+     '("g" . meow-cancel-selection)
+     '("G" . meow-grab)          ; see BEACON mode
+     '("h" . meow-left)
+     '("H" . meow-left-expand)
+     '("i" . meow-insert)
+     '("I" . meow-open-above)
+     '("j" . meow-next)
+     '("J" . meow-next-expand)
+     '("k" . meow-prev)
+     '("K" . meow-prev-expand)
+     '("l" . meow-right)
+     '("L" . meow-right-expand)
+     '("m" . meow-join)
+     '("n" . meow-search)        ; select a word then cycle through other instances with 'n'
+     '("o" . meow-block)
+     '("O" . meow-to-block)
+     '("p" . meow-yank)
+     '("q" . meow-quit)
+     '("Q" . meow-goto-line)
+     '("r" . meow-replace)
+     '("R" . meow-swap-grab)
+     '("s" . meow-kill)
+     '("t" . meow-till)
+     '("u" . meow-undo)
+     '("U" . meow-undo-in-selection)
+     '("v" . meow-visit)
+     '("w" . meow-mark-word)
+     '("W" . meow-mark-symbol)
+     '("x" . meow-line)
+     '("X" . meow-goto-line)     ; repeat of Q in the default map
+     '("y" . meow-save)
+     '("Y" . meow-sync-grab)
+     '("z" . meow-pop-selection)
+     '("/" . avy-goto-char-timer)
+     '("'" . repeat)
+     '("<escape>" . ignore)))
+
+  (require 'meow)
+  (meow-setup)
+  (meow-global-mode 1)
+  (meow-setup-indicator)
+#+END_SRC
+
+** Evil mode
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package evil
+    :init
+    (setq evil-want-integration t)
+    (setq evil-want-C-u-scroll t)
+    (setq evil-want-C-i-jump nil)
+    (setq evil-want-keybinding nil)
+    (setq evil-want-fine-undo t)
+    (setq evil-undo-system 'undo-redo)
+    ;; put the indicator at the left of the mode line
+    (setq evil-mode-line-format '(before . mode-line-front-space))
+    ;; make normal tag a red colour in the modeline
+    (setq evil-normal-state-tag   (propertize " <N> " 'face '((:foreground "red"))))
+    :config
+    (evil-mode 1)
+
+    ;; Use visual line motions even outside of visual-line-mode buffers
+    (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+    (evil-global-set-key 'motion "k" 'evil-previous-visual-line))
+
+  (use-package evil-collection
+    :after evil
+    :config
+    (evil-collection-init))
+#+END_SRC
+
+** Cut and paste
+I use Wayland (no X11), and this interacts with =wl-copy=.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; - cut and paste in Wayland environment
+  ;; - this puts selected text into the Wayland clipboard
+  (setq x-select-enable-clipboard t)
+  (defun my/txt-cut-function (text &optional push)
+    (with-temp-buffer
+      (insert text)
+      (call-process-region (point-min) (point-max) "wl-copy" ))
+    )
+  (setq interprogram-cut-function 'my/txt-cut-function)
+#+END_SRC
+
+** Editorconfig
+Set configuration on a per directory basis via .editorconfig.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; editorconfig allows local specification of tab/space/indent
+  ;; using a config file in the directory
+  (use-package editorconfig
+    :init
+    (message "Use-package: EditorConfig")
+    :config
+    (editorconfig-mode 1) )
+
+  (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
+#+END_SRC
+
+** Yasnippet
+Expand roots to standard text snippets with M-<square closing bracket>.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; location of my snippets -- has to go before yas-reload-all
+  (setq-default yas-snippet-dirs '("~/.emacs.d/my_snippets"))
+  ;; include yansippet and snippets
+  (use-package yasnippet
+    :init
+    (message "Use-package: YASnippet")
+    :config
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ;;;; hooks for YASnippet in Latex, C++, elisp & org ;;
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    (add-hook 'c++-mode-hook 'yas-minor-mode)  
+    (add-hook 'latex-mode-hook 'yas-minor-mode)
+    (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
+    (add-hook 'org-mode-hook 'yas-minor-mode)
+    ;; remove default keybinding
+    (define-key yas-minor-mode-map (kbd "<tab>") nil)
+    (define-key yas-minor-mode-map (kbd "TAB") nil)
+    ;; redefine my own key
+    (define-key yas-minor-mode-map (kbd "M-<tab>") yas-maybe-expand)
+    ;; remove default keys for navigation
+    (define-key yas-keymap [(tab)]       nil)
+    (define-key yas-keymap (kbd "TAB")   nil)
+    (define-key yas-keymap [(shift tab)] nil)
+    (define-key yas-keymap [backtab]     nil)
+    ;; redefine my own keys
+    (define-key yas-keymap (kbd "M-n") 'yas-next-field-or-maybe-expand)
+    (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
+    (yas-reload-all) )
+#+END_SRC
+
+** Transpose-frame
+This package is in the Emacs Orphanage
+https://github.com/emacsorphanage/transpose-frame
+
+This gives some dynamic window management via the functions
+/transpose-frame/, /flip-frame/, /rotate-frame/ (180 deg acw/ccw),
+/rotate-frame-clockwise/ (90deg cw), /rotate-frame-anticlockwise/ (90deg acw/ccw)
+
+#+BEGIN_SRC emacs-lisp :tangle yes 
+  (require 'transpose-frame)
+#+END_SRC
+
+* Git 
+Show changes to most recent git status in repos.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; GIT-GUTTER: SHOW changes relative to git repo
+  (use-package git-gutter
+    :defer t
+    :init
+    (message "Use-package: Git-Gutter")
+    :hook
+    (prog-mode . git-gutter-mode)
+    (org-mode . git-gutter-mode)
+    (latex-mode . git-gutter-mode))
+#+END_SRC
+
+* General coding/development 
+Code completion and on-the-fly check/make.
+
+- interaction with a language back-end is done via 'eglot' which is an
+  alternative to lsp-mode. The backend is currently set to 'ccls' for C++.
+
+- To parse appropriate header files requires a 'compile_commands.json'
+  file that is consistent with the local machine filesystem.
+** Remap some major modes to tree-sitter alternatives
+
+As per
+https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
+
+Note: the renaming of modes for =tree-sitter= might break your
+snippets in =yasnippet= as the mode will report (for example)
+=c++-ts-mode= not =c++-mode=. To solve this make additional
+directories in your snippet folder to match the new modes:
+
+cd ~/.emacs.d/<snippet folder>
+mkdir c++-ts-mode
+
+then place a file =.yas-parents= in this folder that points to the
+non-tree-sitter folder (in this case it would contain) the single line
+=c++-mode=.
+
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
+  (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
+  (add-to-list 'major-mode-remap-alist '(c-or-c++-mode . c-or-c++-ts-mode))
+  (add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
+  ;; maximum level of highlighting
+  (setq treesit-font-lock-level 4)
+#+END_SRC
+** Eglot
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; eglot is a simpler alternative to LSP-mode
+  (use-package eglot
+    :init
+    (message "Use-package: Eglot")
+    ;; start eglot in my usual prog modes
+    (add-hook 'c++-ts-mode-hook 'eglot-ensure)
+    ;; (add-hook 'latex-mode-hook 'eglot-ensure) 
+    (add-hook 'python-ts-mode-hook 'eglot-ensure)
+    :custom
+    (add-to-list 'eglot-server-programs '(c++-ts-mode . ("ccls")))
+    ;;(add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) ; more annoying than helpful!
+    (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp")))  )
+#+END_SRC
+
+IN-REGION (ie. buffer) completion is provided by Corfu (Completion
+Overlay Region FUnction). 
+
+** Dev virtual environments
+Under =NixOS= I use =direnv= to set up local configurations for
+writing code and latex. So we can use the direnv package to make sure
+that =emacs= is aware of local settings.
+
+#+BEGIN_SRC emacs-lisp :tangle yes 
+   (use-package direnv
+     :config
+     (direnv-mode))
+#+END_SRC
+
+Python code is also sometimes developed via =virtualenv=. This makes
+=emacs= aware of the virtual environment.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package pyvenv-auto
+    :hook ((python-ts-mode . pyvenv-auto-run)))
+#+END_SRC
+
+** Python code formatting
+
+Black
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package python-black
+    :demand t
+    :after python
+    :hook (python-ts-mode . python-black-on-save-mode-enable-dwim))
+#+END_SRC
+
+Highlighting indentation
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package highlight-indentation
+    :after python
+    :hook (python-ts-mode . highlight-indentation-mode)
+    )
+#+END_SRC
+
+
+Ruff
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package flymake-ruff
+  :hook (eglot-managed-mode . flymake-ruff-load))
+#+END_SRC
+
+
+#+BEGIN_SRC emacs-lisp :tangle yes 
+  (use-package reformatter
+    :hook 
+    ; mostly "OK" but sometimes makes stupid formatting decisions
+    (python-mode . ruff-format-on-save-mode)
+    (python-ts-mode . ruff-format-on-save-mode)
+    :config
+    (reformatter-define ruff-format
+      :program "ruff"
+      :args `("format" "--stdin-filename" ,buffer-file-name "-")))
+#+END_SRC
+
+** Corfu code completion
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; (code) completion via in-buffer pop-up choices
+  (use-package corfu
+    :init (message "Use-package: Corfu")
+    :custom
+    (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+    (corfu-auto t)                 ;; Enable auto completion
+    ;; (corfu-separator ?\s)          ;; Orderless field separator
+    ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+    ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+    ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+    ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+    ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+    ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+    ;; Enable Corfu only for certain modes.
+    :hook ((prog-mode . corfu-mode)
+           (latex-mode . corfu-mode)
+           (shell-mode . corfu-mode)
+           (eshell-mode . corfu-mode))
+
+    ;; Recommended: Enable Corfu globally.
+    ;; This is recommended since Dabbrev can be used globally (M-/).
+    ;; See also `global-corfu-modes' to exclude certain modes.
+    :init
+    ;;(setq tab-always-indent 'complete)
+    (global-corfu-mode)
+    (corfu-prescient-mode))
+
+  ; you might need this for emacs -nw
+  ;(use-package corfu-terminal
+  ;  :init
+  ;  (message "Use-package: corfu-terminal")
+  ;  :config
+  ;  ;; let's default to the terminal mode
+  ;  (corfu-terminal-mode))
+
+  (use-package corfu-prescient
+    :init
+    (message "Use-package: corfu-prescient"))
+
+  ;; NIX language mode
+  (use-package nix-mode
+    :mode "\\.nix\\'" ) 
+#+END_SRC
+
+Add the usual file extensions to drive appropriate dev modes in emacs.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; my default gnuplot extension
+  (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
+  ;; Octave/Matlab
+  (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
+  ;; Nix language
+  (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
+#+END_SRC
+
+* Magit
+Git interface within emacs.
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;; MAGIT
+  (use-package magit
+    :defer t
+    :bind
+    ("C-x g" . magit-status)
+    :init
+    (message "Use-package: Magit installed"))
+#+END_SRC
+
+* Org mode
+** Basics of Org mode
+A fairly standard Org mode configuration. Some minor tweaks to
+colourise bold/italic/underline for use with bitmap fonts.
+
+#+BEGIN_SRC  emacs-lisp :tangle yes
+    (use-package org
+      :init
+      (message "Use-package: Org") )
+
+    ;; fancy replace of *** etc
+    (use-package org-bullets
+      :after org
+      :init
+      (add-hook 'org-mode-hook 'org-bullets-mode)
+      (message "Use-package: Org-bullets") )
+
+    ;; some appearance tweaks:
+    ;;
+    ;; replace emphasis with colors in Org files
+    (setq org-emphasis-alist
+          '(("*" my/org-emphasis-bold)
+            ("/" my/org-emphasis-italic)
+            ("_" my/org-emphasis-underline)
+            ("=" org-verbatim verbatim)
+            ("~" org-code verbatim)
+            ("+" (:strike-through t))))
+    ;;
+    ;; colorise text instead of changing the font weight.
+    (defface my/org-emphasis-bold
+      '((default :inherit bold)
+        (((class color) (min-colors 88) (background light))
+         :foreground "#a60000")
+        (((class color) (min-colors 88) (background dark))
+         :foreground "#ff8059"))
+      "My bold emphasis for Org.")
+    ;;
+    (defface my/org-emphasis-italic
+      '((default :inherit italic)
+        (((class color) (min-colors 88) (background light))
+         :foreground "#005e00")
+        (((class color) (min-colors 88) (background dark))
+         :foreground "#44bc44"))
+      "My italic emphasis for Org.")
+    ;;
+    (defface my/org-emphasis-underline
+      '((default :inherit underline)
+        (((class color) (min-colors 88) (background light))
+         :foreground "#813e00")
+        (((class color) (min-colors 88) (background dark))
+         :foreground "#d0bc00"))
+      "My underline emphasis for Org.")
+
+    ;; custom capture
+    (require 'org-capture)
+    ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
+    (setq org-capture-templates
+          '(
+            ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+             "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+            ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+             "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+             :empty-lines 1)) )
+
+    ;; Agenda is constructed from org files in ONE directory
+    (setq org-agenda-files '("~/Sync/Org"))
+
+    ;; refile to targets defined by the org-agenda-files list above
+    (setq org-refile-targets '((nil :maxlevel . 3)
+                               (org-agenda-files :maxlevel . 3)))
+    (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+    (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+
+    ;; store DONE time in the drawer
+    (setq org-log-done (quote time))
+    (setq org-log-into-drawer t)
+
+    ;; Ask and store note if rescheduling
+    (setq org-log-reschedule (quote note))
+
+    ;; syntax highlight latex in org files
+    (setq org-highlight-latex-and-related '(latex script entities))
+
+    ;; define the number of days to show in the agenda
+    (setq org-agenda-span 14
+          org-agenda-start-on-weekday nil
+          org-agenda-start-day "-3d")
+
+    ;; default duration of events
+    (setq org-agenda-default-appointment-duration 60)
+    (setq org-agenda-prefix-format '(
+      ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                                     (agenda  . "  •  %-12:c%?-12t% s")
+                                     (timeline  . "  % s")
+                                     (todo  . " %i %-12:c")
+                                     (tags  . " %i %-12:c")
+                                     (search . " %i %-12:c")))
+#+END_SRC
+
+** Org-babel
+Configure =org-babel= for standard tools, including =gnuplot= and others.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package gnuplot
+    :init
+    (message "Use-package: gnuplot for babel installed"))
+  
+  ;; languages I work in via babel
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((gnuplot . t) (emacs-lisp . t) (shell . t) (python . t)))
+  ;; stop it asking if I'm sure about evaluation
+  (setq org-confirm-babel-evaluate nil)
+#+END_SRC
+
+** Denote
+This is an Org-roam alternative. It appeals to me because of its
+simplicity, focus, spectacular documentation and its from an author
+who writes great content.
+
+Searching the Denote files is done via the "consult-notes" package. 
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'denote)
+
+  ;; Remember to check the doc strings of those variables.
+  (setq denote-directory (expand-file-name "~/CURRENT/PNL/Denote/"))
+  (setq denote-known-keywords '("research" "admin" "industry" "teaching" "home" "attachment"))
+  (setq denote-infer-keywords t)
+  (setq denote-sort-keywords t)
+  (setq denote-file-type nil) ; Org is the default, set others here
+  (setq denote-prompts '(title keywords))
+
+  ;; We allow multi-word keywords by default.  The author's personal
+  ;; preference is for single-word keywords for a more rigid workflow.
+  (setq denote-allow-multi-word-keywords t)
+
+  (setq denote-date-format nil) ; read doc string
+
+  ;; By default, we fontify backlinks in their bespoke buffer.
+  (setq denote-link-fontify-backlinks t)
+
+  ;; Also see `denote-link-backlinks-display-buffer-action' which is a bit
+  ;; advanced.
+
+  ;; If you use Markdown or plain text files (Org renders links as buttons
+  ;; right away)
+  (add-hook 'find-file-hook #'denote-link-buttonize-buffer)
+
+  ;;(require 'denote-dired)
+  (setq denote-dired-rename-expert nil)
+
+  (add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
+
+  (with-eval-after-load 'org-capture    
+    (setq denote-org-capture-specifiers "%l\n%i\n%?")
+    (add-to-list 'org-capture-templates
+                 '("n" "New note (with denote.el)" plain
+                   (file denote-last-path)
+                   #'denote-org-capture
+                   :no-save t
+                   :immediate-finish nil
+                   :kill-buffer t
+                   :jump-to-captured t)))
+
+  ;; I still like "org-journal" rather than using "denote".
+  (use-package org-journal
+    :init
+    (message "Use-package: Org-journal")
+    :config
+    (setq org-journal-dir "~/CURRENT/PNL/JNL/"
+          org-journal-date-format "%A, %d %B %Y"
+          org-journal-file-format "%Y_%m_%d"
+          org-journal-time-prefix "  - "
+          org-journal-time-format nil
+          org-journal-file-type 'monthly))
+
+#+END_SRC 
+                 
+** Org-mode hooks
+Trigger a few extra hooks when starting up =org-mode=.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; org-mode
+  (add-hook 'org-mode-hook 'hl-line-mode)
+  (add-hook 'org-mode-hook 'flyspell-mode)
+  (add-hook 'org-mode-hook 'visual-line-mode)
+#+END_SRC
+
+* LaTeX
+Hook into latex mode to set up a few simple things.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (add-hook 'latex-mode-hook 'hl-line-mode)
+  (add-hook 'latex-mode-hook 'flyspell-mode)
+  (add-hook 'latex-mode-hook 'visual-line-mode)
+  (add-hook 'latex-mode-hook 'display-line-numbers-mode)
+#+END_SRC
+
+I use "m4" to update headers/footers/dates in LaTeX files for leccture
+course material. So here we default to latex-mode for .m4 extensions
+too.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; setup files ending in “.m4” to open in LaTeX-mode
+  ;; for use in lecture note construction
+  (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
+#+END_SRC
+
+
+
