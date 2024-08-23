@@ -1,5 +1,3 @@
-(setq-default untrusted-content t)
-
 (require 'package)
 (setq package-archives
       '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
@@ -8,6 +6,7 @@
       '(("GNU ELPA"     . 10)
         ("MELPA"        . 5 )))
 (package-initialize)
+(setq use-package-always-ensure t)
 
 (setq custom-file "~/.emacs.d/custom-settings.el")
 (load custom-file t)
@@ -143,7 +142,7 @@
   (which-key-setup-minibuffer)       ; use the minibuffer to show help
   (which-key-mode))
 
-(require 'fontaine)
+(use-package fontaine)
 
 (setq fontaine-latest-state-file
       (locate-user-emacs-file "fontaine-latest-state.eld"))
@@ -216,6 +215,12 @@
   ("C-y"   . yank)
   ("C-s"   . consult-line)
   ("M-g o" . consult-outline))
+
+(use-package consult-notes
+  :defer t
+  :commands (consult-notes consult-notes-search-in-all-notes)
+  :config
+  (consult-notes-denote-mode))
 
 (use-package vertico
   :custom
@@ -407,11 +412,10 @@
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all) )
 
-(require 'transpose-frame)
+(use-package transpose-frame)
 
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
-  :defer t
   :init
   (message "Use-package: Git-Gutter")
   :hook
@@ -492,21 +496,9 @@
   (global-corfu-mode)
   (corfu-prescient-mode))
 
-; you might need this for emacs -nw
-;(use-package corfu-terminal
-;  :init
-;  (message "Use-package: corfu-terminal")
-;  :config
-;  ;; let's default to the terminal mode
-;  (corfu-terminal-mode))
-
 (use-package corfu-prescient
   :init
   (message "Use-package: corfu-prescient"))
-
-;; NIX language mode
-(use-package nix-mode
-  :mode "\\.nix\\'" )
 
 ;; my default gnuplot extension
 (add-to-list 'auto-mode-alist '("\\.gnu\\'" . gnuplot-mode))
@@ -631,4 +623,3 @@
 ;; setup files ending in “.m4” to open in LaTeX-mode
 ;; for use in lecture note construction
 (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
-
