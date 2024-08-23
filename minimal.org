@@ -826,7 +826,6 @@ Show changes to most recent git status in repos.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
-    :defer t
     :init
     (message "Use-package: Git-Gutter")
     :hook
@@ -979,21 +978,10 @@ Ruff
     (global-corfu-mode)
     (corfu-prescient-mode))
 
-  ; you might need this for emacs -nw
-  ;(use-package corfu-terminal
-  ;  :init
-  ;  (message "Use-package: corfu-terminal")
-  ;  :config
-  ;  ;; let's default to the terminal mode
-  ;  (corfu-terminal-mode))
-
   (use-package corfu-prescient
     :init
     (message "Use-package: corfu-prescient"))
 
-  ;; NIX language mode
-  (use-package nix-mode
-    :mode "\\.nix\\'" ) 
 #+END_SRC
 
 Add the usual file extensions to drive appropriate dev modes in emacs.
@@ -1142,7 +1130,7 @@ who writes great content.
 
 Searching the Denote files is done via the "consult-notes" package. 
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   (require 'denote)
 
   ;; Remember to check the doc strings of those variables.
