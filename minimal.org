@@ -718,6 +718,7 @@ translated to "C-c r" internally.
   (meow-setup-indicator)
 #+END_SRC
 
+
 ** Evil mode
 #+BEGIN_SRC emacs-lisp :tangle no
   (use-package evil
@@ -1217,5 +1218,184 @@ too.
   (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
 #+END_SRC
 
+* PDF tools
+This is a great tool if you have to comment on or otherwise annotate
+PDFs. The standard method for adding a text comment can be faster
+than trying to scribble a hadnwritten note via other methods.
 
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;; pdf tools for organising and annotating PDF
+  (use-package pdf-tools
+    :config
+    (pdf-tools-install))
+#+END_SRC
+ 
+* Email/mu4e
+We need the =mu= package and also the executable =mbsync= (the
+package that =mbsync= is in, is usually called =isync=). My existing
+workflow was broken by move to Oauth2 in O365. Now I run =davmail= as
+an intermediary, with IMAP/SMTP on localhost which seems to run well.
+The =davmail= process is started as an asynchronous process under
+emacs as needed when =mu4e= is started -- see =pod= section below.
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;; defines mu4e exists, but holds off until needed
+  ;;(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+  (require 'mu4e)
+#+END_SRC
+
+First, let's define how we get messages using the 'Work' profile set
+up in the =mbsync=/=isync= profile. We then also specify where the
+email is to be stored.
+
+#+BEGIN_SRC emacs-lisp :tangle no  
+  ;; how to get mail
+  (setq mu4e-get-mail-command "mbsync Work"
+        mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
+        mu4e-mu-binary (executable-find "mu"))
+  ;; auto GET? 
+  ;; (setq mu4e-update-interval 300)
+#+END_SRC
+
+Now, we can define the look/feel of how email is read and organized.
+Most of this relates to the =mu4e-headers= configuration.
+
+#+BEGIN_SRC emacs-lisp :tangle no  
+  ;; I don't sync Deleted Items & largely do permanent
+  ;;  delete via "D" rather than move to trash via "d" 
+  (setq mu4e-trash-folder  "/Trash") 
+  ;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+  (setq mu4e-change-filenames-when-moving t)
+  ;; show thread but don't bring back related emails that have been moved
+  (setq mu4e-headers-show-thread t
+        mu4e-headers-include-related nil
+        mu4e-headers-visible-lines 20
+        mu4e-headers-results-limit 200)
+  ;; rich text emails are converted using 'shr'
+  ;; they are displayed using 'shr-face'
+  ;; and for a dark background the 'mu4e' manual suggests:
+  (setq shr-color-visible-luminance-min 80)
+
+  ;; Define what headers to show
+  ;; in the headers list -- a pair of a field
+  ;; and its width, with `nil' meaning 'unlimited'
+  ;; best to only use nil for the last field.
+  (setq mu4e-headers-fields
+        '((:human-date          .  10)   ;; alternatively, use :date
+          (:flags               .   5)
+          (:recipnum            .   3)
+          (:from-or-to          .  30)
+          (:thread-subject      . nil))  ;; alternatively, use :thread-subject
+        )
+  ;; shortcut keys are used in the main-view
+  (setq mu4e-maildir-shortcuts
+        '( ("/INBOX"          . ?i)
+           ("/Sent"           . ?s)
+           ("/Trash"          . ?t)
+           ("/Drafts"         . ?d)
+           ("/BULK"           . ?b)))
+  ;; bookmarks
+  (setq mu4e-bookmarks
+        ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK" :key 117) ; bu
+           (:name "Today" :query "date:today..now" :key 116)                   ; bt
+           (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
+           (:name "Attachment" :query "flag:a" :key 97)                        ; ba
+           (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
+           ))       
+  ;; don't auto update in the headers view, wait for return to main view
+  (setq mu4e-headers-auto-update nil) 
+
+#+END_SRC
+
+Now we define things related to sending email. The sendmail route is
+via =msmtp= which stores a configuration (typically) in =~/.msmtprc=.
+
+Note: if using =davmail= you probably want =~/davmail.properties= to
+contain =davmail.smtpSaveInSent=false= otherwise there may be two
+copies of sent emails.
+
+#+BEGIN_SRC emacs-lisp :tangle no  
+  ;; configure for msmtp as this is easy to test from the CLI
+  (setq send-mail-function 'sendmail-send-it
+        sendmail-program "msmtp"
+        mail-specify-envelope-from t
+        message-sendmail-envelope-from 'header
+        mail-envelope-from 'header)
+  ;; Note: sent mails should appear in O365 sent list
+  ;; O365 uses "Sent Items" in the web interface but this
+  ;; appears as just "Sent" with mbsync set to "Patterns *"
+  (setq mu4e-sent-folder   "/Sent")
+  ;; sent messages are copied into the 'mu4e-sent-folder' defined above
+  ;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
+  ;; 2 copies in the O365 "Sent Items" folder
+  (setq mu4e-sent-messages-behavior 'sent)
+#+END_SRC
+
+Finally we move on to composing emails, including default email
+addresses. In the compose window we want spell-checking enabled, hence
+the mode-hook defined below.
+
+#+BEGIN_SRC emacs-lisp :tangle no  
+  ;; don't keep message buffers around
+  (setq message-kill-buffer-on-exit t)
+  ;; general emacs mail settings; used when composing e-mail
+  ;; the non-mu4e-* stuff is inherited from emacs/message-mode
+  (setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
+        user-mail-address "richard.hewitt@manchester.ac.uk"
+        user-full-name  "Rich Hewitt")
+  ;; compose signature
+  (setq message-signature-file "~/CURRENT/dot.signature")
+  (setq mu4e-compose-signature-auto-include t)
+  ;; don't wrap at 70-something columns
+  ;(setq mu4e-compose-format-flowed t)
+  ;; define where to put draft email
+  (setq mu4e-drafts-folder "/Drafts")
+  ;; spell check during compose
+  (add-hook 'mu4e-compose-mode-hook
+            (defun my/do-compose-stuff ()
+              "My settings for message composition."
+              (set-fill-column 72)
+              (flyspell-mode)
+              ;; turn off autosave, otherwise we end up with multiple
+              ;; versions of sent/draft mail being sync'd
+              (auto-save-mode -1)))
+  ;; Couple to Org -- not sure if this is strictly required or not?
+  ;(require 'mu4e-org)
+#+END_SRC
+
+We need some quick elisp to start 'davmail' when 'mu4e' starts in order to connect
+to O365 with MFA. We do a bit of a hack to stop the 'davmail' process with a timer
+check every 15 minutes to see if 'mu4e' is still running or not.
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;;(add-to-list 'load-path "~/.emacs.d/elisp/pod")
+  (use-package pod
+    :load-path "~/.emacs.d/elisp/pod"
+    :config
+    (setq pod-process-plist '(davmail (:name "dav"
+                                        :exe  "~/.nix-profile/bin/davmail"
+                                        :args "-server"
+                                        :mins 2
+                                        :pred mu4e-running-p)))
+    :hook
+    (mu4e-main-mode . (lambda() (pod-process-start 'davmail))) )
+#+END_SRC
+
+* AGE encryption instead of GPG
+'AGE' is a (arguably) more modern and simpler replacement for the
+standard GPG applications.
+
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package age
+    :demand
+    :custom
+    (age-program "rage")   ; 'rage' is the rust implementation of 'age' that supports pinentry
+    (age-default-identity "~/CURRENT/AGE/yubikey-bb978fd1-identity.txt")
+    (age-default-recipient
+     '("~/CURRENT/AGE/recovery-recipient.pub"            ; cold-storage recovery
+       "~/CURRENT/AGE/yubikey-bb978fd1-recipient.pub"))  ; active hardware key
+    :config
+    (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
+    (age-file-enable))
+#+END_SRC
 

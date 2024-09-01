@@ -90,7 +90,7 @@
                 mode-line-format-right-align
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; there is a default string for the modeline from the mu4e package
-                ;;(:eval (propertize (mu4e--modeline-string) 'face 'shadow))
+                (:eval (propertize (mu4e--modeline-string) 'face 'shadow))
                 ;; show ONLY the major mode (minor modes are not shown)
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; strip "-Mode" from the end
@@ -143,7 +143,7 @@
   (which-key-setup-minibuffer)       ; use the minibuffer to show help
   (which-key-mode))
 
-(require 'fontaine)
+(use-package fontaine)
 
 (setq fontaine-latest-state-file
       (locate-user-emacs-file "fontaine-latest-state.eld"))
@@ -216,6 +216,12 @@
   ("C-y"   . yank)
   ("C-s"   . consult-line)
   ("M-g o" . consult-outline))
+
+(use-package consult-notes
+  :defer t
+  :commands (consult-notes consult-notes-search-in-all-notes)
+  :config
+  (consult-notes-denote-mode))
 
 (use-package vertico
   :custom
@@ -407,11 +413,10 @@
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all) )
 
-(require 'transpose-frame)
+(use-package transpose-frame)
 
 ;; GIT-GUTTER: SHOW changes relative to git repo
 (use-package git-gutter
-  :defer t
   :init
   (message "Use-package: Git-Gutter")
   :hook
@@ -491,14 +496,6 @@
   ;;(setq tab-always-indent 'complete)
   (global-corfu-mode)
   (corfu-prescient-mode))
-
-; you might need this for emacs -nw
-;(use-package corfu-terminal
-;  :init
-;  (message "Use-package: corfu-terminal")
-;  :config
-;  ;; let's default to the terminal mode
-;  (corfu-terminal-mode))
 
 (use-package corfu-prescient
   :init
@@ -618,6 +615,60 @@
 ;; stop it asking if I'm sure about evaluation
 (setq org-confirm-babel-evaluate nil)
 
+(require 'denote)
+
+;; Remember to check the doc strings of those variables.
+(setq denote-directory (expand-file-name "~/CURRENT/PNL/Denote/"))
+(setq denote-known-keywords '("research" "admin" "industry" "teaching" "home" "attachment"))
+(setq denote-infer-keywords t)
+(setq denote-sort-keywords t)
+(setq denote-file-type nil) ; Org is the default, set others here
+(setq denote-prompts '(title keywords))
+
+;; We allow multi-word keywords by default.  The author's personal
+;; preference is for single-word keywords for a more rigid workflow.
+(setq denote-allow-multi-word-keywords t)
+
+(setq denote-date-format nil) ; read doc string
+
+;; By default, we fontify backlinks in their bespoke buffer.
+(setq denote-link-fontify-backlinks t)
+
+;; Also see `denote-link-backlinks-display-buffer-action' which is a bit
+;; advanced.
+
+;; If you use Markdown or plain text files (Org renders links as buttons
+;; right away)
+(add-hook 'find-file-hook #'denote-link-buttonize-buffer)
+
+;;(require 'denote-dired)
+(setq denote-dired-rename-expert nil)
+
+(add-hook 'dired-mode-hook #'denote-dired-mode-in-directories)
+
+(with-eval-after-load 'org-capture    
+  (setq denote-org-capture-specifiers "%l\n%i\n%?")
+  (add-to-list 'org-capture-templates
+               '("n" "New note (with denote.el)" plain
+                 (file denote-last-path)
+                 #'denote-org-capture
+                 :no-save t
+                 :immediate-finish nil
+                 :kill-buffer t
+                 :jump-to-captured t)))
+
+;; I still like "org-journal" rather than using "denote".
+(use-package org-journal
+  :init
+  (message "Use-package: Org-journal")
+  :config
+  (setq org-journal-dir "~/CURRENT/PNL/JNL/"
+        org-journal-date-format "%A, %d %B %Y"
+        org-journal-file-format "%Y_%m_%d"
+        org-journal-time-prefix "  - "
+        org-journal-time-format nil
+        org-journal-file-type 'monthly))
+
 ;; org-mode
 (add-hook 'org-mode-hook 'hl-line-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
@@ -632,3 +683,127 @@
 ;; for use in lecture note construction
 (add-to-list 'auto-mode-alist '("\\.m4\\'" . latex-mode))
 
+;; pdf tools for organising and annotating PDF
+(use-package pdf-tools
+  :config
+  (pdf-tools-install))
+
+;; defines mu4e exists, but holds off until needed
+;;(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
+(require 'mu4e)
+
+;; how to get mail
+(setq mu4e-get-mail-command "mbsync Work"
+      mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
+      mu4e-mu-binary (executable-find "mu"))
+;; auto GET? 
+;; (setq mu4e-update-interval 300)
+
+;; I don't sync Deleted Items & largely do permanent
+;;  delete via "D" rather than move to trash via "d" 
+(setq mu4e-trash-folder  "/Trash") 
+;; [2018] : this stops errors associated with duplicated UIDs -- LEAVE IT HERE!
+(setq mu4e-change-filenames-when-moving t)
+;; show thread but don't bring back related emails that have been moved
+(setq mu4e-headers-show-thread t
+      mu4e-headers-include-related nil
+      mu4e-headers-visible-lines 20
+      mu4e-headers-results-limit 200)
+;; rich text emails are converted using 'shr'
+;; they are displayed using 'shr-face'
+;; and for a dark background the 'mu4e' manual suggests:
+(setq shr-color-visible-luminance-min 80)
+
+;; Define what headers to show
+;; in the headers list -- a pair of a field
+;; and its width, with `nil' meaning 'unlimited'
+;; best to only use nil for the last field.
+(setq mu4e-headers-fields
+      '((:human-date          .  10)   ;; alternatively, use :date
+        (:flags               .   5)
+        (:recipnum            .   3)
+        (:from-or-to          .  30)
+        (:thread-subject      . nil))  ;; alternatively, use :thread-subject
+      )
+;; shortcut keys are used in the main-view
+(setq mu4e-maildir-shortcuts
+      '( ("/INBOX"          . ?i)
+         ("/Sent"           . ?s)
+         ("/Trash"          . ?t)
+         ("/Drafts"         . ?d)
+         ("/BULK"           . ?b)))
+;; bookmarks
+(setq mu4e-bookmarks
+      ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK" :key 117) ; bu
+         (:name "Today" :query "date:today..now" :key 116)                   ; bt
+         (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
+         (:name "Attachment" :query "flag:a" :key 97)                        ; ba
+         (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
+         ))       
+;; don't auto update in the headers view, wait for return to main view
+(setq mu4e-headers-auto-update nil)
+
+;; configure for msmtp as this is easy to test from the CLI
+(setq send-mail-function 'sendmail-send-it
+      sendmail-program "msmtp"
+      mail-specify-envelope-from t
+      message-sendmail-envelope-from 'header
+      mail-envelope-from 'header)
+;; Note: sent mails should appear in O365 sent list
+;; O365 uses "Sent Items" in the web interface but this
+;; appears as just "Sent" with mbsync set to "Patterns *"
+(setq mu4e-sent-folder   "/Sent")
+;; sent messages are copied into the 'mu4e-sent-folder' defined above
+;; Make sure that .davmail.properties has .smtpSaveInSent=false otherwise we get
+;; 2 copies in the O365 "Sent Items" folder
+(setq mu4e-sent-messages-behavior 'sent)
+
+;; don't keep message buffers around
+(setq message-kill-buffer-on-exit t)
+;; general emacs mail settings; used when composing e-mail
+;; the non-mu4e-* stuff is inherited from emacs/message-mode
+(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
+      user-mail-address "richard.hewitt@manchester.ac.uk"
+      user-full-name  "Rich Hewitt")
+;; compose signature
+(setq message-signature-file "~/CURRENT/dot.signature")
+(setq mu4e-compose-signature-auto-include t)
+;; don't wrap at 70-something columns
+;(setq mu4e-compose-format-flowed t)
+;; define where to put draft email
+(setq mu4e-drafts-folder "/Drafts")
+;; spell check during compose
+(add-hook 'mu4e-compose-mode-hook
+          (defun my/do-compose-stuff ()
+            "My settings for message composition."
+            (set-fill-column 72)
+            (flyspell-mode)
+            ;; turn off autosave, otherwise we end up with multiple
+            ;; versions of sent/draft mail being sync'd
+            (auto-save-mode -1)))
+;; Couple to Org -- not sure if this is strictly required or not?
+;(require 'mu4e-org)
+
+;;(add-to-list 'load-path "~/.emacs.d/elisp/pod")
+(use-package pod
+  :load-path "~/.emacs.d/elisp/pod"
+  :config
+  (setq pod-process-plist '(davmail (:name "dav"
+                                      :exe  "~/.nix-profile/bin/davmail"
+                                      :args "-server"
+                                      :mins 2
+                                      :pred mu4e-running-p)))
+  :hook
+  (mu4e-main-mode . (lambda() (pod-process-start 'davmail))) )
+
+(use-package age
+  :demand
+  :custom
+  (age-program "rage")   ; 'rage' is the rust implementation of 'age' that supports pinentry
+  (age-default-identity "~/CURRENT/AGE/yubikey-bb978fd1-identity.txt")
+  (age-default-recipient
+   '("~/CURRENT/AGE/recovery-recipient.pub"            ; cold-storage recovery
+     "~/CURRENT/AGE/yubikey-bb978fd1-recipient.pub"))  ; active hardware key
+  :config
+  (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
+  (age-file-enable))

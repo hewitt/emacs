@@ -316,7 +316,7 @@ Pop-up a description of key combinations after a delay.
 ** Fontaine
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (require 'fontaine)
+  (use-package fontaine)
 
   (setq fontaine-latest-state-file
         (locate-user-emacs-file "fontaine-latest-state.eld"))
@@ -880,7 +880,7 @@ This gives some dynamic window management via the functions
 /rotate-frame-clockwise/ (90deg cw), /rotate-frame-anticlockwise/ (90deg acw/ccw)
 
 #+BEGIN_SRC emacs-lisp :tangle yes 
-  (require 'transpose-frame)
+  (use-package transpose-frame)
 #+END_SRC
 
 * Git 
@@ -888,7 +888,6 @@ Show changes to most recent git status in repos.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
-    :defer t
     :init
     (message "Use-package: Git-Gutter")
     :hook
@@ -1040,14 +1039,6 @@ Ruff
     ;;(setq tab-always-indent 'complete)
     (global-corfu-mode)
     (corfu-prescient-mode))
-
-  ; you might need this for emacs -nw
-  ;(use-package corfu-terminal
-  ;  :init
-  ;  (message "Use-package: corfu-terminal")
-  ;  :config
-  ;  ;; let's default to the terminal mode
-  ;  (corfu-terminal-mode))
 
   (use-package corfu-prescient
     :init
