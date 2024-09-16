@@ -119,8 +119,8 @@
   :init
   ;; Disable all other themes to avoid awkward blending
   (mapc #'disable-theme custom-enabled-themes)
-  (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
-(ef-themes-select 'ef-maris-dark)
+  (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark)))
+(ef-themes-select 'ef-elea-light)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'org-mode-hook 'display-line-numbers-mode)
@@ -352,6 +352,7 @@
   "e" #'my/config-visit
   "m" #'mu4e
   "f" #'dired
+  "b" #'consult-buffer
   )
 
 ;; Define how the nested keymaps are labelled in `which-key-mode'.
@@ -362,7 +363,7 @@
 
 ;; Bind the prefix key map to a key.  Notice the absence of a quote for
 ;; the map's symbol.
-(keymap-set global-map "C-c r" my-prefix-map)
+(keymap-set global-map "C-z" my-prefix-map)
 
 ;; - cut and paste in Wayland environment
 ;; - this puts selected text into the Wayland clipboard
@@ -496,6 +497,8 @@
   ;;(setq tab-always-indent 'complete)
   (global-corfu-mode)
   (corfu-prescient-mode))
+
+(use-package corfu-terminal)
 
 (use-package corfu-prescient
   :init

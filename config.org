@@ -7,23 +7,17 @@
 To convert this to "./config.el" do M-x org-babel-tangle.
 
 * Notes/preamble
-+ Originally my Emacs packages were installed by use-package using the
-  ':ensure t' mechanism. As of 2022+ this is replaced in favour of a
-  NixOS Home-Manager configuration. This config therefore assumes each
-  package is already installed and available.
++ Packages are installed via NixOS Home-Manager configuration. 
   
-+ I'm using Emacs 30+ so 'use-package' (and some other things) are
-  built-in, notably 'treesitter'.
++ Emacs 30+ has 'use-package' (and some other things) built-in,
+  notably 'treesitter'.
 
 + Emacs 30+ is required to use 'mode-line-format-right-align' in the
   modeline configuration below. 
 
 + Terminal vs GUI.
-  - There are issues in the way <escape> is treated in a terminal
-    compared to GUI. This can be helped with some magic from
-    xah-fly-keys included in RYO Modal section below.
   - Cut/Paste should still function in the terminal, but you may need
-    shirt+middle-mouse-button to paste from the clipboard.
+    shift+middle-mouse-button to paste from the clipboard.
   - You can distinguish between terminal and GUI on a frame-by-frame
     basis using, see for example the code below.
 
@@ -158,10 +152,7 @@ that we update any open buffers to show the on-file current status.
 #+END_SRC
 
 ** Straight :inactive:
-Recently a package I rely on had a problem. Rather than revert the
-package to an older version via NixOS, it was quicker to remove the
-package from the OS configuration and just switch to directly
-installing the correct revision with 'straight'.
+Not used, but left in case of issues with a NixOS package.
 
 *Not currently in use, and left untangled.*
 
@@ -182,10 +173,9 @@ installing the correct revision with 'straight'.
 
 * Appearance
 ** Modeline
-This is a simplified home-brew modeline with the package stored in the
-=elisp= folder. Colours are defined to match the =ef-themes= choices.
-There is a hook to =ef-themes-post-load-hook= to ensure that these are
-updated if the =ef-theme= is updated.
+This is a simplified home-brew modeline. Colours are defined to match
+the =ef-themes= choices. There is a hook to =ef-themes-post-load-hook=
+to ensure that these are updated if the =ef-theme= is updated.
 
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -260,9 +250,6 @@ updated if the =ef-theme= is updated.
 #+END_SRC
 
 ** Theme
-I've switched to the more systematic themes from Protesilaos Stavrou,
-and most recently his =ef-themes=.
-
 Fonts: The default font is now set via =custom-settings.el= since it
 is machine specific given each has its own DPI settings.
 
@@ -271,8 +258,8 @@ is machine specific given each has its own DPI settings.
     :init
     ;; Disable all other themes to avoid awkward blending
     (mapc #'disable-theme custom-enabled-themes)
-    (setq ef-themes-to-toggle '(ef-maris-dark ef-elea-light)))
-  (ef-themes-select 'ef-maris-dark)
+    (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark)))
+  (ef-themes-select 'ef-elea-light)
 #+END_SRC
 
 ** Relative line numbers
@@ -380,64 +367,6 @@ Pop-up a description of key combinations after a delay.
 #+END_SRC
 
 * Narrowing and completion
-** Overview/background
-A useful overview from:
-https://www.reddit.com/r/emacs/comments/k3c0u7/consult_counselswiper_alternative_for/
-
-The minibuffer completion uses:
-
-+ "completing-read" to define what the completion UI looks like and
-  how it behaves.
-
-+ "completing-styles" to define how completion filter/sorts results
-  (e.g. does typing "fi fil" match "find-file").
-
-In terms of packages:
-
-+ "icomplete", "fido" and "selectrum" all just define a
-  "completing-read" function and implement continuous completion on
-  each key press (not technically true for "icomplete" but close
-  enough).
-
-+ "Orderless", "Prescient", and the built-in "flex" are
-  completion-styles to allow convenient filters like regex, and
-  sorting by frequency/recency.
-
-+ "icomplete-vertical" is a minor mode to make "icomplete" vertical.
-
-+ "Consult" is a set of functions to use various Emacs facilities via
-  completing-read.
-
-+ "Embark" is a minor mode to allow each minibuffer entry to have
-  multiple actions.
-
-All of the above try to use the minibuffer's existing hooks and
-extension mechanisms, and benefit from large parts of the rest of
-Emacs using those mechanisms too. Consequently, they all interoperate
-with each other and other parts of the Emacs ecosystem. You can pick
-which you want.
-
-Modes that don't attempt to interoperate (and I avoid):
-
-+ "Ido" performs the same role as "completing-read", but doesn't set
-  "completing-read" and so only works for functions that use Ido's own
-  completing function. "ido-ubiquitious" sets ido to be
-  completing-read. ido appears to be considered somewhat deprecated on
-  emacs-devel, in favour of icomplete.
-
-+ "Ivy" doesn't use completing-read at all, and does its own filtering
-  (rather than use completion-styles).
-
-+ "Swiper" uses Ivy. I replace with just `C-s`.
-
-+ "Counsel" is a set of functions to use various parts of Emacs via
-  minibuffer completion. Very convenient, but only works if you also
-  have "Ivy/Swiper". "Consult" is like "Counsel" but uses the built-in
-  minibuffer completion.
-
-+ "Helm" doesn't use "completing-read", but does add multiple actions
-  on each selection. I would use "embark" if I wanted this
-  functionality, but I don't.
 
 ** Using standard completing-read interface
 - Use 'vertico' as a smaller solution for incremental completion in
@@ -598,11 +527,6 @@ Global keys to split the window AND follow by moving point to the new window.
 #+END_SRC
 
 
-Following Prot's leader key video. This makes the key choices largely
-independent of any choice of modal editing via Meow/Evil below.
-However =meow= calls this shortcut via the keymap "SPC r" since it is
-translated to "C-c r" internally.
-
 #+BEGIN_SRC emacs-lisp :tangle yes
 
   (defvar-keymap my-prefix-org-map
@@ -627,6 +551,7 @@ translated to "C-c r" internally.
     "e" #'my/config-visit
     "m" #'mu4e
     "f" #'dired
+    "b" #'consult-buffer
     )
 
   ;; Define how the nested keymaps are labelled in `which-key-mode'.
@@ -637,174 +562,7 @@ translated to "C-c r" internally.
 
   ;; Bind the prefix key map to a key.  Notice the absence of a quote for
   ;; the map's symbol.
-  (keymap-set global-map "C-c r" my-prefix-map)
-#+END_SRC
-
-
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package  general
-    :config
-    (general-evil-setup t)
-
-    (general-create-definer my/leader-keys
-      :keymaps '(normal insert visual emacs)
-      :prefix "SPC"
-      :global-prefix "C-SPC"
-      )) 
-
-    (my/leader-keys
-      "q"  '(:ignore t :which-key "quick")
-      "qa" '(org-agenda                       :which-key "agenda")
-      "qc" '(org-capture                      :which-key "capture")
-      "qd" '(org-journal-new-entry            :which-key "journal" )
-      "qe" '(my/config-visit                  :which-key "config")
-      "qm" '(mu4e                             :which-key "mu4e")
-      "qs" '(consult-notes-search-in-all-notes :which-key "search notes")
-      "qt" '(my/todo-visit                    :which-key "to-do")
-      "qT" '(org-babel-tangle                 :which-key "tangle")
-      "q+" '(text-scale-adjust                :which-key "font scale")
-      ;; mirror some emacs-chord definitions for window management
-      "x"  '(:ignore t :which-key "windows")
-      "xo" '(other-window                     :which-key "other")
-      "x0" '(delete-window                    :which-key "del-this")
-      "x1" '(delete-other-windows             :which-key "del-others")
-      "x2" '(my/split-and-follow-horizontally :which-key "h-split")
-      "x3" '(my/split-and-follow-vertically   :which-key "v-split")
-      "xt" '(transpose-frame                  :which-key "transpose")
-      ;; no prefix for the most commonly used things
-      "b"  '(consult-buffer                   :which-key "buffers")
-      "k"  '(kill-buffer                      :which-key "kill-buffer")
-      )
-    
-#+END_SRC
-
-** Meow mode
-#+BEGIN_SRC emacs-lisp :tangle no
-  (meow-define-state disable "dummy state")
-  (add-to-list 'meow-mode-state-list '(mu4e-headers-mode . disable))
-
-  (defun meow-setup ()
-    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-    (meow-motion-overwrite-define-key
-     ;'("j" . meow-next)
-     ;'("k" . meow-prev)
-     '("<escape>" . ignore))
-    (meow-leader-define-key
-     ;; SPC j/k will run the original command in MOTION state.
-     ;'("j" . "H-j")
-     ;'("k" . "H-k")
-     ;; Use SPC (0-9) for digit arguments.
-     '("1" . meow-digit-argument)
-     '("2" . meow-digit-argument)
-     '("3" . meow-digit-argument)
-     '("4" . meow-digit-argument)
-     '("5" . meow-digit-argument)
-     '("6" . meow-digit-argument)
-     '("7" . meow-digit-argument)
-     '("8" . meow-digit-argument)
-     '("9" . meow-digit-argument)
-     '("0" . meow-digit-argument)
-     '("b" . consult-buffer)
-     '("/" . meow-keypad-describe-key)
-     '("?" . meow-cheatsheet))
-
-    (meow-normal-define-key
-     '("0" . meow-expand-0)
-     '("9" . meow-expand-9)
-     '("8" . meow-expand-8)
-     '("7" . meow-expand-7)
-     '("6" . meow-expand-6)
-     '("5" . meow-expand-5)
-     '("4" . meow-expand-4)
-     '("3" . meow-expand-3)
-     '("2" . meow-expand-2)
-     '("1" . meow-expand-1)
-     '("-" . negative-argument)
-     '(";" . meow-reverse)
-     '("," . meow-inner-of-thing)
-     '("." . meow-bounds-of-thing)
-     '("[" . meow-beginning-of-thing)
-     '("]" . meow-end-of-thing)
-     '("a" . meow-append)
-     '("A" . meow-open-below)
-     '("b" . meow-back-word)
-     '("B" . meow-back-symbol)
-     '("c" . meow-change)
-     '("d" . meow-delete)
-     '("D" . meow-backward-delete)
-     '("e" . meow-next-word)
-     '("E" . meow-next-symbol)
-     '("f" . meow-find)
-     '("g" . meow-cancel-selection)
-     '("G" . meow-grab)          ; see BEACON mode
-     '("h" . meow-left)
-     '("H" . meow-left-expand)
-     '("i" . meow-insert)
-     '("I" . meow-open-above)
-     '("j" . meow-next)
-     '("J" . meow-next-expand)
-     '("k" . meow-prev)
-     '("K" . meow-prev-expand)
-     '("l" . meow-right)
-     '("L" . meow-right-expand)
-     '("m" . meow-join)
-     '("n" . meow-search)        ; select a word then cycle through other instances with 'n'
-     '("o" . meow-block)
-     '("O" . meow-to-block)
-     '("p" . meow-yank)
-     '("q" . meow-quit)
-     '("Q" . meow-goto-line)
-     '("r" . meow-replace)
-     '("R" . meow-swap-grab)
-     '("s" . meow-kill)
-     '("t" . meow-till)
-     '("u" . meow-undo)
-     '("U" . meow-undo-in-selection)
-     '("v" . meow-visit)
-     '("w" . meow-mark-word)
-     '("W" . meow-mark-symbol)
-     '("x" . meow-line)
-     '("X" . meow-goto-line)     ; repeat of Q in the default map
-     '("y" . meow-save)
-     '("Y" . meow-sync-grab)
-     '("z" . meow-pop-selection)
-     '("/" . avy-goto-char-timer)
-     '("'" . repeat)
-     '("<escape>" . ignore)))
-
-  (require 'meow)
-  (meow-setup)
-  (meow-global-mode 1)
-  (meow-setup-indicator)
-#+END_SRC
-
-
-** Evil mode
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package evil
-    :init
-    (setq evil-want-integration t)
-    (setq evil-want-C-u-scroll t)
-    (setq evil-want-C-i-jump nil)
-    (setq evil-want-keybinding nil)
-    (setq evil-want-fine-undo t)
-    (setq evil-undo-system 'undo-redo)
-    ;; put the indicator at the left of the mode line
-    (setq evil-mode-line-format '(before . mode-line-front-space))
-    ;; make normal tag a red colour in the modeline
-    (setq evil-normal-state-tag   (propertize " <N> " 'face '((:foreground "red"))))
-    :config
-    (evil-mode 1)
-
-    ;; Use visual line motions even outside of visual-line-mode buffers
-    (evil-global-set-key 'motion "j" 'evil-next-visual-line)
-    (evil-global-set-key 'motion "k" 'evil-previous-visual-line))
-
-  (use-package evil-collection
-    :after evil
-    :config
-    (evil-collection-init))
+  (keymap-set global-map "C-z" my-prefix-map)
 #+END_SRC
 
 ** Cut and paste
@@ -904,6 +662,7 @@ Code completion and on-the-fly check/make.
 
 - To parse appropriate header files requires a 'compile_commands.json'
   file that is consistent with the local machine filesystem.
+  
 ** Remap some major modes to tree-sitter alternatives
 
 As per
@@ -921,7 +680,6 @@ then place a file =.yas-parents= in this folder that points to the
 non-tree-sitter folder (in this case it would contain) the single line
 =c++-mode=.
 
-
 #+BEGIN_SRC emacs-lisp :tangle yes
   (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
   (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
@@ -930,6 +688,7 @@ non-tree-sitter folder (in this case it would contain) the single line
   ;; maximum level of highlighting
   (setq treesit-font-lock-level 4)
 #+END_SRC
+
 ** Eglot
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; eglot is a simpler alternative to LSP-mode
@@ -949,15 +708,15 @@ non-tree-sitter folder (in this case it would contain) the single line
 IN-REGION (ie. buffer) completion is provided by Corfu (Completion
 Overlay Region FUnction). 
 
-** Dev virtual environments
+** Dev virtual environmfents
 Under =NixOS= I use =direnv= to set up local configurations for
 writing code and latex. So we can use the direnv package to make sure
 that =emacs= is aware of local settings.
 
 #+BEGIN_SRC emacs-lisp :tangle yes 
-   (use-package direnv
-     :config
-     (direnv-mode))
+  (use-package direnv
+    :config
+    (direnv-mode))
 #+END_SRC
 
 Python code is also sometimes developed via =virtualenv=. This makes
@@ -1040,6 +799,8 @@ Ruff
     (global-corfu-mode)
     (corfu-prescient-mode))
 
+  (use-package corfu-terminal)
+
   (use-package corfu-prescient
     :init
     (message "Use-package: corfu-prescient"))
@@ -1059,6 +820,7 @@ Add the usual file extensions to drive appropriate dev modes in emacs.
   ;; Nix language
   (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 #+END_SRC
+
 
 * Magit
 Git interface within emacs.
