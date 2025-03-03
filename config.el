@@ -4,7 +4,7 @@
 (setq package-archives
       '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
         ("MELPA"        . "https://melpa.org/packages/"))
-      package-archive-priorities ; prefer ELPA to MELPA
+      package-archive-prigorities ; prefer ELPA to MELPA
       '(("GNU ELPA"     . 10)
         ("MELPA"        . 5 )))
 (package-initialize)
@@ -90,7 +90,8 @@
                 mode-line-format-right-align
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; there is a default string for the modeline from the mu4e package
-                (:eval (propertize (mu4e--modeline-string) 'face 'shadow))
+		;; [Nov 2024] stopped using it
+                ;;(:eval (propertize (mu4e--modeline-string) 'face 'shadow))
                 ;; show ONLY the major mode (minor modes are not shown)
                 (:eval (propertize " | " 'face 'shadow) ) ; separator
                 ;; strip "-Mode" from the end
@@ -119,8 +120,23 @@
   :init
   ;; Disable all other themes to avoid awkward blending
   (mapc #'disable-theme custom-enabled-themes)
-  (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark)))
+  (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
+  ;; They are nil by default...
+  ;;(setq ef-themes-mixed-fonts t
+  ;;	ef-themes-variable-pitch-ui t)
+  )
 (ef-themes-select 'ef-elea-light)
+
+;; Add frame borders and window dividers
+(modify-all-frames-parameters
+ '((right-divider-width . 10)
+   (internal-border-width . 10)))
+(dolist (face '(window-divider
+                window-divider-first-pixel
+                window-divider-last-pixel))
+  (face-spec-reset-face face)
+  (set-face-foreground face (face-attribute 'default :background)))
+(set-face-background 'fringe (face-attribute 'default :background))
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'org-mode-hook 'display-line-numbers-mode)
@@ -165,7 +181,22 @@
          :italic-slant italic
          :line-spacing 1)
         (iosevka
-         :default-family "Iosevka"
+         :default-family "Iosevka Comfy Motion Fixed"
+         :default-weight normal
+         :default-height 125
+         :fixed-pitch-family nil ; falls back to :default-family
+         :fixed-pitch-weight nil ; falls back to :default-weight
+         :fixed-pitch-height 1.0
+         :variable-pitch-family "Iosevka Comfy Motion Duo"
+         :variable-pitch-weight normal
+         :variable-pitch-height 120
+         :bold-family nil ; use whatever the underlying face has
+         :bold-weight bold
+         :italic-family nil ; use whatever the underlying face has
+         :italic-slant italic
+         :line-spacing 1)
+        (terminus
+         :default-family "Terminus"
          :default-weight normal
          :default-height 120
          :fixed-pitch-family nil ; falls back to :default-family
@@ -178,31 +209,24 @@
          :bold-weight bold
          :italic-family nil ; use whatever the underlying face has
          :italic-slant italic
-         :line-spacing 1)
-        (terminus
-         :default-family "Terminus"
-         :default-weight normal
-         :default-height 150
-         :fixed-pitch-family nil ; falls back to :default-family
-         :fixed-pitch-weight nil ; falls back to :default-weight
-         :fixed-pitch-height 1.0
-         :variable-pitch-family nil
-         :variable-pitch-weight normal
-         :variable-pitch-height 1.0
-         :bold-family nil ; use whatever the underlying face has
-         :bold-weight bold
-         :italic-family nil ; use whatever the underlying face has
-         :italic-slant italic
          :line-spacing 1)))
 
-;; Persist the latest font preset when closing/starting Emacs and
-;; while switching between themes.
-                                        ;(fontaine-mode 1)
-
-;; fontaine does not define any key bindings.  This is just a sample that
-;; respects the key binding conventions.  Evaluate:
-;;
-;;     (info "(elisp) Key Binding Conventions")
+;; set a default font via fontaine, but only for GUI frames
+(add-hook 'after-make-frame-functions
+      	  (lambda ()
+      	    ;; we want some font only in GUI Emacs
+  	    (if (display-graphic-p)
+  		(
+  		 (progn 
+		   (fontaine-set-preset (or (fontaine-restore-latest-preset) 'iosevka))
+      		   (fontaine-mode 1)  
+  		   )
+  		 (message "not display-graphic-p")
+		 )  	      
+  	      )
+	    ))
+	  
+;; this is also available by my usual C-z leader key
 (define-key global-map (kbd "C-c f") #'fontaine-set-preset)
 
 (use-package consult
@@ -519,12 +543,36 @@
   :init
   (message "Use-package: Org") )
 
-;; fancy replace of *** etc
-(use-package org-bullets
-  :after org
-  :init
-  (add-hook 'org-mode-hook 'org-bullets-mode)
-  (message "Use-package: Org-bullets") )
+(use-package org-modern
+  :config
+  (setq
+   ;; Edit settings
+   org-auto-align-tags nil
+   org-tags-column 0
+   org-catch-invisible-edits 'show-and-error
+   org-special-ctrl-a/e t
+   org-insert-heading-respect-content t
+
+   ;; Org styling, hide markup etc.
+   org-hide-emphasis-markers nil ; show the *...* for bold
+   org-pretty-entities nil ; stop underscore subscripting 
+
+   ;; Agenda styling
+   org-agenda-tags-column 0
+   org-agenda-block-separator ?─
+   org-agenda-time-grid
+   '((daily today require-timed)
+     (800 1000 1200 1400 1600 1800 2000)
+     " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+   org-agenda-current-time-string
+   "◀── now ─────────────────────────────────────────────────")
+
+  ;; Ellipsis styling
+  (setq org-ellipsis "…")
+  (set-face-attribute 'org-ellipsis nil :inherit 'default :box nil)
+  ;; symbols
+  (set-face-attribute 'org-modern-symbol nil :family "Iosevka")
+  )
 
 ;; some appearance tweaks:
 ;;
@@ -537,7 +585,7 @@
         ("~" org-code verbatim)
         ("+" (:strike-through t))))
 ;;
-;; colorise text instead of changing the font weight.
+;; colorise text for emphasis
 (defface my/org-emphasis-bold
   '((default :inherit bold)
     (((class color) (min-colors 88) (background light))
@@ -640,10 +688,6 @@
 ;; Also see `denote-link-backlinks-display-buffer-action' which is a bit
 ;; advanced.
 
-;; If you use Markdown or plain text files (Org renders links as buttons
-;; right away)
-(add-hook 'find-file-hook #'denote-link-buttonize-buffer)
-
 ;;(require 'denote-dired)
 (setq denote-dired-rename-expert nil)
 
@@ -676,6 +720,10 @@
 (add-hook 'org-mode-hook 'hl-line-mode)
 (add-hook 'org-mode-hook 'flyspell-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
+(add-hook 'org-mode-hook 'visual-line-mode)
+;; org-modern
+(add-hook 'org-mode-hook #'org-modern-mode)
+(add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
 
 (add-hook 'latex-mode-hook 'hl-line-mode)
 (add-hook 'latex-mode-hook 'flyspell-mode)
@@ -699,7 +747,7 @@
 (setq mu4e-get-mail-command "mbsync Work"
       mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
       mu4e-mu-binary (executable-find "mu"))
-;; auto GET? 
+;; DONT auto GET 
 ;; (setq mu4e-update-interval 300)
 
 ;; I don't sync Deleted Items & largely do permanent

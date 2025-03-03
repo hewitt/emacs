@@ -61,8 +61,6 @@ To get back previous insecure behavior, set the variable
 ** Org mode now considers contents of remote files to be untrusted.
 Remote files are recognized by calling 'file-remote-p'.
 
-
-
 * Basic setup
 ** Source locations for settings/packages
 Define where to find packages/libraries.
@@ -223,7 +221,8 @@ to ensure that these are updated if the =ef-theme= is updated.
                   mode-line-format-right-align
                   (:eval (propertize " | " 'face 'shadow) ) ; separator
                   ;; there is a default string for the modeline from the mu4e package
-                  (:eval (propertize (mu4e--modeline-string) 'face 'shadow))
+  		;; [Nov 2024] stopped using it
+                  ;;(:eval (propertize (mu4e--modeline-string) 'face 'shadow))
                   ;; show ONLY the major mode (minor modes are not shown)
                   (:eval (propertize " | " 'face 'shadow) ) ; separator
                   ;; strip "-Mode" from the end
@@ -254,12 +253,30 @@ Fonts: The default font is now set via =custom-settings.el= since it
 is machine specific given each has its own DPI settings.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package ef-themes
-    :init
-    ;; Disable all other themes to avoid awkward blending
-    (mapc #'disable-theme custom-enabled-themes)
-    (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark)))
-  (ef-themes-select 'ef-elea-light)
+    (use-package ef-themes
+      :init
+      ;; Disable all other themes to avoid awkward blending
+      (mapc #'disable-theme custom-enabled-themes)
+      (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
+      ;; They are nil by default...
+      ;;(setq ef-themes-mixed-fonts t
+      ;;	ef-themes-variable-pitch-ui t)
+      )
+    (ef-themes-select 'ef-elea-light)
+#+END_SRC
+
+** Frame borders/dividers
+#+BEGIN_SRC emacs-lisp :tangle yes 
+;; Add frame borders and window dividers
+(modify-all-frames-parameters
+ '((right-divider-width . 10)
+   (internal-border-width . 10)))
+(dolist (face '(window-divider
+                window-divider-first-pixel
+                window-divider-last-pixel))
+  (face-spec-reset-face face)
+  (set-face-foreground face (face-attribute 'default :background)))
+(set-face-background 'fringe (face-attribute 'default :background))
 #+END_SRC
 
 ** Relative line numbers
@@ -325,7 +342,22 @@ Pop-up a description of key combinations after a delay.
            :italic-slant italic
            :line-spacing 1)
           (iosevka
-           :default-family "Iosevka"
+           :default-family "Iosevka Comfy Motion Fixed"
+           :default-weight normal
+           :default-height 125
+           :fixed-pitch-family nil ; falls back to :default-family
+           :fixed-pitch-weight nil ; falls back to :default-weight
+           :fixed-pitch-height 1.0
+           :variable-pitch-family "Iosevka Comfy Motion Duo"
+           :variable-pitch-weight normal
+           :variable-pitch-height 120
+           :bold-family nil ; use whatever the underlying face has
+           :bold-weight bold
+           :italic-family nil ; use whatever the underlying face has
+           :italic-slant italic
+           :line-spacing 1)
+          (terminus
+           :default-family "Terminus"
            :default-weight normal
            :default-height 120
            :fixed-pitch-family nil ; falls back to :default-family
@@ -338,32 +370,26 @@ Pop-up a description of key combinations after a delay.
            :bold-weight bold
            :italic-family nil ; use whatever the underlying face has
            :italic-slant italic
-           :line-spacing 1)
-          (terminus
-           :default-family "Terminus"
-           :default-weight normal
-           :default-height 150
-           :fixed-pitch-family nil ; falls back to :default-family
-           :fixed-pitch-weight nil ; falls back to :default-weight
-           :fixed-pitch-height 1.0
-           :variable-pitch-family nil
-           :variable-pitch-weight normal
-           :variable-pitch-height 1.0
-           :bold-family nil ; use whatever the underlying face has
-           :bold-weight bold
-           :italic-family nil ; use whatever the underlying face has
-           :italic-slant italic
            :line-spacing 1)))
 
-  ;; Persist the latest font preset when closing/starting Emacs and
-  ;; while switching between themes.
-                                          ;(fontaine-mode 1)
-
-  ;; fontaine does not define any key bindings.  This is just a sample that
-  ;; respects the key binding conventions.  Evaluate:
-  ;;
-  ;;     (info "(elisp) Key Binding Conventions")
+  ;; set a default font via fontaine, but only for GUI frames
+  (add-hook 'after-make-frame-functions
+        	  (lambda ()
+        	    ;; we want some font only in GUI Emacs
+    	    (if (display-graphic-p)
+    		(
+    		 (progn 
+  		   (fontaine-set-preset (or (fontaine-restore-latest-preset) 'iosevka))
+        		   (fontaine-mode 1)  
+    		   )
+    		 (message "not display-graphic-p")
+  		 )  	      
+    	      )
+  	    ))
+  	  
+  ;; this is also available by my usual C-z leader key
   (define-key global-map (kbd "C-c f") #'fontaine-set-preset)
+
 #+END_SRC
 
 * Narrowing and completion
@@ -821,7 +847,6 @@ Add the usual file extensions to drive appropriate dev modes in emacs.
   (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 #+END_SRC
 
-
 * Magit
 Git interface within emacs.
 
@@ -841,97 +866,121 @@ A fairly standard Org mode configuration. Some minor tweaks to
 colourise bold/italic/underline for use with bitmap fonts.
 
 #+BEGIN_SRC  emacs-lisp :tangle yes
-    (use-package org
-      :init
-      (message "Use-package: Org") )
+  (use-package org
+    :init
+    (message "Use-package: Org") )
 
-    ;; fancy replace of *** etc
-    (use-package org-bullets
-      :after org
-      :init
-      (add-hook 'org-mode-hook 'org-bullets-mode)
-      (message "Use-package: Org-bullets") )
+  (use-package org-modern
+    :config
+    (setq
+     ;; Edit settings
+     org-auto-align-tags nil
+     org-tags-column 0
+     org-catch-invisible-edits 'show-and-error
+     org-special-ctrl-a/e t
+     org-insert-heading-respect-content t
 
-    ;; some appearance tweaks:
-    ;;
-    ;; replace emphasis with colors in Org files
-    (setq org-emphasis-alist
-          '(("*" my/org-emphasis-bold)
-            ("/" my/org-emphasis-italic)
-            ("_" my/org-emphasis-underline)
-            ("=" org-verbatim verbatim)
-            ("~" org-code verbatim)
-            ("+" (:strike-through t))))
-    ;;
-    ;; colorise text instead of changing the font weight.
-    (defface my/org-emphasis-bold
-      '((default :inherit bold)
-        (((class color) (min-colors 88) (background light))
-         :foreground "#a60000")
-        (((class color) (min-colors 88) (background dark))
-         :foreground "#ff8059"))
-      "My bold emphasis for Org.")
-    ;;
-    (defface my/org-emphasis-italic
-      '((default :inherit italic)
-        (((class color) (min-colors 88) (background light))
-         :foreground "#005e00")
-        (((class color) (min-colors 88) (background dark))
-         :foreground "#44bc44"))
-      "My italic emphasis for Org.")
-    ;;
-    (defface my/org-emphasis-underline
-      '((default :inherit underline)
-        (((class color) (min-colors 88) (background light))
-         :foreground "#813e00")
-        (((class color) (min-colors 88) (background dark))
-         :foreground "#d0bc00"))
-      "My underline emphasis for Org.")
+     ;; Org styling, hide markup etc.
+     org-hide-emphasis-markers nil ; show the *...* for bold
+     org-pretty-entities nil ; stop underscore subscripting 
 
-    ;; custom capture
-    (require 'org-capture)
-    ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
-    (setq org-capture-templates
-          '(
-            ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
-             "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-            ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-             "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-             :empty-lines 1)) )
+     ;; Agenda styling
+     org-agenda-tags-column 0
+     org-agenda-block-separator ?─
+     org-agenda-time-grid
+     '((daily today require-timed)
+       (800 1000 1200 1400 1600 1800 2000)
+       " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+     org-agenda-current-time-string
+     "◀── now ─────────────────────────────────────────────────")
 
-    ;; Agenda is constructed from org files in ONE directory
-    (setq org-agenda-files '("~/Sync/Org"))
+    ;; Ellipsis styling
+    (setq org-ellipsis "…")
+    (set-face-attribute 'org-ellipsis nil :inherit 'default :box nil)
+    ;; symbols
+    (set-face-attribute 'org-modern-symbol nil :family "Iosevka")
+    )
 
-    ;; refile to targets defined by the org-agenda-files list above
-    (setq org-refile-targets '((nil :maxlevel . 3)
-                               (org-agenda-files :maxlevel . 3)))
-    (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
-    (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
+  ;; some appearance tweaks:
+  ;;
+  ;; replace emphasis with colors in Org files
+  (setq org-emphasis-alist
+        '(("*" my/org-emphasis-bold)
+          ("/" my/org-emphasis-italic)
+          ("_" my/org-emphasis-underline)
+          ("=" org-verbatim verbatim)
+          ("~" org-code verbatim)
+          ("+" (:strike-through t))))
+  ;;
+  ;; colorise text for emphasis
+  (defface my/org-emphasis-bold
+    '((default :inherit bold)
+      (((class color) (min-colors 88) (background light))
+       :foreground "#a60000")
+      (((class color) (min-colors 88) (background dark))
+       :foreground "#ff8059"))
+    "My bold emphasis for Org.")
+  ;;
+  (defface my/org-emphasis-italic
+    '((default :inherit italic)
+      (((class color) (min-colors 88) (background light))
+       :foreground "#005e00")
+      (((class color) (min-colors 88) (background dark))
+       :foreground "#44bc44"))
+    "My italic emphasis for Org.")
+  ;;
+  (defface my/org-emphasis-underline
+    '((default :inherit underline)
+      (((class color) (min-colors 88) (background light))
+       :foreground "#813e00")
+      (((class color) (min-colors 88) (background dark))
+       :foreground "#d0bc00"))
+    "My underline emphasis for Org.")
 
-    ;; store DONE time in the drawer
-    (setq org-log-done (quote time))
-    (setq org-log-into-drawer t)
+  ;; custom capture
+  (require 'org-capture)
+  ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
+  (setq org-capture-templates
+        '(
+          ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
+           "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
+          ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+           "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
+           :empty-lines 1)) )
 
-    ;; Ask and store note if rescheduling
-    (setq org-log-reschedule (quote note))
+  ;; Agenda is constructed from org files in ONE directory
+  (setq org-agenda-files '("~/Sync/Org"))
 
-    ;; syntax highlight latex in org files
-    (setq org-highlight-latex-and-related '(latex script entities))
+  ;; refile to targets defined by the org-agenda-files list above
+  (setq org-refile-targets '((nil :maxlevel . 3)
+                             (org-agenda-files :maxlevel . 3)))
+  (setq org-outline-path-complete-in-steps nil)         ; Refile in a single go
+  (setq org-refile-use-outline-path t)                  ; Show full paths for refiling
 
-    ;; define the number of days to show in the agenda
-    (setq org-agenda-span 14
-          org-agenda-start-on-weekday nil
-          org-agenda-start-day "-3d")
+  ;; store DONE time in the drawer
+  (setq org-log-done (quote time))
+  (setq org-log-into-drawer t)
 
-    ;; default duration of events
-    (setq org-agenda-default-appointment-duration 60)
-    (setq org-agenda-prefix-format '(
-      ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-                                     (agenda  . "  •  %-12:c%?-12t% s")
-                                     (timeline  . "  % s")
-                                     (todo  . " %i %-12:c")
-                                     (tags  . " %i %-12:c")
-                                     (search . " %i %-12:c")))
+  ;; Ask and store note if rescheduling
+  (setq org-log-reschedule (quote note))
+
+  ;; syntax highlight latex in org files
+  (setq org-highlight-latex-and-related '(latex script entities))
+
+  ;; define the number of days to show in the agenda
+  (setq org-agenda-span 14
+        org-agenda-start-on-weekday nil
+        org-agenda-start-day "-3d")
+
+  ;; default duration of events
+  (setq org-agenda-default-appointment-duration 60)
+  (setq org-agenda-prefix-format '(
+    ;;;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                                   (agenda  . "  •  %-12:c%?-12t% s")
+                                   (timeline  . "  % s")
+                                   (todo  . " %i %-12:c")
+                                   (tags  . " %i %-12:c")
+                                   (search . " %i %-12:c")))
 #+END_SRC
 
 ** Org-babel
@@ -980,10 +1029,6 @@ Searching the Denote files is done via the "consult-notes" package.
   ;; Also see `denote-link-backlinks-display-buffer-action' which is a bit
   ;; advanced.
 
-  ;; If you use Markdown or plain text files (Org renders links as buttons
-  ;; right away)
-  (add-hook 'find-file-hook #'denote-link-buttonize-buffer)
-
   ;;(require 'denote-dired)
   (setq denote-dired-rename-expert nil)
 
@@ -1022,6 +1067,10 @@ Trigger a few extra hooks when starting up =org-mode=.
   (add-hook 'org-mode-hook 'hl-line-mode)
   (add-hook 'org-mode-hook 'flyspell-mode)
   (add-hook 'org-mode-hook 'visual-line-mode)
+  (add-hook 'org-mode-hook 'visual-line-mode)
+  ;; org-modern
+  (add-hook 'org-mode-hook #'org-modern-mode)
+  (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
 #+END_SRC
 
 * LaTeX
@@ -1057,12 +1106,11 @@ than trying to scribble a hadnwritten note via other methods.
 #+END_SRC
  
 * Email/mu4e
-We need the =mu= package and also the executable =mbsync= (the
-package that =mbsync= is in, is usually called =isync=). My existing
-workflow was broken by move to Oauth2 in O365. Now I run =davmail= as
-an intermediary, with IMAP/SMTP on localhost which seems to run well.
-The =davmail= process is started as an asynchronous process under
-emacs as needed when =mu4e= is started -- see =pod= section below.
+We need the =mu= package and also the executable =mbsync= (the package
+that =mbsync= is in, is usually called =isync=). I run =davmail= as an
+intermediary, with IMAP/SMTP on localhost which seems to run well. The
+=davmail= process is started as an asynchronous process under emacs as
+needed when =mu4e= is started -- see =pod= section below.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; defines mu4e exists, but holds off until needed
@@ -1079,7 +1127,7 @@ email is to be stored.
   (setq mu4e-get-mail-command "mbsync Work"
         mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
         mu4e-mu-binary (executable-find "mu"))
-  ;; auto GET? 
+  ;; DONT auto GET 
   ;; (setq mu4e-update-interval 300)
 #+END_SRC
 
@@ -1130,7 +1178,6 @@ Most of this relates to the =mu4e-headers= configuration.
            ))       
   ;; don't auto update in the headers view, wait for return to main view
   (setq mu4e-headers-auto-update nil) 
-
 #+END_SRC
 
 Now we define things related to sending email. The sendmail route is
