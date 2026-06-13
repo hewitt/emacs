@@ -4,7 +4,7 @@
 (setq package-archives
       '(("GNU ELPA"     . "https://elpa.gnu.org/packages/")
         ("MELPA"        . "https://melpa.org/packages/"))
-      package-archive-prigorities ; prefer ELPA to MELPA
+      package-archive-priorities ; prefer ELPA to MELPA
       '(("GNU ELPA"     . 10)
         ("MELPA"        . 5 )))
 (package-initialize)
@@ -17,8 +17,6 @@
 
 ;; skip auto backups
 (setq make-backup-files nil)
-;; backups can all be pushed to a particular directory if needed
-;;(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
 ;; don't show the default startup screen
 (setq inhibit-startup-screen t)
 ;; don't end sentences with a double space
@@ -31,7 +29,7 @@
 (setq large-file-warning-threshold 80000000)
 ;; always follow the symlink
 (setq vc-follow-symlinks t)
-
+;;
 ;; keep track of recently opened files
 (recentf-mode 1)
 ;; have mouse input in the terminal -- the disadvantage is you
@@ -43,6 +41,10 @@
 (tool-bar-mode -1)
 ;; replace annoying yes/no with y/n
 (fset 'yes-or-no-p 'y-or-n-p)
+;; left to right only
+(setq-default bidi-paragraph-direction 'left-to-right) ; buffer-local
+;; max no of bytes to read from subprocess in a single chunk
+(setq read-process-output-max (* 4 1024 1024)) ; 4MB
 
 (global-auto-revert-mode)
 
@@ -53,9 +55,10 @@
   "Update style of the modeline faces to match the choice of ef-theme."
   (ef-themes-with-colors
     (custom-set-faces
-     `(mode-line ((,c :background ,bg-mode-line :height 120
+     `(mode-line ((,c :background ,bg-mode-line 
                       :foreground ,fg-main :box (:line-width (1 . 6) :color ,bg-mode-line))))
-     `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))))
+     `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))
+    ))
 
 (setq-default my-modeline-format
               '(
@@ -119,18 +122,27 @@
 (use-package ef-themes
   :init
   ;; Disable all other themes to avoid awkward blending
-  (mapc #'disable-theme custom-enabled-themes)
-  (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
+  ;;(mapc #'disable-theme custom-enabled-themes)
+  ;;(setq ef-themes-to-toggle '(ef-maris-light ef-maris-dark))
   ;; They are nil by default...
   ;;(setq ef-themes-mixed-fonts t
   ;;	ef-themes-variable-pitch-ui t)
-  )
-(ef-themes-select 'ef-elea-light)
+  (ef-themes-take-over-modus-themes-mode 1)
+  :config
+  ;; All customisations here.
+  ;(setq modus-themes-mixed-fonts t)
+  ;(setq modus-themes-italic-constructs t)
+  ;; Finally, load your theme of choice (or a random one with
+  ;; `modus-themes-load-random', `modus-themes-load-random-dark',
+  ;; `modus-themes-load-random-light').
+  (modus-themes-select 'ef-dream)
+)
 
-;; Add frame borders and window dividers
+;; Add some space to the frame borders and window dividers
 (modify-all-frames-parameters
- '((right-divider-width . 10)
-   (internal-border-width . 10)))
+ '((right-divider-width . 8)
+   (left-fringe . 8)
+   (internal-border-width . 8)))
 (dolist (face '(window-divider
                 window-divider-first-pixel
                 window-divider-last-pixel))
@@ -159,7 +171,8 @@
   (which-key-setup-minibuffer)       ; use the minibuffer to show help
   (which-key-mode))
 
-(use-package fontaine)
+(use-package fontaine
+  :defer t)
 
 (setq fontaine-latest-state-file
       (locate-user-emacs-file "fontaine-latest-state.eld"))
@@ -180,22 +193,43 @@
          :italic-family nil
          :italic-slant italic
          :line-spacing 1)
-        (iosevka
-         :default-family "Iosevka Comfy Motion Fixed"
+        (aporetic
+         :default-family "Aporetic Serif Mono"
          :default-weight normal
          :default-height 125
          :fixed-pitch-family nil ; falls back to :default-family
          :fixed-pitch-weight nil ; falls back to :default-weight
          :fixed-pitch-height 1.0
-         :variable-pitch-family "Iosevka Comfy Motion Duo"
+         :variable-pitch-family "Aporetic Serif"
          :variable-pitch-weight normal
          :variable-pitch-height 120
+	 :mode-line-family "Aporetic Serif"
+	 :mode-line-weight normal
+	 :mode-line-active-height 110
          :bold-family nil ; use whatever the underlying face has
          :bold-weight bold
          :italic-family nil ; use whatever the underlying face has
          :italic-slant italic
          :line-spacing 1)
-        (terminus
+        (aporeticHDPI
+         :default-family "Aporetic Serif Mono"
+         :default-weight normal
+         :default-height 140
+         :fixed-pitch-family nil ; falls back to :default-family
+         :fixed-pitch-weight nil ; falls back to :default-weight
+         :fixed-pitch-height 1.0
+         :variable-pitch-family "Aporetic Serif"
+         :variable-pitch-weight normal
+         :variable-pitch-height 140
+	 :mode-line-family "Aporetic Serif"
+	 :mode-line-weight normal
+	 :mode-line-active-height 140
+         :bold-family nil ; use whatever the underlying face has
+         :bold-weight bold
+         :italic-family nil ; use whatever the underlying face has
+         :italic-slant italic
+         :line-spacing 1)
+	(terminus
          :default-family "Terminus"
          :default-weight normal
          :default-height 120
@@ -211,23 +245,23 @@
          :italic-slant italic
          :line-spacing 1)))
 
-;; set a default font via fontaine, but only for GUI frames
-(add-hook 'after-make-frame-functions
-      	  (lambda ()
-      	    ;; we want some font only in GUI Emacs
-  	    (if (display-graphic-p)
-  		(
-  		 (progn 
-		   (fontaine-set-preset (or (fontaine-restore-latest-preset) 'iosevka))
-      		   (fontaine-mode 1)  
-  		   )
-  		 (message "not display-graphic-p")
-		 )  	      
-  	      )
-	    ))
-	  
-;; this is also available by my usual C-z leader key
-(define-key global-map (kbd "C-c f") #'fontaine-set-preset)
+(defun new-frame-setup (frame)
+  (if (display-graphic-p frame)
+      (progn
+	(fontaine-mode 1)
+	(define-key global-map (kbd "C-c f") #'fontaine-set-preset)
+	(fontaine-set-preset (or (fontaine-restore-latest-preset) 'aporetic))
+	)
+    (message "no GUI => no fontaine")))
+
+;; Run for already-existing frames
+(mapc 'new-frame-setup (frame-list))
+;; Run when a new frame is created
+(add-hook 'after-make-frame-functions 'new-frame-setup)
+
+;; Persist the latest font preset when closing/starting Emacs and
+;; while switching between themes.
+; (fontaine-mode 1)
 
 (use-package consult
   :init
@@ -279,6 +313,112 @@
   :init
   (message "Use-package: marginalia")
   (marginalia-mode))
+
+(use-package cape
+  :init
+  (add-hook 'completion-at-point-functions #'cape-dabbrev)
+  (add-hook 'completion-at-point-functions #'cape-file)
+  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
+  )
+
+(use-package emacs
+  :ensure nil
+  :demand t
+  :init
+  (defun prot/keyboard-quit-dwim ()
+    "Do-What-I-Mean behaviour for a general `keyboard-quit'.
+
+  The generic `keyboard-quit' does not do the expected thing when
+  the minibuffer is open.  Whereas we want it to close the
+  minibuffer, even without explicitly focusing it.
+
+  The DWIM behaviour of this command is as follows:
+
+  - When the region is active, disable it.
+  - When a minibuffer is open, but not focused, close the minibuffer.
+  - When the Completions buffer is selected, close it.
+  - In every other case use the regular `keyboard-quit'."
+      (interactive)
+      (cond
+       ((region-active-p)
+        (keyboard-quit))
+       ((derived-mode-p 'completion-list-mode)
+        (delete-completion-window))
+       ((> (minibuffer-depth) 0)
+        (abort-recursive-edit))
+       (t
+        (keyboard-quit))))
+    :bind
+    ("C-g" . prot/keyboard-quit-dwim)
+    :config
+    ;; I have never seen a user say "no" to loading a theme they have
+    ;; downloaded.  Technically, any Elisp file can run arbitrary code,
+    ;; so this is not doing much on the security front.
+    (setq custom-safe-themes t)
+    (setq use-short-answers t)
+    (setq read-answer-short t)
+    (setq help-window-select t) ; also check `display-buffer-alist' below
+    (setq help-window-keep-selected t) ; Emacs 29
+    (setq find-library-include-other-files nil) ; Emacs 29
+    (setq window-combination-resize t)
+    (setq save-interprogram-paste-before-kill t)
+    ;; Do not jump to the current line in `*occur*' buffers.  The reason
+    ;; is that you are already on that line: you want to do `occur' to
+    ;; get more than that (and, presumably, to do something with the
+    ;; results such as to edit them with `occur-edit-mode').
+    (setq list-matching-lines-jump-to-current-line nil)
+    (setq completion-category-defaults nil))
+
+;;;; Dired
+(use-package dired
+  :ensure nil
+  :config
+  ;; Most people I have talked to prefer a single Dired buffer.
+  ;; Personally I like the many Dired buffers, but I understand why
+  ;; this feels overwhelming.
+  (setq dired-kill-when-opening-new-dired-buffer t)
+  (setq dired-auto-revert-buffer #'dired-directory-changed-p) ; also see `dired-do-revert-buffer'
+  (setq dired-clean-up-buffers-too t)
+  (setq dired-clean-confirm-killing-deleted-buffers t)
+  (setq dired-recursive-copies 'always)
+  (setq dired-recursive-deletes 'always)
+  (setq delete-by-moving-to-trash t)
+  (setq dired-create-destination-dirs 'ask)
+  (setq dired-create-destination-dirs-on-trailing-dirsep t) ; Emacs 29
+  (setq wdired-create-parent-directories t))
+
+;;;; Diff
+(use-package diff
+  :config
+  ;; You cannot expect the syntax highlighting of themes to look
+  ;; equally readabable against what typically are red and green
+  ;; backgrounds.  This should be opt-in by default, not opt-out.
+  (setq diff-font-lock-syntax nil))
+
+;;;; Ediff
+(use-package ediff
+  :config
+  ;; Ediff is virtually unusable without those.  Especially on tiling
+  ;; window managers.  But even on a regular desktop environment it is
+  ;; confusing and cumbersome to have the control panel in another
+  ;; frame.
+  (setq ediff-split-window-function 'split-window-horizontally)
+  (setq ediff-window-setup-function 'ediff-setup-windows-plain))
+
+;;;; SHR
+(use-package shr
+  :config
+  ;; t is bad for accessibility and generally awkward for HTML email
+  ;; (especially with dark themes).
+  (setq shr-use-colors nil)
+  ;; This option should not exist, given `variable-pitch-mode'.
+  ;; Furthermore, its default value runs counter to almost everything
+  ;; else in Emacs which just uses the `default' face.
+  (setq shr-use-fonts nil))
+
+(setq lpr-command "gtklp")
+(setq ps-lpr-command "gtklp")
 
 (setq window-combination-resize t)
 (setq even-window-sizes 'height-only)
@@ -343,6 +483,28 @@
   (balance-windows)
   (other-window 1))
 (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
+;; short-cut the other-window key
+(keymap-set global-map "M-o" 'other-window)
+;; smaller divider between split windows
+(setq window-divider-default-right-width 2)
+(set-face-foreground 'vertical-border "#aaaaaa")  ;; color of the divider in text mode
+(custom-set-faces '(window-divider ((t (:foreground "#aaaaaa"))))) ;; color of the divider in graphical mode
+(window-divider-mode)
+
+(use-package avy
+  :init
+  (message "Use-package: avy")
+  :config
+  ;; this forces this key bind not to be overwritten by (eg) org/latex-modes
+  (bind-keys* ("C-;" . avy-goto-char-2) ))
+
+(use-package expreg
+  :init
+  (message "Use-package: expreg")
+  :config
+  (bind-keys*
+   ("C-." . expreg-expand)
+   ("C-," . expreg-contract)))
 
 ;; short-cut to edit the init.el configuration file
 (defun my/config-visit ()
@@ -363,7 +525,7 @@
 
 (defvar-keymap my-prefix-display-map
   :doc "Prefix map for display features."
-  "+" #'text-scale-adjust
+  "+" #'global-text-scale-adjust
   "f" #'fontaine-set-preset)
 
 ;; Define a key map with commands and (potentially nested) key maps
@@ -388,16 +550,6 @@
 ;; Bind the prefix key map to a key.  Notice the absence of a quote for
 ;; the map's symbol.
 (keymap-set global-map "C-z" my-prefix-map)
-
-;; - cut and paste in Wayland environment
-;; - this puts selected text into the Wayland clipboard
-(setq x-select-enable-clipboard t)
-(defun my/txt-cut-function (text &optional push)
-  (with-temp-buffer
-    (insert text)
-    (call-process-region (point-min) (point-max) "wl-copy" ))
-  )
-(setq interprogram-cut-function 'my/txt-cut-function)
 
 ;; editorconfig allows local specification of tab/space/indent
 ;; using a config file in the directory
@@ -438,16 +590,24 @@
   (define-key yas-keymap (kbd "M-p") 'yas-prev-field)  
   (yas-reload-all) )
 
+(use-package smartparens
+  :hook (prog-mode text-mode markdown-mode) 
+  :config
+  (require 'smartparens-config))
+
 (use-package transpose-frame)
 
-;; GIT-GUTTER: SHOW changes relative to git repo
-(use-package git-gutter
+(use-package diff-hl    
   :init
-  (message "Use-package: Git-Gutter")
+  (message "Use-package: diff-hl")
   :hook
-  (prog-mode . git-gutter-mode)
-  (org-mode . git-gutter-mode)
-  (latex-mode . git-gutter-mode))
+  (dired-mode . diff-hl-dired-mode)
+  (prog-mode . diff-hl-show-hunk-mouse-mode))
+
+(global-diff-hl-mode 1)
+(diff-hl-flydiff-mode 1) 
+(unless (display-graphic-p)
+  (diff-hl-margin-mode 1))
 
 (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
 (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
@@ -461,13 +621,45 @@
   :init
   (message "Use-package: Eglot")
   ;; start eglot in my usual prog modes
-  (add-hook 'c++-ts-mode-hook 'eglot-ensure)
-  ;; (add-hook 'latex-mode-hook 'eglot-ensure) 
+  (add-hook 'c++-ts-mode-hook 'eglot-ensure)    
+  (add-hook 'latex-mode-hook 'eglot-ensure)
   (add-hook 'python-ts-mode-hook 'eglot-ensure)
-  :custom
+  (add-hook 'org-mode-hook 'eglot-ensure)
+  (add-hook 'text-mode-hook 'eglot-ensure)
+  :config
+  ; config entries run after package loading has happened
   (add-to-list 'eglot-server-programs '(c++-ts-mode . ("ccls")))
-  ;;(add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) ; more annoying than helpful!
-  (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp")))  )
+  (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+  (add-to-list 'eglot-server-programs '(python-ts-mode . ("pyright-langserver" "--stdio")))
+  ;;(add-to-list 'eglot-server-programs '(text-mode . ("harper-ls" "--stdio")))
+  ;;(add-to-list 'eglot-server-programs '(org-mode . ("harper-ls" "--stdio")))    
+  ;; (add-to-list
+  ;;  'eglot-server-programs
+  ;;  '((latex-mode)
+  ;;    . ("rass"
+  ;; 	"--"
+  ;; 	"harper-ls" "--stdio"
+  ;; 	"--"
+  ;; 	"digestif"
+  ;; 	)))
+  )
+
+;; (setq-default eglot-workspace-configuration
+;; 	      '(:harper-ls (:userDictPath ""
+;; 			    :workspaceDictPath ""
+;; 			    :fileDictPath ""
+;; 			    :linters (:SpellCheck t
+;; 				      :UnclosedQuotes t
+;; 				      :WrongQuotes t
+;; 				      :LongSentences t
+;; 				      :RepeatedWords t
+;; 				      :Spaces t
+;; 				      :Matcher t
+;; 				      :CorrectNumberSuffix t)
+;; 			    :diagnosticSeverity "hint"
+;; 			    :dialect "British"
+;; 			    :maxFileLength 120000
+;; 			    :excludePatterns [])))
 
 (use-package direnv
   :config
@@ -476,13 +668,9 @@
 (use-package pyvenv-auto
   :hook ((python-ts-mode . pyvenv-auto-run)))
 
-(use-package highlight-indentation
-  :after python
-  :hook (python-ts-mode . highlight-indentation-mode)
-  )
-
-(use-package flymake-ruff
-  :hook (eglot-managed-mode . flymake-ruff-load))
+(use-package indent-bars
+  :hook
+  ((python-ts-mode yaml-ts-mode) . indent-bars-mode))
 
 (use-package reformatter
   :hook 
@@ -523,6 +711,8 @@
   (corfu-prescient-mode))
 
 (use-package corfu-terminal)
+(unless (display-graphic-p)
+  (corfu-terminal-mode +1))
 
 (use-package corfu-prescient
   :init
@@ -538,6 +728,14 @@
 (add-to-list 'auto-mode-alist '("\\.m\\'" . octave-mode))
 ;; Nix language
 (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
+
+;; MAGIT
+(use-package magit
+  :defer t
+  :bind
+  ("C-x g" . magit-status)
+  :init
+  (message "Use-package: Magit installed"))
 
 (use-package org
   :init
@@ -568,10 +766,10 @@
    "◀── now ─────────────────────────────────────────────────")
 
   ;; Ellipsis styling
-  (setq org-ellipsis "…")
+  (setq org-ellipsis " … ")
   (set-face-attribute 'org-ellipsis nil :inherit 'default :box nil)
   ;; symbols
-  (set-face-attribute 'org-modern-symbol nil :family "Iosevka")
+  (set-face-attribute 'org-modern-symbol nil :family "Aporetic Serif Mono")
   )
 
 ;; some appearance tweaks:
@@ -612,7 +810,6 @@
 
 ;; custom capture
 (require 'org-capture)
-;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
 (setq org-capture-templates
       '(
         ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
@@ -641,7 +838,7 @@
 (setq org-highlight-latex-and-related '(latex script entities))
 
 ;; define the number of days to show in the agenda
-(setq org-agenda-span 14
+(setq org-agenda-span 90
       org-agenda-start-on-weekday nil
       org-agenda-start-day "-3d")
 
@@ -669,7 +866,7 @@
 (require 'denote)
 
 ;; Remember to check the doc strings of those variables.
-(setq denote-directory (expand-file-name "~/CURRENT/PNL/Denote/"))
+(setq denote-directory (expand-file-name "~/CURRENT/PNL/Denote_env/"))
 (setq denote-known-keywords '("research" "admin" "industry" "teaching" "home" "attachment"))
 (setq denote-infer-keywords t)
 (setq denote-sort-keywords t)
@@ -718,12 +915,16 @@
 
 ;; org-mode
 (add-hook 'org-mode-hook 'hl-line-mode)
-(add-hook 'org-mode-hook 'flyspell-mode)
+;;(add-hook 'org-mode-hook 'flyspell-mode) ; move to harper-ls
 (add-hook 'org-mode-hook 'visual-line-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 ;; org-modern
 (add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
+
+(setq ispell-program-name "ispell")
+(setq ispell-dictionary "english")
+(setq ispell-personal-dictionary "/home/hewitt/.emacs.d/my_dictionary")
 
 (add-hook 'latex-mode-hook 'hl-line-mode)
 (add-hook 'latex-mode-hook 'flyspell-mode)
@@ -748,7 +949,7 @@
       mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
       mu4e-mu-binary (executable-find "mu"))
 ;; DONT auto GET 
-;; (setq mu4e-update-interval 300)
+(setq mu4e-update-interval nil)
 
 ;; I don't sync Deleted Items & largely do permanent
 ;;  delete via "D" rather than move to trash via "d" 
@@ -834,18 +1035,6 @@
             (auto-save-mode -1)))
 ;; Couple to Org -- not sure if this is strictly required or not?
 ;(require 'mu4e-org)
-
-;;(add-to-list 'load-path "~/.emacs.d/elisp/pod")
-(use-package pod
-  :load-path "~/.emacs.d/elisp/pod"
-  :config
-  (setq pod-process-plist '(davmail (:name "dav"
-                                      :exe  "~/.nix-profile/bin/davmail"
-                                      :args "-server"
-                                      :mins 2
-                                      :pred mu4e-running-p)))
-  :hook
-  (mu4e-main-mode . (lambda() (pod-process-start 'davmail))) )
 
 (use-package age
   :demand

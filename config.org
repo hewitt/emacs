@@ -2,12 +2,13 @@
 #+AUTHOR: Rich Hewitt
 #+EMAIL: richard.hewitt@manchester.ac.uk
 #+STARTUP: indent
+#+STARTUP: folded
 #+PROPERTY: header-args :results silent
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
 * Notes/preamble
-+ Packages are installed via NixOS Home-Manager configuration. 
++ Packages are installed separately via the NixOS Home-Manager configuration. 
   
 + Emacs 30+ has 'use-package' (and some other things) built-in,
   notably 'treesitter'.
@@ -15,55 +16,31 @@ To convert this to "./config.el" do M-x org-babel-tangle.
 + Emacs 30+ is required to use 'mode-line-format-right-align' in the
   modeline configuration below. 
 
-+ Terminal vs GUI.
-  - Cut/Paste should still function in the terminal, but you may need
-    shift+middle-mouse-button to paste from the clipboard.
-  - You can distinguish between terminal and GUI on a frame-by-frame
-    basis using, see for example the code below.
-
-    *Not currently in use, and left untangled.*
-    
-    #+BEGIN_SRC emacs-lisp :tangle no
-      (defun new-frame-setup (frame)
-        (if (display-graphic-p frame)
-            (message "window system")
-          (message "not a window system")))
-
-      ;; Run for already-existing frames
-      (mapc 'new-frame-setup (frame-list))
-      ;; Run when a new frame is created
-      (add-hook 'after-make-frame-functions 'new-frame-setup)
-    #+END_SRC
-
-    In this config it is assumed that Emacs is run as a daemon and
-    clients connect via GUI.
-    e.g. 'emacsclient -cn --alternate-editor=""'
-
 * CVE fixes for version 29.3
-** Arbitrary Lisp code is no longer evaluated as part of turning on Org mode.
+** Arbitrary Lisp code is no longer evaluated as part of turning on Org mode
 This is for security reasons, to avoid evaluating malicious Lisp code.
 
-** New buffer-local variable 'untrusted-content'.
+** New buffer-local variable 'untrusted-content'
 When this is non-nil, Lisp programs should treat buffer contents with
 extra caution.
 #+BEGIN_SRC emacs-lisp :tangle yes
   (setq-default untrusted-content t)
 #+END_SRC
 
-** Gnus now treats inline MIME contents as untrusted.
+** Gnus now treats inline MIME contents as untrusted
 To get back previous insecure behavior, 'untrusted-content' should be
 reset to nil in the buffer.
 
-** LaTeX preview is now by default disabled for email attachments.
+** LaTeX preview is now by default disabled for email attachments
 To get back previous insecure behavior, set the variable
 'org--latex-preview-when-risky' to a non-nil value.
 
-** Org mode now considers contents of remote files to be untrusted.
+** Org mode now considers contents of remote files to be untrusted
 Remote files are recognized by calling 'file-remote-p'.
 
 * Basic setup
 ** Source locations for settings/packages
-Define where to find packages/libraries.
+Define where to find packages/libraries
 *** ELPA/MELPA
 Standard content follows to configure ELPA and MELPA for packages. I
 typically do package provision via NixOS and Home-Manager, but
@@ -113,8 +90,6 @@ Note that file backups are turned *off*.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; skip auto backups
   (setq make-backup-files nil)
-  ;; backups can all be pushed to a particular directory if needed
-  ;;(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
   ;; don't show the default startup screen
   (setq inhibit-startup-screen t)
   ;; don't end sentences with a double space
@@ -127,7 +102,7 @@ Note that file backups are turned *off*.
   (setq large-file-warning-threshold 80000000)
   ;; always follow the symlink
   (setq vc-follow-symlinks t)
-
+  ;;
   ;; keep track of recently opened files
   (recentf-mode 1)
   ;; have mouse input in the terminal -- the disadvantage is you
@@ -139,6 +114,10 @@ Note that file backups are turned *off*.
   (tool-bar-mode -1)
   ;; replace annoying yes/no with y/n
   (fset 'yes-or-no-p 'y-or-n-p)
+  ;; left to right only
+  (setq-default bidi-paragraph-direction 'left-to-right) ; buffer-local
+  ;; max no of bytes to read from subprocess in a single chunk
+  (setq read-process-output-max (* 4 1024 1024)) ; 4MB
 #+END_SRC
 
 ** Update buffer contents when file changes on "disk"
@@ -184,9 +163,10 @@ to ensure that these are updated if the =ef-theme= is updated.
     "Update style of the modeline faces to match the choice of ef-theme."
     (ef-themes-with-colors
       (custom-set-faces
-       `(mode-line ((,c :background ,bg-mode-line :height 120
+       `(mode-line ((,c :background ,bg-mode-line 
                         :foreground ,fg-main :box (:line-width (1 . 6) :color ,bg-mode-line))))
-       `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))))
+       `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))
+      ))
 
   (setq-default my-modeline-format
                 '(
@@ -249,34 +229,42 @@ to ensure that these are updated if the =ef-theme= is updated.
 #+END_SRC
 
 ** Theme
-Fonts: The default font is now set via =custom-settings.el= since it
-is machine specific given each has its own DPI settings.
+Fonts: The default font is now set via =fontaine=.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-    (use-package ef-themes
-      :init
-      ;; Disable all other themes to avoid awkward blending
-      (mapc #'disable-theme custom-enabled-themes)
-      (setq ef-themes-to-toggle '(ef-elea-light ef-elea-dark))
-      ;; They are nil by default...
-      ;;(setq ef-themes-mixed-fonts t
-      ;;	ef-themes-variable-pitch-ui t)
-      )
-    (ef-themes-select 'ef-elea-light)
+  (use-package ef-themes
+    :init
+    ;; Disable all other themes to avoid awkward blending
+    ;;(mapc #'disable-theme custom-enabled-themes)
+    ;;(setq ef-themes-to-toggle '(ef-maris-light ef-maris-dark))
+    ;; They are nil by default...
+    ;;(setq ef-themes-mixed-fonts t
+    ;;	ef-themes-variable-pitch-ui t)
+    (ef-themes-take-over-modus-themes-mode 1)
+    :config
+    ;; All customisations here.
+    ;(setq modus-themes-mixed-fonts t)
+    ;(setq modus-themes-italic-constructs t)
+    ;; Finally, load your theme of choice (or a random one with
+    ;; `modus-themes-load-random', `modus-themes-load-random-dark',
+    ;; `modus-themes-load-random-light').
+    (modus-themes-select 'ef-dream)
+  )
 #+END_SRC
 
 ** Frame borders/dividers
-#+BEGIN_SRC emacs-lisp :tangle yes 
-;; Add frame borders and window dividers
-(modify-all-frames-parameters
- '((right-divider-width . 10)
-   (internal-border-width . 10)))
-(dolist (face '(window-divider
-                window-divider-first-pixel
-                window-divider-last-pixel))
-  (face-spec-reset-face face)
-  (set-face-foreground face (face-attribute 'default :background)))
-(set-face-background 'fringe (face-attribute 'default :background))
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; Add some space to the frame borders and window dividers
+  (modify-all-frames-parameters
+   '((right-divider-width . 8)
+     (left-fringe . 8)
+     (internal-border-width . 8)))
+  (dolist (face '(window-divider
+                  window-divider-first-pixel
+                  window-divider-last-pixel))
+    (face-spec-reset-face face)
+    (set-face-foreground face (face-attribute 'default :background)))
+  (set-face-background 'fringe (face-attribute 'default :background))
 #+END_SRC
 
 ** Relative line numbers
@@ -292,7 +280,7 @@ other aspects of Emacs that we don't want.
 #+END_SRC
 
 ** Rainbow-delimiters
-Colorised brackets to make matching easier.
+Colour brackets to make matching easier.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package rainbow-delimiters
@@ -320,7 +308,8 @@ Pop-up a description of key combinations after a delay.
 ** Fontaine
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-  (use-package fontaine)
+  (use-package fontaine
+    :defer t)
 
   (setq fontaine-latest-state-file
         (locate-user-emacs-file "fontaine-latest-state.eld"))
@@ -341,22 +330,43 @@ Pop-up a description of key combinations after a delay.
            :italic-family nil
            :italic-slant italic
            :line-spacing 1)
-          (iosevka
-           :default-family "Iosevka Comfy Motion Fixed"
+          (aporetic
+           :default-family "Aporetic Serif Mono"
            :default-weight normal
            :default-height 125
            :fixed-pitch-family nil ; falls back to :default-family
            :fixed-pitch-weight nil ; falls back to :default-weight
            :fixed-pitch-height 1.0
-           :variable-pitch-family "Iosevka Comfy Motion Duo"
+           :variable-pitch-family "Aporetic Serif"
            :variable-pitch-weight normal
            :variable-pitch-height 120
+  	 :mode-line-family "Aporetic Serif"
+  	 :mode-line-weight normal
+  	 :mode-line-active-height 110
            :bold-family nil ; use whatever the underlying face has
            :bold-weight bold
            :italic-family nil ; use whatever the underlying face has
            :italic-slant italic
            :line-spacing 1)
-          (terminus
+          (aporeticHDPI
+           :default-family "Aporetic Serif Mono"
+           :default-weight normal
+           :default-height 140
+           :fixed-pitch-family nil ; falls back to :default-family
+           :fixed-pitch-weight nil ; falls back to :default-weight
+           :fixed-pitch-height 1.0
+           :variable-pitch-family "Aporetic Serif"
+           :variable-pitch-weight normal
+           :variable-pitch-height 140
+  	 :mode-line-family "Aporetic Serif"
+  	 :mode-line-weight normal
+  	 :mode-line-active-height 140
+           :bold-family nil ; use whatever the underlying face has
+           :bold-weight bold
+           :italic-family nil ; use whatever the underlying face has
+           :italic-slant italic
+           :line-spacing 1)
+  	(terminus
            :default-family "Terminus"
            :default-weight normal
            :default-height 120
@@ -372,28 +382,26 @@ Pop-up a description of key combinations after a delay.
            :italic-slant italic
            :line-spacing 1)))
 
-  ;; set a default font via fontaine, but only for GUI frames
-  (add-hook 'after-make-frame-functions
-        	  (lambda ()
-        	    ;; we want some font only in GUI Emacs
-    	    (if (display-graphic-p)
-    		(
-    		 (progn 
-  		   (fontaine-set-preset (or (fontaine-restore-latest-preset) 'iosevka))
-        		   (fontaine-mode 1)  
-    		   )
-    		 (message "not display-graphic-p")
-  		 )  	      
-    	      )
-  	    ))
-  	  
-  ;; this is also available by my usual C-z leader key
-  (define-key global-map (kbd "C-c f") #'fontaine-set-preset)
+  (defun new-frame-setup (frame)
+    (if (display-graphic-p frame)
+        (progn
+  	(fontaine-mode 1)
+  	(define-key global-map (kbd "C-c f") #'fontaine-set-preset)
+  	(fontaine-set-preset (or (fontaine-restore-latest-preset) 'aporetic))
+  	)
+      (message "no GUI => no fontaine")))
 
+  ;; Run for already-existing frames
+  (mapc 'new-frame-setup (frame-list))
+  ;; Run when a new frame is created
+  (add-hook 'after-make-frame-functions 'new-frame-setup)
+
+  ;; Persist the latest font preset when closing/starting Emacs and
+  ;; while switching between themes.
+  ; (fontaine-mode 1)
 #+END_SRC
 
 * Narrowing and completion
-
 ** Using standard completing-read interface
 - Use 'vertico' as a smaller solution for incremental completion in
   Emacs.
@@ -408,7 +416,7 @@ Pop-up a description of key combinations after a delay.
   particular an advanced buffer switching command 'consult-buffer' to
   switch between buffers and recently opened files. Multiple search
   commands are provided, an asynchronous 'consult-grep',
-  'consult-ripgrep' and 'consult-line', which resembles 'swiper'.
+  'consult-ripgrep' and 'consult-line', which resembles 'sniper'.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package consult
@@ -461,9 +469,126 @@ Pop-up a description of key combinations after a delay.
     :init
     (message "Use-package: marginalia")
     (marginalia-mode))
+
+  (use-package cape
+    :init
+    (add-hook 'completion-at-point-functions #'cape-dabbrev)
+    (add-hook 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+    (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
+    )
 #+END_SRC
 
 * Other interaction
+** Sane defaults
+
+See: https://protesilaos.com/codelog/2026-04-30-emacs-decent-default-sacha-chua/
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package emacs
+    :ensure nil
+    :demand t
+    :init
+    (defun prot/keyboard-quit-dwim ()
+      "Do-What-I-Mean behaviour for a general `keyboard-quit'.
+
+    The generic `keyboard-quit' does not do the expected thing when
+    the minibuffer is open.  Whereas we want it to close the
+    minibuffer, even without explicitly focusing it.
+
+    The DWIM behaviour of this command is as follows:
+
+    - When the region is active, disable it.
+    - When a minibuffer is open, but not focused, close the minibuffer.
+    - When the Completions buffer is selected, close it.
+    - In every other case use the regular `keyboard-quit'."
+        (interactive)
+        (cond
+         ((region-active-p)
+          (keyboard-quit))
+         ((derived-mode-p 'completion-list-mode)
+          (delete-completion-window))
+         ((> (minibuffer-depth) 0)
+          (abort-recursive-edit))
+         (t
+          (keyboard-quit))))
+      :bind
+      ("C-g" . prot/keyboard-quit-dwim)
+      :config
+      ;; I have never seen a user say "no" to loading a theme they have
+      ;; downloaded.  Technically, any Elisp file can run arbitrary code,
+      ;; so this is not doing much on the security front.
+      (setq custom-safe-themes t)
+      (setq use-short-answers t)
+      (setq read-answer-short t)
+      (setq help-window-select t) ; also check `display-buffer-alist' below
+      (setq help-window-keep-selected t) ; Emacs 29
+      (setq find-library-include-other-files nil) ; Emacs 29
+      (setq window-combination-resize t)
+      (setq save-interprogram-paste-before-kill t)
+      ;; Do not jump to the current line in `*occur*' buffers.  The reason
+      ;; is that you are already on that line: you want to do `occur' to
+      ;; get more than that (and, presumably, to do something with the
+      ;; results such as to edit them with `occur-edit-mode').
+      (setq list-matching-lines-jump-to-current-line nil)
+      (setq completion-category-defaults nil))
+
+  ;;;; Dired
+  (use-package dired
+    :ensure nil
+    :config
+    ;; Most people I have talked to prefer a single Dired buffer.
+    ;; Personally I like the many Dired buffers, but I understand why
+    ;; this feels overwhelming.
+    (setq dired-kill-when-opening-new-dired-buffer t)
+    (setq dired-auto-revert-buffer #'dired-directory-changed-p) ; also see `dired-do-revert-buffer'
+    (setq dired-clean-up-buffers-too t)
+    (setq dired-clean-confirm-killing-deleted-buffers t)
+    (setq dired-recursive-copies 'always)
+    (setq dired-recursive-deletes 'always)
+    (setq delete-by-moving-to-trash t)
+    (setq dired-create-destination-dirs 'ask)
+    (setq dired-create-destination-dirs-on-trailing-dirsep t) ; Emacs 29
+    (setq wdired-create-parent-directories t))
+
+  ;;;; Diff
+  (use-package diff
+    :config
+    ;; You cannot expect the syntax highlighting of themes to look
+    ;; equally readabable against what typically are red and green
+    ;; backgrounds.  This should be opt-in by default, not opt-out.
+    (setq diff-font-lock-syntax nil))
+
+  ;;;; Ediff
+  (use-package ediff
+    :config
+    ;; Ediff is virtually unusable without those.  Especially on tiling
+    ;; window managers.  But even on a regular desktop environment it is
+    ;; confusing and cumbersome to have the control panel in another
+    ;; frame.
+    (setq ediff-split-window-function 'split-window-horizontally)
+    (setq ediff-window-setup-function 'ediff-setup-windows-plain))
+
+  ;;;; SHR
+  (use-package shr
+    :config
+    ;; t is bad for accessibility and generally awkward for HTML email
+    ;; (especially with dark themes).
+    (setq shr-use-colors nil)
+    ;; This option should not exist, given `variable-pitch-mode'.
+    ;; Furthermore, its default value runs counter to almost everything
+    ;; else in Emacs which just uses the `default' face.
+    (setq shr-use-fonts nil))
+#+END_SRC
+
+** Printer settings
+This uses an external executable 'gtklp' to select the printer.
+
+#+begin_src emacs-lisp :tangle yes
+  (setq lpr-command "gtklp")
+  (setq ps-lpr-command "gtklp")
+#+end_src
+
 ** Buffer management alist
 Specify some specific buffer placement/appearance rules.
 
@@ -536,8 +661,41 @@ Global keys to split the window AND follow by moving point to the new window.
     (balance-windows)
     (other-window 1))
   (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
+  ;; short-cut the other-window key
+  (keymap-set global-map "M-o" 'other-window)
+  ;; smaller divider between split windows
+  (setq window-divider-default-right-width 2)
+  (set-face-foreground 'vertical-border "#aaaaaa")  ;; color of the divider in text mode
+  (custom-set-faces '(window-divider ((t (:foreground "#aaaaaa"))))) ;; color of the divider in graphical mode
+  (window-divider-mode)
 #+END_SRC
 
+** Navigation
+Jump to a position that is visible in the current buffer view.
+
+#+BEGIN_SRC emacs-lisp :tangle yes 
+  (use-package avy
+    :init
+    (message "Use-package: avy")
+    :config
+    ;; this forces this key bind not to be overwritten by (eg) org/latex-modes
+    (bind-keys* ("C-;" . avy-goto-char-2) ))
+#+END_SRC
+
+** Expand/contract region
+
+Expand region is in maintenance mode only. Switched to expreg instead.
+
+#+BEGIN_SRC emacs-lisp :tangle yes 
+  (use-package expreg
+    :init
+    (message "Use-package: expreg")
+    :config
+    (bind-keys*
+     ("C-." . expreg-expand)
+     ("C-," . expreg-contract)))
+#+END_SRC
+  
 ** Leader/prefix key binding
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -564,7 +722,7 @@ Global keys to split the window AND follow by moving point to the new window.
 
   (defvar-keymap my-prefix-display-map
     :doc "Prefix map for display features."
-    "+" #'text-scale-adjust
+    "+" #'global-text-scale-adjust
     "f" #'fontaine-set-preset)
 
   ;; Define a key map with commands and (potentially nested) key maps
@@ -594,16 +752,28 @@ Global keys to split the window AND follow by moving point to the new window.
 ** Cut and paste
 I use Wayland (no X11), and this interacts with =wl-copy=.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+In remote sessions you will need to wrap the ssh client in 'waypipe'
+to get access to clipboard content.
+
+March 2026: not sure that this is needed anymore. I'm trying to
+disable it for a while so I can test cut/paste during
+remote Zellij sessions.
+
+#+BEGIN_SRC emacs-lisp :tangle no
   ;; - cut and paste in Wayland environment
   ;; - this puts selected text into the Wayland clipboard
-  (setq x-select-enable-clipboard t)
+  (setq select-enable-clipboard t)
   (defun my/txt-cut-function (text &optional push)
     (with-temp-buffer
       (insert text)
       (call-process-region (point-min) (point-max) "wl-copy" ))
     )
   (setq interprogram-cut-function 'my/txt-cut-function)
+  (setq interprogram-paste-function
+   		  (lambda ()
+   			(shell-command-to-string "wl-paste -n")
+  			)
+  		  )
 #+END_SRC
 
 ** Editorconfig
@@ -655,6 +825,15 @@ Expand roots to standard text snippets with M-<square closing bracket>.
     (yas-reload-all) )
 #+END_SRC
 
+** Smartparens
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+(use-package smartparens
+  :hook (prog-mode text-mode markdown-mode) 
+  :config
+  (require 'smartparens-config))
+#+END_SRC
+
 ** Transpose-frame
 This package is in the Emacs Orphanage
 https://github.com/emacsorphanage/transpose-frame
@@ -667,9 +846,28 @@ This gives some dynamic window management via the functions
   (use-package transpose-frame)
 #+END_SRC
 
-* Git 
-Show changes to most recent git status in repos.
+* Git
+
+Shows git differences in the margin.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package diff-hl    
+    :init
+    (message "Use-package: diff-hl")
+    :hook
+    (dired-mode . diff-hl-dired-mode)
+    (prog-mode . diff-hl-show-hunk-mouse-mode))
+
+  (global-diff-hl-mode 1)
+  (diff-hl-flydiff-mode 1) 
+  (unless (display-graphic-p)
+    (diff-hl-margin-mode 1))
+#+END_SRC
+
+Show changes to most recent git status in repos.
+2026: deprecated. git-gutter is now in the emacs orphanage!
+
+#+BEGIN_SRC emacs-lisp :tangle no
   ;; GIT-GUTTER: SHOW changes relative to git repo
   (use-package git-gutter
     :init
@@ -716,25 +914,61 @@ non-tree-sitter folder (in this case it would contain) the single line
 #+END_SRC
 
 ** Eglot
+
+[2026] I tried multiplexing LSPs to allow =digestif= and =harper= to run in latex-mode. However, the =eglot-code-actions= fails and it wasn't terribly helpful.
+
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; eglot is a simpler alternative to LSP-mode
   (use-package eglot
     :init
     (message "Use-package: Eglot")
     ;; start eglot in my usual prog modes
-    (add-hook 'c++-ts-mode-hook 'eglot-ensure)
-    ;; (add-hook 'latex-mode-hook 'eglot-ensure) 
+    (add-hook 'c++-ts-mode-hook 'eglot-ensure)    
+    (add-hook 'latex-mode-hook 'eglot-ensure)
     (add-hook 'python-ts-mode-hook 'eglot-ensure)
-    :custom
+    (add-hook 'org-mode-hook 'eglot-ensure)
+    (add-hook 'text-mode-hook 'eglot-ensure)
+    :config
+    ; config entries run after package loading has happened
     (add-to-list 'eglot-server-programs '(c++-ts-mode . ("ccls")))
-    ;;(add-to-list 'eglot-server-programs '(latex-mode . ("digestif"))) ; more annoying than helpful!
-    (add-to-list 'eglot-server-programs '(python-ts-mode . ("pylsp")))  )
+    (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
+    (add-to-list 'eglot-server-programs '(python-ts-mode . ("pyright-langserver" "--stdio")))
+    ;;(add-to-list 'eglot-server-programs '(text-mode . ("harper-ls" "--stdio")))
+    ;;(add-to-list 'eglot-server-programs '(org-mode . ("harper-ls" "--stdio")))    
+    ;; (add-to-list
+    ;;  'eglot-server-programs
+    ;;  '((latex-mode)
+    ;;    . ("rass"
+    ;; 	"--"
+    ;; 	"harper-ls" "--stdio"
+    ;; 	"--"
+    ;; 	"digestif"
+    ;; 	)))
+    )
+
+  ;; (setq-default eglot-workspace-configuration
+  ;; 	      '(:harper-ls (:userDictPath ""
+  ;; 			    :workspaceDictPath ""
+  ;; 			    :fileDictPath ""
+  ;; 			    :linters (:SpellCheck t
+  ;; 				      :UnclosedQuotes t
+  ;; 				      :WrongQuotes t
+  ;; 				      :LongSentences t
+  ;; 				      :RepeatedWords t
+  ;; 				      :Spaces t
+  ;; 				      :Matcher t
+  ;; 				      :CorrectNumberSuffix t)
+  ;; 			    :diagnosticSeverity "hint"
+  ;; 			    :dialect "British"
+  ;; 			    :maxFileLength 120000
+  ;; 			    :excludePatterns [])))
+
 #+END_SRC
 
 IN-REGION (ie. buffer) completion is provided by Corfu (Completion
 Overlay Region FUnction). 
 
-** Dev virtual environmfents
+** Dev virtual environments
 Under =NixOS= I use =direnv= to set up local configurations for
 writing code and latex. So we can use the direnv package to make sure
 that =emacs= is aware of local settings.
@@ -755,32 +989,33 @@ Python code is also sometimes developed via =virtualenv=. This makes
 
 ** Python code formatting
 
-Black
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package python-black
-    :demand t
-    :after python
-    :hook (python-ts-mode . python-black-on-save-mode-enable-dwim))
+New indentation indicators
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package indent-bars
+    :hook
+    ((python-ts-mode yaml-ts-mode) . indent-bars-mode)) 
 #+END_SRC
 
-Highlighting indentation
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+2026: deprecated. Highlighting indentation
+
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package highlight-indentation
     :after python
     :hook (python-ts-mode . highlight-indentation-mode)
-    )
+    :config
+    ;; hard code some inoffensive colors
+    (set-face-background 'highlight-indentation-face "#555555")
+    (set-face-background 'highlight-indentation-current-column-face "#888888")
+    (setq highlight-indentation-blank-lines t))
 #+END_SRC
-
 
 Ruff
 
-#+BEGIN_SRC emacs-lisp :tangle yes
-(use-package flymake-ruff
-  :hook (eglot-managed-mode . flymake-ruff-load))
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package flymake-ruff
+    :hook (eglot-managed-mode . flymake-ruff-load))
 #+END_SRC
-
 
 #+BEGIN_SRC emacs-lisp :tangle yes 
   (use-package reformatter
@@ -826,6 +1061,8 @@ Ruff
     (corfu-prescient-mode))
 
   (use-package corfu-terminal)
+  (unless (display-graphic-p)
+    (corfu-terminal-mode +1))
 
   (use-package corfu-prescient
     :init
@@ -847,10 +1084,33 @@ Add the usual file extensions to drive appropriate dev modes in emacs.
   (add-to-list 'auto-mode-alist '("\\.nix\\'" . nix-mode))
 #+END_SRC
 
+* LLM integration
+Local LLM integration via ollama.
+
+#+BEGIN_SRC emacs-lisp :tangle no
+(use-package ollama-buddy
+  :bind
+  ("C-c o" . ollama-buddy-role-transient-menu)
+  ("C-c O" . ollama-buddy-transient-menu))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp :tangle no
+(use-package ellama
+  :bind ("C-c e" . ellama)
+  ;; send last message in chat buffer with C-c C-c
+  :hook (org-ctrl-c-ctrl-c-hook . ellama-chat-send-last-message)
+  :init (setopt ellama-auto-scroll t)
+  :config
+  ;; show ellama context in header line in all buffers
+  (ellama-context-header-line-global-mode +1)
+  ;; show ellama session id in header line in all buffers
+  (ellama-session-header-line-global-mode +1))
+#+END_SRC
+
 * Magit
 Git interface within emacs.
 
-#+BEGIN_SRC emacs-lisp :tangle no
+#+BEGIN_SRC emacs-lisp :tangle yes
   ;; MAGIT
   (use-package magit
     :defer t
@@ -895,10 +1155,10 @@ colourise bold/italic/underline for use with bitmap fonts.
      "◀── now ─────────────────────────────────────────────────")
 
     ;; Ellipsis styling
-    (setq org-ellipsis "…")
+    (setq org-ellipsis " … ")
     (set-face-attribute 'org-ellipsis nil :inherit 'default :box nil)
     ;; symbols
-    (set-face-attribute 'org-modern-symbol nil :family "Iosevka")
+    (set-face-attribute 'org-modern-symbol nil :family "Aporetic Serif Mono")
     )
 
   ;; some appearance tweaks:
@@ -939,7 +1199,6 @@ colourise bold/italic/underline for use with bitmap fonts.
 
   ;; custom capture
   (require 'org-capture)
-  ;;(define-key global-map "\C-cc" 'org-capture) ; defined via ryo-modal
   (setq org-capture-templates
         '(
           ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
@@ -968,7 +1227,7 @@ colourise bold/italic/underline for use with bitmap fonts.
   (setq org-highlight-latex-and-related '(latex script entities))
 
   ;; define the number of days to show in the agenda
-  (setq org-agenda-span 14
+  (setq org-agenda-span 90
         org-agenda-start-on-weekday nil
         org-agenda-start-day "-3d")
 
@@ -1010,7 +1269,7 @@ Searching the Denote files is done via the "consult-notes" package.
   (require 'denote)
 
   ;; Remember to check the doc strings of those variables.
-  (setq denote-directory (expand-file-name "~/CURRENT/PNL/Denote/"))
+  (setq denote-directory (expand-file-name "~/CURRENT/PNL/Denote_env/"))
   (setq denote-known-keywords '("research" "admin" "industry" "teaching" "home" "attachment"))
   (setq denote-infer-keywords t)
   (setq denote-sort-keywords t)
@@ -1065,7 +1324,7 @@ Trigger a few extra hooks when starting up =org-mode=.
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; org-mode
   (add-hook 'org-mode-hook 'hl-line-mode)
-  (add-hook 'org-mode-hook 'flyspell-mode)
+  ;;(add-hook 'org-mode-hook 'flyspell-mode) ; move to harper-ls
   (add-hook 'org-mode-hook 'visual-line-mode)
   (add-hook 'org-mode-hook 'visual-line-mode)
   ;; org-modern
@@ -1073,7 +1332,18 @@ Trigger a few extra hooks when starting up =org-mode=.
   (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
 #+END_SRC
 
+
+* Spelling
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq ispell-program-name "ispell")
+  (setq ispell-dictionary "english")
+  (setq ispell-personal-dictionary "/home/hewitt/.emacs.d/my_dictionary")
+#+END_SRC
+
+
 * LaTeX
+
 Hook into latex mode to set up a few simple things.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1108,9 +1378,7 @@ than trying to scribble a hadnwritten note via other methods.
 * Email/mu4e
 We need the =mu= package and also the executable =mbsync= (the package
 that =mbsync= is in, is usually called =isync=). I run =davmail= as an
-intermediary, with IMAP/SMTP on localhost which seems to run well. The
-=davmail= process is started as an asynchronous process under emacs as
-needed when =mu4e= is started -- see =pod= section below.
+intermediary, with IMAP/SMTP.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   ;; defines mu4e exists, but holds off until needed
@@ -1128,7 +1396,7 @@ email is to be stored.
         mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
         mu4e-mu-binary (executable-find "mu"))
   ;; DONT auto GET 
-  ;; (setq mu4e-update-interval 300)
+  (setq mu4e-update-interval nil)
 #+END_SRC
 
 Now, we can define the look/feel of how email is read and organized.
@@ -1240,7 +1508,7 @@ We need some quick elisp to start 'davmail' when 'mu4e' starts in order to conne
 to O365 with MFA. We do a bit of a hack to stop the 'davmail' process with a timer
 check every 15 minutes to see if 'mu4e' is still running or not.
 
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle no
   ;;(add-to-list 'load-path "~/.emacs.d/elisp/pod")
   (use-package pod
     :load-path "~/.emacs.d/elisp/pod"
@@ -1270,5 +1538,6 @@ standard GPG applications.
     :config
     (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
     (age-file-enable))
+
 #+END_SRC
 
