@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t; -*-; ad
+
 (setq-default untrusted-content t)
 
 (require 'package)
@@ -49,9 +51,10 @@
 (global-auto-revert-mode)
 
 ;; use both line & column numbers
-(setq mode-line-position (list "L%l C%c"))
+(setq rh/modeline-position (list " L%l C%c"))
+
 ;; this gets hooked later to update modeline colours when the theme is changed
-(defun my-modeline-update ()
+(defun rh/modeline-update ()
   "Update style of the modeline faces to match the choice of ef-theme."
   (ef-themes-with-colors
     (custom-set-faces
@@ -60,74 +63,105 @@
      `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))
     ))
 
-(setq-default my-modeline-format
-              '(
-                "%e" mode-line-front-space
-                ;; e.g. fire symbol below for unsaved buffer is selected via (C-x 8 RET)
+;; taken from Prot
+(defvar-local prot-modeline-narrow
+  '(:eval
+    (when (and (mode-line-window-selected-p)
+               (buffer-narrowed-p)
+               (not (memq major-mode '(Info-mode help-mode message-mode special-mode))))
+      (propertize " Narrow " 'face 'prot-modeline-indicator-cyan-bg)))
+"Mode line construct to report the narrowed state of the current buffer.")
+(put 'prot-modeline-narrow 'risky-local-variable t)
+
+
+;; if file-truename is "~/a/b/../c/d/filename" then
+;; show "a/b/../c/d" in a less obvious face
+;; only if the buffer is selected
+(defvar-local rh/modeline-filepath-if-selected
+  ; not all buffers have a filepath (e.g. terminal/scratch)
+  '(:eval (if buffer-file-name  
+	      (when (mode-line-window-selected-p) 
+		(propertize 
+		 (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
+		 'face 'shadow)                                      
+		) 
+	    )
+	  )
+  "Modeline construct for a path to current filename with a shadow face when window is selected."
+  )
+;; This is required, see C-h v mode-line-format
+(put 'rh/modeline-filepath-if-selected 'risky-local-variable t)
+
+;; filename in a more obvious (warning) colour
+(defvar-local rh/modeline-filename
+  '(:eval (if buffer-file-name  ; not all buffers have a filename
+	     (propertize 
+	      (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
+	      'face 'error)
+	   )
+	 )
+  "Modeline construct for just the filename with an error face."
+  )
+;; This is required, see C-h v mode-line-format
+(put 'rh/modeline-filename 'risky-local-variable t)
+
+
+(defvar-local rh/modeline-major-mode
+'(:eval (when (mode-line-window-selected-p) 
+	  (propertize (nth 0
+			   (split-string
+			    (capitalize (symbol-name major-mode)) "-Mode")
+			   )
+		      'face 'success)
+	  )
+	)
+"Modeline construct for major mode with 'mode' removed."
+)
+;; This is required, see C-h v mode-line-format
+(put 'rh/modeline-major-mode 'risky-local-variable t)
+
+
+(defvar-local rh/modeline-separator
+  '(:eval (propertize " | " 'face 'shadow) ) 
+  "Modeline separator symbol."
+  )
+;; This is required, see C-h v mode-line-format
+(put 'rh/modeline-separator 'risky-local-variable t)
+
+(setq-default rh/modeline-format
+	      '(
+                "%e"
+		mode-line-front-space
+                ;; e.g. fire symbol below for unsaved buffer is
+                ;; selected via (C-x 8 RET)
                 (:eval (if (buffer-modified-p)
                            (propertize "🔥 " 'face 'error)
                          (propertize "- " 'face 'shadow)
                          )
                        )
-                ;; if file-truename is "~/a/b/../c/d/filename" then show "a/b/../c/d" in darker colour
-                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
-                           (when (mode-line-window-selected-p) 
-                             (propertize 
-                              (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
-                              'face 'shadow)                                      
-                             ) 
-                         ) 
-                       )
-                ;; ALWAYS show the final filename even if inactive
-                ;; final separator is in usual font
-                "/"
-                ;; filename in a more obvious (warning) colour
-                (:eval (if buffer-file-name  ; not all buffers have a filename (e.g. messages/scratch)
-                           (propertize 
-                            (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
-                            'face 'warning)
-                         )
-                       )
-                ;; everything after here goes on the right. This
-                ;; doesn' work for emacs 29 ... needs emacs 30+?
+		prot-modeline-narrow
+		rh/modeline-filepath-if-selected
+		"/"
+		rh/modeline-filename
                 mode-line-format-right-align
-                (:eval (propertize " | " 'face 'shadow) ) ; separator
-                ;; there is a default string for the modeline from the mu4e package
-		;; [Nov 2024] stopped using it
-                ;;(:eval (propertize (mu4e--modeline-string) 'face 'shadow))
-                ;; show ONLY the major mode (minor modes are not shown)
-                (:eval (propertize " | " 'face 'shadow) ) ; separator
-                ;; strip "-Mode" from the end
-                (:eval (when (mode-line-window-selected-p) 
-                         (propertize (nth 0
-                                          (split-string
-                                           (capitalize (symbol-name major-mode)) "-Mode")
-                                          )
-                                     'face 'success)
-                         )
-                       )
-                " "
+		rh/modeline-separator
+		rh/modeline-major-mode
+		" "
                 (vc-mode vc-mode)
-                (:eval (propertize " | " 'face 'shadow) ) ; separator
-                mode-line-position        ; show lines and columns as specified above
+		rh/modeline-separator
+                rh/modeline-position 
 		"  "
                 )
               )
 
 ;; make the above definition the mode-line
-(setq-default mode-line-format my-modeline-format)
+(setq-default mode-line-format rh/modeline-format)
 ;; apply the hook to keep modeline colours up to date with current theme
-(add-hook 'ef-themes-post-load-hook #'my-modeline-update)
+(add-hook 'ef-themes-post-load-hook #'rh/modeline-update)
 
 (use-package ef-themes
   :init
-  ;; Disable all other themes to avoid awkward blending
-  ;;(mapc #'disable-theme custom-enabled-themes)
-  ;;(setq ef-themes-to-toggle '(ef-maris-light ef-maris-dark))
-  ;; They are nil by default...
-  ;;(setq ef-themes-mixed-fonts t
-  ;;	ef-themes-variable-pitch-ui t)
-  (ef-themes-take-over-modus-themes-mode 1)
+  ;(ef-themes-take-over-modus-themes-mode 1)
   :config
   ;; All customisations here.
   ;(setq modus-themes-mixed-fonts t)
@@ -135,25 +169,30 @@
   ;; Finally, load your theme of choice (or a random one with
   ;; `modus-themes-load-random', `modus-themes-load-random-dark',
   ;; `modus-themes-load-random-light').
-  (modus-themes-select 'ef-dream)
+  (modus-themes-select 'ef-eagle)
 )
 
-;; Add some space to the frame borders and window dividers
-(modify-all-frames-parameters
- '((right-divider-width . 8)
-   (left-fringe . 8)
-   (internal-border-width . 8)))
-(dolist (face '(window-divider
-                window-divider-first-pixel
-                window-divider-last-pixel))
-  (face-spec-reset-face face)
-  (set-face-foreground face (face-attribute 'default :background)))
-(set-face-background 'fringe (face-attribute 'default :background))
+(use-package dashboard
+  :ensure t
+  :config
+  (setq dashboard-display-icons-p t)     ; display icons on both GUI and terminal
+  (setq dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (dashboard-setup-startup-hook))
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'org-mode-hook 'display-line-numbers-mode)
 (add-hook 'latex-mode-hook 'display-line-numbers-mode)
 (setq display-line-numbers-type 'relative)
+
+(use-package indent-bars
+  :hook
+  ((python-ts-mode yaml-ts-mode latex-mode org-mode ) . indent-bars-mode))
+
+;; variable is buffer local
+(setq-default fill-column 79) 
+(global-display-fill-column-indicator-mode)
 
 (use-package rainbow-delimiters
   :init
@@ -422,9 +461,7 @@
 
 (setq window-combination-resize t)
 (setq even-window-sizes 'height-only)
-                                        ; left/right occupies full window height
 (setq window-sides-vertical t)                    
-                                        ; pop new window if switching buffers from dedicated
 (setq switch-to-buffer-in-dedicated-window 'pop)  
 (setq split-height-threshold 80)
 (setq split-width-threshold 120)
@@ -434,39 +471,36 @@
 ;;(setq display-buffer-alist 'nil) ; to remove all preferences
 (setq display-buffer-alist
       `(
-        ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"                 ; match all the usual capture buffers
-         (display-buffer-reuse-mode-window
-          display-buffer-below-selected)
-                                        ;(window-parameters . ((mode-line-format . none)) ) ; turn off the mode line
-         )
-        ("\\*Org Agenda\\*"                                 ; always put my calendar and compose windows on the right
-         (display-buffer-in-side-window)
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         (window-width . 120)
-         (side . right)                                     ; put it on the right side
-                                        ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+        ("\\*Org Agenda\\*" ; 
+         (display-buffer-full-frame)
          )	
-        ((derived-mode . mu4e-compose-mode)                 ; always put my calendar and compose windows on the right
+        ((derived-mode . mu4e-compose-mode)
          (display-buffer-in-side-window)
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         (window-width . 120)
-         (side . right)                                     ; put it on the right side
-                                        ;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+         (dedicated . t) ; don't reuse this buffer for other things
+         (window-width . 90)
+         (side . right) ; put it on the right side
          )	
         ((or (derived-mode . mu4e-headers-mode)
-             (derived-mode . mu4e-main-mode ))              ; other mu4e stuff remains dedicated
-         (display-buffer-reuse-mode-window)                 ; don't always open a new window
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+             (derived-mode . mu4e-main-mode )) 
+         (display-buffer-reuse-mode-window) ; don't always open a new window
+         (dedicated . t) ; don't reuse this buffer for other things
          )
-        ((derived-mode . pdf-view-mode)
-         (display-buffer-in-side-window))
-        ("\\*Org \\(Select\\|Note\\)\\*"                    ; put other Org stuff at the bottom
-         (display-buffer-in-side-window)
-         (dedicated . t)                                    ; don't reuse this buffer for other things
-         (side . bottom)
-         ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
-         )          
+        ((derived-mode . pdf-view-mode) ; puts the PDF into a new frame
+	 (display-buffer-pop-up-frame)
+	 (reusable-frames . visible)
+	 )
+        ("\\*Org Select\\*"  ; org-capture template selection
+	 (display-buffer-full-frame)
+	 )
+	("\\(\\*Capture\\*\\|CAPTURE-.*\\)"; match all the usual capture buffers
+	 (display-buffer-full-frame) 
+	 )
+        ;; ("\\*Org \\(Select\\|Note\\)\\*"  ; put other Org stuff at the bottom
+        ;;  (display-buffer-in-side-window)
+        ;;  (dedicated . t)   ; don't reuse this buffer for other things
+        ;;  (side . bottom)
+        ;;  ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
+        ;;  )          
         ))
 
 ;; move focus when splitting a window
@@ -475,13 +509,15 @@
   (split-window-below)
   (balance-windows)
   (other-window 1))
-(global-set-key (kbd "C-x 2") 'my/split-and-follow-horizontally)
+
 ;; move focus when splitting a window
 (defun my/split-and-follow-vertically ()
   (interactive)
   (split-window-right)
   (balance-windows)
   (other-window 1))
+
+(global-set-key (kbd "C-x 2") 'my/split-and-follow-horizontally)
 (global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
 ;; short-cut the other-window key
 (keymap-set global-map "M-o" 'other-window)
@@ -507,35 +543,50 @@
    ("C-," . expreg-contract)))
 
 ;; short-cut to edit the init.el configuration file
-(defun my/config-visit ()
+(defun rh/config-visit ()
   (interactive)
   (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
 
 ;; short-cut to edit the init.el configuration file
-(defun my/todo-visit ()
+(defun rh/todo-visit ()
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 
-(defvar-keymap my-prefix-org-map
+;; put magit in a new tab
+(defun rh/magit-status-new-tab ()
+  "Open magit-status in a new tab and make it fill the tab."
+  (interactive)
+  (tab-bar-new-tab)
+  (call-interactively #'magit-status)
+  (delete-other-windows) )
+
+(defvar-keymap rh-prefix-org-map
   :doc "Prefix map for Org mode."
   "c" #'org-capture
   "a" #'org-agenda
   "j" #'org-journal-new-entry
   "t" #'org-babel-tangle)
 
-(defvar-keymap my-prefix-display-map
+(defvar-keymap rh-prefix-display-map
   :doc "Prefix map for display features."
   "+" #'global-text-scale-adjust
   "f" #'fontaine-set-preset)
 
+(defvar-keymap rh-prefix-tab-map
+  :doc "Prefix map for display features."
+  "t" #'tab-switcher
+  "d" #'tab-close
+  "n" #'tab-new)
+
 ;; Define a key map with commands and (potentially nested) key maps
 (defvar-keymap my-prefix-map
   :doc "My prefix key map."
-  "o" my-prefix-org-map
-  "d" my-prefix-display-map
+  "o" rh-prefix-org-map
+  "d" rh-prefix-display-map
+  "t" rh-prefix-tab-map
   "s" #'consult-notes-search-in-all-notes
-  "t" #'my/todo-visit
-  "e" #'my/config-visit
+  "T" #'rh/todo-visit
+  "e" #'rh/config-visit
   "m" #'mu4e
   "f" #'dired
   "b" #'consult-buffer
@@ -543,8 +594,9 @@
 
 ;; Define how the nested keymaps are labelled in `which-key-mode'.
 (which-key-add-keymap-based-replacements my-prefix-map
-  "o" `("Org" . ,my-prefix-org-map)
-  "d" `("display" . ,my-prefix-display-map)
+  "o" `("Org" . ,rh-prefix-org-map)
+  "d" `("display" . ,rh-prefix-display-map)
+  "t" `("tabs" . ,rh-prefix-tab-map)
   )
 
 ;; Bind the prefix key map to a key.  Notice the absence of a quote for
@@ -560,6 +612,14 @@
   (editorconfig-mode 1) )
 
 (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
+
+(define-abbrev text-mode-abbrev-table "rhzoom" "https://zoom.us/my/rich.hewitt")
+(define-abbrev text-mode-abbrev-table "rhoffice" "Alan Turing Rm 2.227")
+(define-abbrev global-abbrev-table "rhdate" ""
+  (lambda () (insert (format-time-string "[%Y-%m-%d %a %H:%M]"))))
+
+(add-hook 'text-mode-hook 'abbrev-mode)
+(add-hook 'org-mode-hook 'abbrev-mode)
 
 ;; location of my snippets -- has to go before yas-reload-all
 (setq-default yas-snippet-dirs '("~/.emacs.d/my_snippets"))
@@ -668,10 +728,6 @@
 (use-package pyvenv-auto
   :hook ((python-ts-mode . pyvenv-auto-run)))
 
-(use-package indent-bars
-  :hook
-  ((python-ts-mode yaml-ts-mode) . indent-bars-mode))
-
 (use-package reformatter
   :hook 
   ; mostly "OK" but sometimes makes stupid formatting decisions
@@ -710,9 +766,10 @@
   (global-corfu-mode)
   (corfu-prescient-mode))
 
-(use-package corfu-terminal)
-(unless (display-graphic-p)
-  (corfu-terminal-mode +1))
+;;[2026-06-26 Fri 17:12] No longer required for emacs 31+
+;;(use-package corfu-terminal)
+;;(unless (display-graphic-p)
+;;  (corfu-terminal-mode +1))
 
 (use-package corfu-prescient
   :init
@@ -737,6 +794,40 @@
   :init
   (message "Use-package: Magit installed"))
 
+(defun rh/org-capture-after-finalize-clean-up ()
+  "If add this to 'org-capture-after-finalize-hook' then closing the
+'org-capture' session will also delete the frame. This is useful for
+captures initiated from the window manager (WM) level rather than within
+emacs itslef. Before the frame is deleted, we remove the hook, so that
+similar captures later initiated from within emacs don't continue to delete
+the frame!
+
+Initiate the capture from the WM via something like:
+emacsclient -cn -e '(progn (add-hook (quote org-capture-after-finalize-hook) (quote rh/org-capture-after-finalize-clean-up))(org-capture nil \"t\"))' -F '((name . \"**Capture**\"))'
+
+Note that you can use the **Capture** title to have the pop-up frame treated differently, eg. floating rather than tiled. Also the use of (quote ...) may make this simple when processed as a WM shell command. 
+"
+  (remove-hook 'org-capture-after-finalize-hook 'rh/org-capture-after-finalize-clean-up)    
+  (delete-frame nil t))
+
+(defun rh/org-agenda-quit-clean-up ()
+  "Adding this to 'org-agenda-quit' then closing the
+'org-agenda-list' session will also delete the frame. This is useful for
+captures initiated from the window manager (WM) level rather than within
+emacs itslef. Before the frame is deleted, we remove the advice, so that
+viewing the org-agenda-list later initiated from within emacs doesn't
+continue to delete the frame!
+
+Initiate the capture from the WM via something like:
+emacsclient -cn -e '(progn (add-hook (quote org-agenda-quit) (quote rh/org-agenda-quit-clean-up))(org-agenda-list))' -F '((name . \"**Agenda**\"))'
+
+Note that you can use the **Agenda** title to have the pop-up frame treated differently, eg. floating rather than tiled. Also the use of (quote ...) may make this simple when processed as a WM shell command. 
+"
+  (interactive)
+  (advice-remove 'org-agenda-quit 'rh/org-agenda-quit-clean-up)
+  ;;(advice-remove 'org-agenda-Quit 'rh/org-agenda-quit-clean-up)    
+  (delete-frame nil t))
+
 (use-package org
   :init
   (message "Use-package: Org") )
@@ -745,8 +836,8 @@
   :config
   (setq
    ;; Edit settings
-   org-auto-align-tags nil
-   org-tags-column 0
+   org-auto-align-tags t
+   org-tags-column -77 ; right-align to 77th column
    org-catch-invisible-edits 'show-and-error
    org-special-ctrl-a/e t
    org-insert-heading-respect-content t
@@ -776,15 +867,15 @@
 ;;
 ;; replace emphasis with colors in Org files
 (setq org-emphasis-alist
-      '(("*" my/org-emphasis-bold)
-        ("/" my/org-emphasis-italic)
-        ("_" my/org-emphasis-underline)
+      '(("*" rh/org-emphasis-bold)
+        ("/" rh/org-emphasis-italic)
+        ("_" rh/org-emphasis-underline)
         ("=" org-verbatim verbatim)
         ("~" org-code verbatim)
         ("+" (:strike-through t))))
 ;;
 ;; colorise text for emphasis
-(defface my/org-emphasis-bold
+(defface rh/org-emphasis-bold
   '((default :inherit bold)
     (((class color) (min-colors 88) (background light))
      :foreground "#a60000")
@@ -792,7 +883,7 @@
      :foreground "#ff8059"))
   "My bold emphasis for Org.")
 ;;
-(defface my/org-emphasis-italic
+(defface rh/org-emphasis-italic
   '((default :inherit italic)
     (((class color) (min-colors 88) (background light))
      :foreground "#005e00")
@@ -800,7 +891,7 @@
      :foreground "#44bc44"))
   "My italic emphasis for Org.")
 ;;
-(defface my/org-emphasis-underline
+(defface rh/org-emphasis-underline
   '((default :inherit underline)
     (((class color) (min-colors 88) (background light))
      :foreground "#813e00")
@@ -1020,15 +1111,13 @@
 ;; compose signature
 (setq message-signature-file "~/CURRENT/dot.signature")
 (setq mu4e-compose-signature-auto-include t)
-;; don't wrap at 70-something columns
-;(setq mu4e-compose-format-flowed t)
 ;; define where to put draft email
 (setq mu4e-drafts-folder "/Drafts")
 ;; spell check during compose
 (add-hook 'mu4e-compose-mode-hook
-          (defun my/do-compose-stuff ()
+          (defun rh/do-compose-stuff ()
             "My settings for message composition."
-            (set-fill-column 72)
+            (set-fill-column 80)
             (flyspell-mode)
             ;; turn off autosave, otherwise we end up with multiple
             ;; versions of sent/draft mail being sync'd
