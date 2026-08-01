@@ -1,5 +1,9 @@
 ;; -*- lexical-binding: t; -*-; ad
 
+(setq enable-local-variables nil)
+
+(inhibit-remote-files)
+
 (setq-default untrusted-content t)
 
 (require 'package)
@@ -33,29 +37,65 @@
 (setq vc-follow-symlinks t)
 ;;
 ;; keep track of recently opened files
-(recentf-mode 1)
+(recentf-mode t)
+;; keep a list of minibuffer prompt history
+(setq history-length 50)
+(savehist-mode 1)
+;; keep a list of point positions in files
+(save-place-mode 1)
 ;; have mouse input in the terminal -- the disadvantage is you
 ;; need to SHIFT+middle mouse to paste in the terminal
-(xterm-mouse-mode 1)
+(xterm-mouse-mode t)
 ;; Turn off the menu/scroll/toolbar
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
+(menu-bar-mode 0)
+(scroll-bar-mode 0)
+(tool-bar-mode 0)
+;; tabs are evil, use space
+(setq-default indent-tabs-mode nil)
 ;; replace annoying yes/no with y/n
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; left to right only
 (setq-default bidi-paragraph-direction 'left-to-right) ; buffer-local
 ;; max no of bytes to read from subprocess in a single chunk
-(setq read-process-output-max (* 4 1024 1024)) ; 4MB
+;; On GNU/Linux systems, the value should not exceed
+;; /proc/sys/fs/pipe-max-siz
+(setq read-process-output-max (* 1 1024 1024)) ; 1MB
+;; don't syntax highlight whilst actively typing
+(setq redisplay-skip-fontification-on-input t)
+;;don't render cursor or highlight in inactive windows
+(setq-default cursor-in-non-selected-windows nil)
+(setq highlight-nonselected-windows nil)
+;; don't save duplicates in the kill ring
+(setq kill-do-not-save-duplicates t)
 
 (global-auto-revert-mode)
 
+(use-package spacious-padding
+  :config
+  ;; These are the default values, but I keep them here for visibility.
+  ;; Also check `spacious-padding-subtle-frame-lines'.
+  (setq spacious-padding-widths
+        '( :internal-border-width 15
+           :header-line-width 4
+           :mode-line-width 6
+           :custom-button-width 3
+           :tab-width 4
+           :right-divider-width 30
+           :scroll-bar-width 8
+           :fringe-width 8))
+
+  (spacious-padding-mode 1)
+
+  ;; Set a key binding if you need to toggle spacious padding.
+  ;;(define-key global-map (kbd "<f8>") #'spacious-padding-mode)
+  )
+
 ;; use both line & column numbers
-(setq rh/modeline-position (list " L%l C%c"))
+(setq rh-modeline-position (list " L%l C%c"))
 
 ;; this gets hooked later to update modeline colours when the theme is changed
-(defun rh/modeline-update ()
-  "Update style of the modeline faces to match the choice of ef-theme."
+(defun rh-modeline-update ()
+  "Updates the style of modeline faces to match the choice of ef-theme."
   (ef-themes-with-colors
     (custom-set-faces
      `(mode-line ((,c :background ,bg-mode-line 
@@ -65,99 +105,95 @@
 
 ;; taken from Prot
 (defvar-local prot-modeline-narrow
-  '(:eval
-    (when (and (mode-line-window-selected-p)
-               (buffer-narrowed-p)
-               (not (memq major-mode '(Info-mode help-mode message-mode special-mode))))
-      (propertize " Narrow " 'face 'prot-modeline-indicator-cyan-bg)))
-"Mode line construct to report the narrowed state of the current buffer.")
+    '(:eval
+      (when (and (mode-line-window-selected-p)
+                 (buffer-narrowed-p)
+                 (not (memq major-mode '(Info-mode help-mode message-mode special-mode))))
+	(propertize " Narrow " 'face 'error)))
+  "Mode line construct to report the narrowed state of the current buffer.")
+;; This is required, see C-h v mode-line-format
 (put 'prot-modeline-narrow 'risky-local-variable t)
 
 
 ;; if file-truename is "~/a/b/../c/d/filename" then
-;; show "a/b/../c/d" in a less obvious face
-;; only if the buffer is selected
-(defvar-local rh/modeline-filepath-if-selected
-  ; not all buffers have a filepath (e.g. terminal/scratch)
-  '(:eval (if buffer-file-name  
-	      (when (mode-line-window-selected-p) 
-		(propertize 
-		 (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
-		 'face 'shadow)                                      
-		) 
-	    )
-	  )
-  "Modeline construct for a path to current filename with a shadow face when window is selected."
-  )
+;; show "a/b/../c/d" in a less obvious face but only if the buffer is selected
+;; remember: not all buffers have a filepath (e.g. terminal/scratch)
+(defvar-local rh-modeline-filepath-if-selected
+    '(:eval (if buffer-file-name  
+		(when (mode-line-window-selected-p) 
+		  (propertize 
+		   (string-join (seq-subseq (split-string buffer-file-truename "/") 1 -1) "/") 
+		   'face 'shadow))))
+  "Modeline construct for a path to current filename with a shadow face when window is selected.")
 ;; This is required, see C-h v mode-line-format
-(put 'rh/modeline-filepath-if-selected 'risky-local-variable t)
+(put 'rh-modeline-filepath-if-selected 'risky-local-variable t)
+
 
 ;; filename in a more obvious (warning) colour
-(defvar-local rh/modeline-filename
-  '(:eval (if buffer-file-name  ; not all buffers have a filename
-	     (propertize 
-	      (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
-	      'face 'error)
-	   )
-	 )
-  "Modeline construct for just the filename with an error face."
-  )
+(defvar-local rh-modeline-filename
+    '(:eval (if buffer-file-name  ; not all buffers have a filename
+		(propertize 
+		 (string-join (seq-subseq (split-string buffer-file-truename "/") -1 nil)) 
+		 'face 'error)))
+  "Modeline construct for just the filename with an error face.")
 ;; This is required, see C-h v mode-line-format
-(put 'rh/modeline-filename 'risky-local-variable t)
+(put 'rh-modeline-filename 'risky-local-variable t)
 
 
-(defvar-local rh/modeline-major-mode
-'(:eval (when (mode-line-window-selected-p) 
-	  (propertize (nth 0
-			   (split-string
-			    (capitalize (symbol-name major-mode)) "-Mode")
-			   )
-		      'face 'success)
-	  )
-	)
-"Modeline construct for major mode with 'mode' removed."
-)
+(defvar-local rh-modeline-major-mode
+    '(:eval (when (mode-line-window-selected-p) 
+	      (propertize (nth 0
+			       (split-string (capitalize (symbol-name major-mode)) "-Mode")
+			       ) 'face 'success)))
+  "Modeline construct for major mode with 'mode' removed.")
 ;; This is required, see C-h v mode-line-format
-(put 'rh/modeline-major-mode 'risky-local-variable t)
+(put 'rh-modeline-major-mode 'risky-local-variable t)
 
 
-(defvar-local rh/modeline-separator
-  '(:eval (propertize " | " 'face 'shadow) ) 
+(defvar-local rh-modeline-separator
+    '(:eval (propertize " | " 'face 'shadow)) 
   "Modeline separator symbol."
   )
 ;; This is required, see C-h v mode-line-format
-(put 'rh/modeline-separator 'risky-local-variable t)
+(put 'rh-modeline-separator 'risky-local-variable t)
 
-(setq-default rh/modeline-format
-	      '(
-                "%e"
+
+(defvar-local rh-modeline-buffer-modified
+    ;; e.g. fire symbol below for unsaved buffer is
+    ;; selected via (C-x 8 RET)
+    '(:eval (if (buffer-modified-p)
+		(propertize "🔥 " 'face 'error)
+	      (propertize "- " 'face 'shadow)
+	      ))
+  "Modeline construct indicates that the buffer is modified.")
+;; This is required, see C-h v mode-line-format
+(put 'rh-modeline-buffer-modified 'risky-local-variable t)
+
+(setq-default rh-modeline-format
+              '(
+		"%e"
 		mode-line-front-space
-                ;; e.g. fire symbol below for unsaved buffer is
-                ;; selected via (C-x 8 RET)
-                (:eval (if (buffer-modified-p)
-                           (propertize "🔥 " 'face 'error)
-                         (propertize "- " 'face 'shadow)
-                         )
-                       )
+		rh-modeline-buffer-modified
 		prot-modeline-narrow
-		rh/modeline-filepath-if-selected
+		rh-modeline-filepath-if-selected
 		"/"
-		rh/modeline-filename
-                mode-line-format-right-align
-		rh/modeline-separator
-		rh/modeline-major-mode
-		" "
+		rh-modeline-filename
+		mode-line-format-right-align
+		;mu4e-modeline-all-read
+                rh-modeline-separator
+                rh-modeline-major-mode
+                " "
                 (vc-mode vc-mode)
-		rh/modeline-separator
-                rh/modeline-position 
-		"  "
+                rh-modeline-separator
+                rh-modeline-position 
+                "  "
                 )
               )
 
 ;; make the above definition the mode-line
-(setq-default mode-line-format rh/modeline-format)
+(setq-default mode-line-format rh-modeline-format)
 ;; apply the hook to keep modeline colours up to date with current theme
-(add-hook 'ef-themes-post-load-hook #'rh/modeline-update)
+(add-hook 'ef-themes-post-load-hook #'rh-modeline-update)
 
 (use-package ef-themes
   :init
@@ -169,11 +205,25 @@
   ;; Finally, load your theme of choice (or a random one with
   ;; `modus-themes-load-random', `modus-themes-load-random-dark',
   ;; `modus-themes-load-random-light').
-  (modus-themes-select 'ef-eagle)
+  ;;(modus-themes-select 'ef-eagle)
 )
 
+(use-package kusanagi-theme
+:ensure t
+:init
+;; slightly brighter modeline when active and inactive
+(setq kusanagi-theme-palette-overrides
+      '(
+        (bg-mode-line-active  teal-faint)    
+        (bg-mode-line-inactive "#0d1e2e")
+        ))
+:config
+(load-theme 'kusanagi t))
+
+;; indicate point/line
+(pulsar-global-mode)
+
 (use-package dashboard
-  :ensure t
   :config
   (setq dashboard-display-icons-p t)     ; display icons on both GUI and terminal
   (setq dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
@@ -242,9 +292,9 @@
          :variable-pitch-family "Aporetic Serif"
          :variable-pitch-weight normal
          :variable-pitch-height 120
-	 :mode-line-family "Aporetic Serif"
-	 :mode-line-weight normal
-	 :mode-line-active-height 110
+       :mode-line-family "Aporetic Serif"
+       :mode-line-weight normal
+       :mode-line-active-height 110
          :bold-family nil ; use whatever the underlying face has
          :bold-weight bold
          :italic-family nil ; use whatever the underlying face has
@@ -260,15 +310,15 @@
          :variable-pitch-family "Aporetic Serif"
          :variable-pitch-weight normal
          :variable-pitch-height 140
-	 :mode-line-family "Aporetic Serif"
-	 :mode-line-weight normal
-	 :mode-line-active-height 140
+       :mode-line-family "Aporetic Serif"
+       :mode-line-weight normal
+       :mode-line-active-height 140
          :bold-family nil ; use whatever the underlying face has
          :bold-weight bold
          :italic-family nil ; use whatever the underlying face has
          :italic-slant italic
          :line-spacing 1)
-	(terminus
+      (terminus
          :default-family "Terminus"
          :default-weight normal
          :default-height 120
@@ -287,10 +337,10 @@
 (defun new-frame-setup (frame)
   (if (display-graphic-p frame)
       (progn
-	(fontaine-mode 1)
-	(define-key global-map (kbd "C-c f") #'fontaine-set-preset)
-	(fontaine-set-preset (or (fontaine-restore-latest-preset) 'aporetic))
-	)
+      (fontaine-mode 1)
+      (define-key global-map (kbd "C-c f") #'fontaine-set-preset)
+      (fontaine-set-preset (or (fontaine-restore-latest-preset) 'aporetic))
+      )
     (message "no GUI => no fontaine")))
 
 ;; Run for already-existing frames
@@ -323,24 +373,26 @@
 (use-package vertico
   :custom
   (vertico-cycle t)
+  (vertico-count 8)
+  (vertico-resize t)
   :init
   (message "Use-package: vertico")
   (vertico-mode))
 
-(use-package prescient
-  :init
-  (message "Use-package: prescient")
-  :config
-  ;; you have to set the completion-style(s) to be used
-  (setq completion-styles '(substring prescient basic))
-  ;; retain completion statistics over restart of emacs
-  (prescient-persist-mode))
+;; (use-package prescient
+;;   :init
+;;   (message "Use-package: prescient")
+;;   :config
+;;   ;; you have to set the completion-style(s) to be used
+;;   (setq completion-styles '(substring prescient basic))
+;;   ;; retain completion statistics over restart of emacs
+;;   (prescient-persist-mode))
 
-(use-package vertico-prescient
-  :init
-  (message "Use-package: vertico-prescient")
-  :config
-  (vertico-prescient-mode))
+;; (use-package vertico-prescient
+;;   :init
+;;   (message "Use-package: vertico-prescient")
+;;   :config
+;;   (vertico-prescient-mode))
 
 (use-package orderless
   :custom (completion-styles '(orderless)))
@@ -357,8 +409,8 @@
   :init
   (add-hook 'completion-at-point-functions #'cape-dabbrev)
   (add-hook 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
+  ;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;(advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
   )
 
 (use-package emacs
@@ -473,53 +525,59 @@
       `(
         ("\\*Org Agenda\\*" ; 
          (display-buffer-full-frame)
-         )	
+         )    
         ((derived-mode . mu4e-compose-mode)
          (display-buffer-in-side-window)
          (dedicated . t) ; don't reuse this buffer for other things
          (window-width . 90)
          (side . right) ; put it on the right side
-         )	
+         )    
+        ((derived-mode . mu4e-view-mode)
+         (display-buffer-in-side-window)
+         (dedicated . t) ; don't reuse this buffer for other things
+         (window-width . 90)
+         (side . right) ; put it on the right side
+         )    
         ((or (derived-mode . mu4e-headers-mode)
              (derived-mode . mu4e-main-mode )) 
          (display-buffer-reuse-mode-window) ; don't always open a new window
          (dedicated . t) ; don't reuse this buffer for other things
          )
         ((derived-mode . pdf-view-mode) ; puts the PDF into a new frame
-	 (display-buffer-pop-up-frame)
-	 (reusable-frames . visible)
-	 )
+         (display-buffer-pop-up-frame)
+         (reusable-frames . visible)
+         )
         ("\\*Org Select\\*"  ; org-capture template selection
-	 (display-buffer-full-frame)
-	 )
-	("\\(\\*Capture\\*\\|CAPTURE-.*\\)"; match all the usual capture buffers
-	 (display-buffer-full-frame) 
-	 )
+         (display-buffer-full-frame)
+         )
+        ("\\(\\*Capture\\*\\|CAPTURE-.*\\)"; match all the usual capture buffers
+         (display-buffer-full-frame) 
+         )
         ;; ("\\*Org \\(Select\\|Note\\)\\*"  ; put other Org stuff at the bottom
         ;;  (display-buffer-in-side-window)
         ;;  (dedicated . t)   ; don't reuse this buffer for other things
         ;;  (side . bottom)
         ;;  ;;(window-parameters . ((mode-line-format . none)))  ; turn off the mode line
         ;;  )          
-        ))
+	))
 
 ;; move focus when splitting a window
-(defun my/split-and-follow-horizontally ()
+(defun rh-split-and-follow-horizontally ()
   (interactive)
   (split-window-below)
   (balance-windows)
   (other-window 1))
 
 ;; move focus when splitting a window
-(defun my/split-and-follow-vertically ()
+(defun rh-split-and-follow-vertically ()
   (interactive)
   (split-window-right)
   (balance-windows)
   (other-window 1))
 
-(global-set-key (kbd "C-x 2") 'my/split-and-follow-horizontally)
-(global-set-key (kbd "C-x 3") 'my/split-and-follow-vertically)
-;; short-cut the other-window key
+(global-set-key (kbd "C-x 2") 'rh-split-and-follow-horizontally)
+(global-set-key (kbd "C-x 3") 'rh-split-and-follow-vertically)
+;; short-cut the other-window key - can get clobbered in some modes
 (keymap-set global-map "M-o" 'other-window)
 ;; smaller divider between split windows
 (setq window-divider-default-right-width 2)
@@ -543,17 +601,17 @@
    ("C-," . expreg-contract)))
 
 ;; short-cut to edit the init.el configuration file
-(defun rh/config-visit ()
+(defun rh-config-visit ()
   (interactive)
   (find-file "~/CURRENT/NixConfig/outOfStore/.emacs.d/config.org") )
 
 ;; short-cut to edit the init.el configuration file
-(defun rh/todo-visit ()
+(defun rh-todo-visit ()
   (interactive)
   (find-file "~/Sync/Org/Todo.org") )
 
 ;; put magit in a new tab
-(defun rh/magit-status-new-tab ()
+(defun rh-magit-status-new-tab ()
   "Open magit-status in a new tab and make it fill the tab."
   (interactive)
   (tab-bar-new-tab)
@@ -579,21 +637,22 @@
   "n" #'tab-new)
 
 ;; Define a key map with commands and (potentially nested) key maps
-(defvar-keymap my-prefix-map
+(defvar-keymap rh-prefix-map
   :doc "My prefix key map."
   "o" rh-prefix-org-map
   "d" rh-prefix-display-map
   "t" rh-prefix-tab-map
   "s" #'consult-notes-search-in-all-notes
-  "T" #'rh/todo-visit
-  "e" #'rh/config-visit
+  "T" #'rh-todo-visit
+  "e" #'rh-config-visit
   "m" #'mu4e
   "f" #'dired
   "b" #'consult-buffer
+  "j" #'jinx-correct
   )
 
 ;; Define how the nested keymaps are labelled in `which-key-mode'.
-(which-key-add-keymap-based-replacements my-prefix-map
+(which-key-add-keymap-based-replacements rh-prefix-map
   "o" `("Org" . ,rh-prefix-org-map)
   "d" `("display" . ,rh-prefix-display-map)
   "t" `("tabs" . ,rh-prefix-tab-map)
@@ -601,7 +660,7 @@
 
 ;; Bind the prefix key map to a key.  Notice the absence of a quote for
 ;; the map's symbol.
-(keymap-set global-map "C-z" my-prefix-map)
+(keymap-set global-map "C-z" rh-prefix-map)
 
 ;; editorconfig allows local specification of tab/space/indent
 ;; using a config file in the directory
@@ -613,8 +672,8 @@
 
 (setq whitespace-style '(trailing tabs newline tab-mark newline-mark))
 
-(define-abbrev text-mode-abbrev-table "rhzoom" "https://zoom.us/my/rich.hewitt")
-(define-abbrev text-mode-abbrev-table "rhoffice" "Alan Turing Rm 2.227")
+;(define-abbrev text-mode-abbrev-table "rhzoom" *secrets.el*)
+;(define-abbrev text-mode-abbrev-table "rhoffice" *secrets.el*)
 (define-abbrev global-abbrev-table "rhdate" ""
   (lambda () (insert (format-time-string "[%Y-%m-%d %a %H:%M]"))))
 
@@ -690,40 +749,42 @@
   ; config entries run after package loading has happened
   (add-to-list 'eglot-server-programs '(c++-ts-mode . ("ccls")))
   (add-to-list 'eglot-server-programs '(latex-mode . ("digestif")))
-  (add-to-list 'eglot-server-programs '(python-ts-mode . ("pyright-langserver" "--stdio")))
+  (add-to-list 'eglot-server-programs '(python-ts-mode . ("zuban" "server")))
+
+
+  ;;(add-to-list 'eglot-server-programs '(python-ts-mode . ("pyright-langserver" "--stdio")))
   ;;(add-to-list 'eglot-server-programs '(text-mode . ("harper-ls" "--stdio")))
   ;;(add-to-list 'eglot-server-programs '(org-mode . ("harper-ls" "--stdio")))    
   ;; (add-to-list
   ;;  'eglot-server-programs
   ;;  '((latex-mode)
   ;;    . ("rass"
-  ;; 	"--"
-  ;; 	"harper-ls" "--stdio"
-  ;; 	"--"
-  ;; 	"digestif"
-  ;; 	)))
+  ;;  "--"
+  ;;  "harper-ls" "--stdio"
+  ;;  "--"
+  ;;  "digestif"
+  ;;  )))
   )
 
 ;; (setq-default eglot-workspace-configuration
-;; 	      '(:harper-ls (:userDictPath ""
-;; 			    :workspaceDictPath ""
-;; 			    :fileDictPath ""
-;; 			    :linters (:SpellCheck t
-;; 				      :UnclosedQuotes t
-;; 				      :WrongQuotes t
-;; 				      :LongSentences t
-;; 				      :RepeatedWords t
-;; 				      :Spaces t
-;; 				      :Matcher t
-;; 				      :CorrectNumberSuffix t)
-;; 			    :diagnosticSeverity "hint"
-;; 			    :dialect "British"
-;; 			    :maxFileLength 120000
-;; 			    :excludePatterns [])))
+;;          '(:harper-ls (:userDictPath ""
+;;                        :workspaceDictPath ""
+;;                        :fileDictPath ""
+;;                        :linters (:SpellCheck t
+;;                                  :UnclosedQuotes t
+;;                                  :WrongQuotes t
+;;                                  :LongSentences t
+;;                                  :RepeatedWords t
+;;                                  :Spaces t
+;;                                  :Matcher t
+;;                                  :CorrectNumberSuffix t)
+;;                        :diagnosticSeverity "hint"
+;;                        :dialect "British"
+;;                        :maxFileLength 120000
+;;                        :excludePatterns [])))
 
-(use-package direnv
-  :config
-  (direnv-mode))
+(use-package envrc
+  :hook (after-init . envrc-global-mode))
 
 (use-package pyvenv-auto
   :hook ((python-ts-mode . pyvenv-auto-run)))
@@ -744,6 +805,9 @@
   :custom
   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
   (corfu-auto t)                 ;; Enable auto completion
+  (corfu-auto-delay 0.2)
+  (corfu-auto-trigger ".") ;; Custom trigger characters
+  (corfu-quit-no-match t)
   ;; (corfu-separator ?\s)          ;; Orderless field separator
   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
@@ -765,6 +829,13 @@
   ;;(setq tab-always-indent 'complete)
   (global-corfu-mode)
   (corfu-prescient-mode))
+
+(add-hook 'corfu-mode-hook
+	  (lambda ()
+	    ;; Settings only for Corfu
+	    (setq-local completion-styles '(basic)
+			completion-category-overrides nil
+			completion-category-defaults nil)))
 
 ;;[2026-06-26 Fri 17:12] No longer required for emacs 31+
 ;;(use-package corfu-terminal)
@@ -794,7 +865,7 @@
   :init
   (message "Use-package: Magit installed"))
 
-(defun rh/org-capture-after-finalize-clean-up ()
+(defun rh-org-capture-after-finalize-clean-up ()
   "If add this to 'org-capture-after-finalize-hook' then closing the
 'org-capture' session will also delete the frame. This is useful for
 captures initiated from the window manager (WM) level rather than within
@@ -803,14 +874,14 @@ similar captures later initiated from within emacs don't continue to delete
 the frame!
 
 Initiate the capture from the WM via something like:
-emacsclient -cn -e '(progn (add-hook (quote org-capture-after-finalize-hook) (quote rh/org-capture-after-finalize-clean-up))(org-capture nil \"t\"))' -F '((name . \"**Capture**\"))'
+emacsclient -cn -e '(progn (add-hook (quote org-capture-after-finalize-hook) (quote rh-org-capture-after-finalize-clean-up))(org-capture nil \"t\"))' -F '((name . \"**Capture**\"))'
 
 Note that you can use the **Capture** title to have the pop-up frame treated differently, eg. floating rather than tiled. Also the use of (quote ...) may make this simple when processed as a WM shell command. 
 "
-  (remove-hook 'org-capture-after-finalize-hook 'rh/org-capture-after-finalize-clean-up)    
+  (remove-hook 'org-capture-after-finalize-hook 'rh-org-capture-after-finalize-clean-up)    
   (delete-frame nil t))
 
-(defun rh/org-agenda-quit-clean-up ()
+(defun rh-org-agenda-quit-clean-up ()
   "Adding this to 'org-agenda-quit' then closing the
 'org-agenda-list' session will also delete the frame. This is useful for
 captures initiated from the window manager (WM) level rather than within
@@ -819,13 +890,13 @@ viewing the org-agenda-list later initiated from within emacs doesn't
 continue to delete the frame!
 
 Initiate the capture from the WM via something like:
-emacsclient -cn -e '(progn (add-hook (quote org-agenda-quit) (quote rh/org-agenda-quit-clean-up))(org-agenda-list))' -F '((name . \"**Agenda**\"))'
+emacsclient -cn -e '(progn (add-hook (quote org-agenda-quit) (quote rh-org-agenda-quit-clean-up))(org-agenda-list))' -F '((name . \"**Agenda**\"))'
 
 Note that you can use the **Agenda** title to have the pop-up frame treated differently, eg. floating rather than tiled. Also the use of (quote ...) may make this simple when processed as a WM shell command. 
 "
   (interactive)
-  (advice-remove 'org-agenda-quit 'rh/org-agenda-quit-clean-up)
-  ;;(advice-remove 'org-agenda-Quit 'rh/org-agenda-quit-clean-up)    
+  (advice-remove 'org-agenda-quit 'rh-org-agenda-quit-clean-up)
+  ;;(advice-remove 'org-agenda-Quit 'rh-org-agenda-quit-clean-up)    
   (delete-frame nil t))
 
 (use-package org
@@ -867,15 +938,15 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
 ;;
 ;; replace emphasis with colors in Org files
 (setq org-emphasis-alist
-      '(("*" rh/org-emphasis-bold)
-        ("/" rh/org-emphasis-italic)
-        ("_" rh/org-emphasis-underline)
+      '(("*" rh-org-emphasis-bold)
+        ("/" rh-org-emphasis-italic)
+        ("_" rh-org-emphasis-underline)
         ("=" org-verbatim verbatim)
         ("~" org-code verbatim)
         ("+" (:strike-through t))))
 ;;
 ;; colorise text for emphasis
-(defface rh/org-emphasis-bold
+(defface rh-org-emphasis-bold
   '((default :inherit bold)
     (((class color) (min-colors 88) (background light))
      :foreground "#a60000")
@@ -883,7 +954,7 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
      :foreground "#ff8059"))
   "My bold emphasis for Org.")
 ;;
-(defface rh/org-emphasis-italic
+(defface rh-org-emphasis-italic
   '((default :inherit italic)
     (((class color) (min-colors 88) (background light))
      :foreground "#005e00")
@@ -891,7 +962,7 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
      :foreground "#44bc44"))
   "My italic emphasis for Org.")
 ;;
-(defface rh/org-emphasis-underline
+(defface rh-org-emphasis-underline
   '((default :inherit underline)
     (((class color) (min-colors 88) (background light))
      :foreground "#813e00")
@@ -1006,19 +1077,18 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
 
 ;; org-mode
 (add-hook 'org-mode-hook 'hl-line-mode)
-;;(add-hook 'org-mode-hook 'flyspell-mode) ; move to harper-ls
-(add-hook 'org-mode-hook 'visual-line-mode)
 (add-hook 'org-mode-hook 'visual-line-mode)
 ;; org-modern
 (add-hook 'org-mode-hook #'org-modern-mode)
 (add-hook 'org-agenda-finalize-hook #'org-modern-agenda)
 
-(setq ispell-program-name "ispell")
-(setq ispell-dictionary "english")
-(setq ispell-personal-dictionary "/home/hewitt/.emacs.d/my_dictionary")
+(use-package jinx
+  ;; run everywhere
+  :hook (emacs-startup . global-jinx-mode)
+  :bind (("M-$" . jinx-correct) ; also we have a leader key config
+         ("C-M-$" . jinx-languages)))
 
 (add-hook 'latex-mode-hook 'hl-line-mode)
-(add-hook 'latex-mode-hook 'flyspell-mode)
 (add-hook 'latex-mode-hook 'visual-line-mode)
 (add-hook 'latex-mode-hook 'display-line-numbers-mode)
 
@@ -1039,8 +1109,8 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
 (setq mu4e-get-mail-command "mbsync Work"
       mu4e-maildir (expand-file-name "~/CURRENT/mbsyncmail")
       mu4e-mu-binary (executable-find "mu"))
-;; DONT auto GET 
-(setq mu4e-update-interval nil)
+;; every 5 mins
+(setq mu4e-update-interval 300)
 
 ;; I don't sync Deleted Items & largely do permanent
 ;;  delete via "D" rather than move to trash via "d" 
@@ -1077,8 +1147,9 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
          ("/BULK"           . ?b)))
 ;; bookmarks
 (setq mu4e-bookmarks
-      ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK" :key 117) ; bu
-         (:name "Today" :query "date:today..now" :key 116)                   ; bt
+      ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK AND NOT maildir:/LISTS" :key 117) ; bu
+         (:name "Lists" :query "flag:unread AND maildir:/LISTS" :key 108)    ; bl
+         (:name "Today" :query "date:today..now" :hide-unread t :key 116)    ; bt
          (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
          (:name "Attachment" :query "flag:a" :key 97)                        ; ba
          (:name "Flagged"    :query "flag:F" :key 102)                       ; bf
@@ -1103,36 +1174,33 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
 
 ;; don't keep message buffers around
 (setq message-kill-buffer-on-exit t)
-;; general emacs mail settings; used when composing e-mail
-;; the non-mu4e-* stuff is inherited from emacs/message-mode
-(setq mu4e-reply-to-address "richard.hewitt@manchester.ac.uk"
-      user-mail-address "richard.hewitt@manchester.ac.uk"
-      user-full-name  "Rich Hewitt")
-;; compose signature
+;(setq mu4e-reply-to-address *set in secrets.el*)
+;(setq user-mail-address *set in secrets.el*)
+;(setq user-full-name  *set in serets.el*)
 (setq message-signature-file "~/CURRENT/dot.signature")
 (setq mu4e-compose-signature-auto-include t)
 ;; define where to put draft email
 (setq mu4e-drafts-folder "/Drafts")
 ;; spell check during compose
 (add-hook 'mu4e-compose-mode-hook
-          (defun rh/do-compose-stuff ()
+          (defun rh-do-compose-stuff ()
             "My settings for message composition."
             (set-fill-column 80)
-            (flyspell-mode)
+            ;; jinx is set globally for spell check
             ;; turn off autosave, otherwise we end up with multiple
             ;; versions of sent/draft mail being sync'd
             (auto-save-mode -1)))
 ;; Couple to Org -- not sure if this is strictly required or not?
 ;(require 'mu4e-org)
 
-(use-package age
+(use-package age   
   :demand
   :custom
-  (age-program "rage")   ; 'rage' is the rust implementation of 'age' that supports pinentry
-  (age-default-identity "~/CURRENT/AGE/yubikey-bb978fd1-identity.txt")
-  (age-default-recipient
-   '("~/CURRENT/AGE/recovery-recipient.pub"            ; cold-storage recovery
-     "~/CURRENT/AGE/yubikey-bb978fd1-recipient.pub"))  ; active hardware key
+  (age-program "rage") ; 'rage' is the rust implementation of 'age' that supports pinentry
+  ;(age-default-identity *set in secrets.el*)
+  ;(age-default-recipient *set in secrets*)
   :config
   (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
   (age-file-enable))
+
+(require 'secrets)
