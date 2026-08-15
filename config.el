@@ -93,15 +93,6 @@
 ;; use both line & column numbers
 (setq rh-modeline-position (list " L%l C%c"))
 
-;; this gets hooked later to update modeline colours when the theme is changed
-(defun rh-modeline-update ()
-  "Updates the style of modeline faces to match the choice of ef-theme."
-  (ef-themes-with-colors
-    (custom-set-faces
-     `(mode-line ((,c :background ,bg-mode-line 
-                      :foreground ,fg-main :box (:line-width (1 . 6) :color ,bg-mode-line))))
-     `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))
-    ))
 
 ;; taken from Prot
 (defvar-local prot-modeline-narrow
@@ -171,54 +162,47 @@
 
 (setq-default rh-modeline-format
               '(
-		"%e"
-		mode-line-front-space
-		rh-modeline-buffer-modified
-		prot-modeline-narrow
-		rh-modeline-filepath-if-selected
-		"/"
-		rh-modeline-filename
-		mode-line-format-right-align
-		;mu4e-modeline-all-read
+                "%e"
+                mode-line-front-space
+                rh-modeline-buffer-modified
+                prot-modeline-narrow
+                rh-modeline-filepath-if-selected
+                "/"
+                rh-modeline-filename
+                mode-line-format-right-align
+                mode-line-misc-info ; this includes the mu4e unread count
                 rh-modeline-separator
                 rh-modeline-major-mode
                 " "
                 (vc-mode vc-mode)
                 rh-modeline-separator
                 rh-modeline-position 
+                mode-line-end-spaces
                 "  "
                 )
               )
 
 ;; make the above definition the mode-line
 (setq-default mode-line-format rh-modeline-format)
-;; apply the hook to keep modeline colours up to date with current theme
-(add-hook 'ef-themes-post-load-hook #'rh-modeline-update)
 
 (use-package ef-themes
   :init
-  ;(ef-themes-take-over-modus-themes-mode 1)
+  ;;(ef-themes-take-over-modus-themes-mode 1)
   :config
   ;; All customisations here.
-  ;(setq modus-themes-mixed-fonts t)
-  ;(setq modus-themes-italic-constructs t)
+  (setq modus-themes-mixed-fonts t)
+  ;;(setq modus-themes-italic-constructs t)
   ;; Finally, load your theme of choice (or a random one with
   ;; `modus-themes-load-random', `modus-themes-load-random-dark',
   ;; `modus-themes-load-random-light').
-  ;;(modus-themes-select 'ef-eagle)
-)
+  (modus-themes-select 'ef-eagle))
 
-(use-package kusanagi-theme
-:ensure t
-:init
-;; slightly brighter modeline when active and inactive
-(setq kusanagi-theme-palette-overrides
-      '(
-        (bg-mode-line-active  teal-faint)    
-        (bg-mode-line-inactive "#0d1e2e")
+;; increase font sizes for Org headings
+(setq modus-themes-headings
+      '((1 . (variable-pitch 1.3))
+        (2 . (variable-pitch 1.2))
+        (3 . (1.1))
         ))
-:config
-(load-theme 'kusanagi t))
 
 ;; indicate point/line
 (pulsar-global-mode)
@@ -227,8 +211,10 @@
   :config
   (setq dashboard-display-icons-p t)     ; display icons on both GUI and terminal
   (setq dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
+  (setq dashboard-startup-banner 'logo)
   (setq dashboard-set-heading-icons t)
   (setq dashboard-set-file-icons t)
+  (setq initial-buffer-choice t)
   (dashboard-setup-startup-hook))
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -374,33 +360,17 @@
   :custom
   (vertico-cycle t)
   (vertico-count 8)
-  (vertico-resize t)
+  ;; resize is very annoying!
+  ;(vertico-resize t) 
   :init
   (message "Use-package: vertico")
   (vertico-mode))
-
-;; (use-package prescient
-;;   :init
-;;   (message "Use-package: prescient")
-;;   :config
-;;   ;; you have to set the completion-style(s) to be used
-;;   (setq completion-styles '(substring prescient basic))
-;;   ;; retain completion statistics over restart of emacs
-;;   (prescient-persist-mode))
-
-;; (use-package vertico-prescient
-;;   :init
-;;   (message "Use-package: vertico-prescient")
-;;   :config
-;;   (vertico-prescient-mode))
 
 (use-package orderless
   :custom (completion-styles '(orderless)))
 
 (use-package marginalia
   :after vertico
-  :custom
-  (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
   :init
   (message "Use-package: marginalia")
   (marginalia-mode))
@@ -408,10 +378,7 @@
 (use-package cape
   :init
   (add-hook 'completion-at-point-functions #'cape-dabbrev)
-  (add-hook 'completion-at-point-functions #'cape-file)
-  ;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  ;(advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
-  )
+  (add-hook 'completion-at-point-functions #'cape-file))
 
 (use-package emacs
   :ensure nil
@@ -649,6 +616,7 @@
   "f" #'dired
   "b" #'consult-buffer
   "j" #'jinx-correct
+  "p" #'speedbar
   )
 
 ;; Define how the nested keymaps are labelled in `which-key-mode'.
@@ -693,7 +661,7 @@
   (add-hook 'c++-mode-hook 'yas-minor-mode)  
   (add-hook 'latex-mode-hook 'yas-minor-mode)
   (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
-  (add-hook 'org-mode-hook 'yas-minor-mode)
+  (add-hook 'org-mode-hook 'yas-minor-mode)    
   ;; remove default keybinding
   (define-key yas-minor-mode-map (kbd "<tab>") nil)
   (define-key yas-minor-mode-map (kbd "TAB") nil)
@@ -734,6 +702,12 @@
 (add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
 ;; maximum level of highlighting
 (setq treesit-font-lock-level 4)
+
+(use-package speedbar
+  :ensure nil
+  :config
+  (setq speedbar-prefer-window t)
+  (setq speedbar-use-images nil))
 
 ;; eglot is a simpler alternative to LSP-mode
 (use-package eglot
@@ -974,11 +948,27 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
 (require 'org-capture)
 (setq org-capture-templates
       '(
+        
+        ("r" "Review"
+         entry (file+headline "~/Sync/Org/Todo.org" "Reviewing")
+         (file "~/.emacs.d/capture/review.org")
+         )
+        ("R" "Read"
+         entry (file+headline "~/Sync/Org/Todo.org" "Reading")
+         (file "~/.emacs.d/capture/read.org")
+         )
+        ("m" "Meeting")
+        ("mo" "Online meet"
+         entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+         (file "~/.emacs.d/capture/online_mtg.org")
+         )
+        ("mp" "In-person meet"
+         entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+         (file "~/.emacs.d/capture/inperson_mtg.org")
+         )  
         ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
          "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-        ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-         "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-         :empty-lines 1)) )
+        ))
 
 ;; Agenda is constructed from org files in ONE directory
 (setq org-agenda-files '("~/Sync/Org"))
@@ -1101,6 +1091,39 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
   :config
   (pdf-tools-install))
 
+(require 'org-caldav)
+
+;; URL of the caldav server
+;; org-caldav-url *set in secrets.el*
+
+;; one way 'sync' from work Outlook (boo) into Org (yay)
+(setq org-caldav-sync-direction 'cal->org)
+
+;; calendars on Outlook
+;;  note that each defines the inbox .org file
+(setq org-caldav-calendars
+  '((:calendar-id "Calendar" :files (nil)
+     :inbox "/home/hewitt/Sync/Org/caldav.org")
+    (:calendar-id "Calendar/Teaching"
+     :files (nil)
+     :inbox "/home/hewitt/Sync/Org/caldav.org")) )
+
+(setq org-caldav-uuid-extension ".EML")
+
+;; Additional Org files to check for calendar events
+(setq org-caldav-files nil)
+
+;; Usually a good idea to set the timezone manually
+(setq org-icalendar-timezone "Europe/London")
+
+;; put mu4e in a new tab
+(defun rh-mu4e-new-tab ()
+  "Open magit-status in a new tab and make it fill the tab."
+  (interactive)
+  (tab-bar-new-tab)
+  (call-interactively #'mu4e)
+  (delete-other-windows) )
+
 ;; defines mu4e exists, but holds off until needed
 ;;(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
 (require 'mu4e)
@@ -1112,6 +1135,7 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
 ;; every 5 mins
 (setq mu4e-update-interval 300)
 
+(setq mu4e-notification-support t)
 ;; I don't sync Deleted Items & largely do permanent
 ;;  delete via "D" rather than move to trash via "d" 
 (setq mu4e-trash-folder  "/Trash") 
@@ -1147,7 +1171,7 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
          ("/BULK"           . ?b)))
 ;; bookmarks
 (setq mu4e-bookmarks
-      ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK AND NOT maildir:/LISTS" :key 117) ; bu
+      ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK AND NOT maildir:/LISTS" :key 117 :favorite t) ; bu
          (:name "Lists" :query "flag:unread AND maildir:/LISTS" :key 108)    ; bl
          (:name "Today" :query "date:today..now" :hide-unread t :key 116)    ; bt
          (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
@@ -1198,9 +1222,36 @@ Note that you can use the **Agenda** title to have the pop-up frame treated diff
   :custom
   (age-program "rage") ; 'rage' is the rust implementation of 'age' that supports pinentry
   ;(age-default-identity *set in secrets.el*)
-  ;(age-default-recipient *set in secrets*)
+  ;(age-default-recipient *set in secrets.el*)
   :config
+  (setq auth-sources '("/home/hewitt/.authinfo.age"))
   (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
   (age-file-enable))
 
+(require 'notifications)
+
+;; 5 second notify on decryption
+(defun rh-age-notify (msg &optional simple)
+  (notifications-notify
+   :title "age.el"
+   :body (format "%s" msg)
+   :timeout 5000))
+
+(defun rh-age-notify-decrypt (&rest args)
+  (cl-destructuring-bind (context cipher) args
+    (rh-age-notify (format "Decrypting %s" (age-data-file cipher)) t)))
+
+(defun rh-age-toggle-decrypt-notifications ()
+  (interactive)
+  (cond ((advice-member-p #'rh-age-notify-decrypt #'age-start-decrypt)
+         (advice-remove #'age-start-decrypt #'rh-age-notify-decrypt)
+         (message "Disabled age decrypt notifications."))
+        (t
+         (advice-add #'age-start-decrypt :before #'rh-age-notify-decrypt)
+         (message "Enabled age decrypt notifications."))))
+
+;; we only care about decrypt notifications really
+(rh-age-toggle-decrypt-notifications)
+
+(message "Including secrets")
 (require 'secrets)

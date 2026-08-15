@@ -6,22 +6,14 @@
 
 To convert this to "./config.el" do M-x org-babel-tangle.
 
-* Notes/preamble
-+ Packages are installed separately via NixOS. Versions are fixed by the flake.
-  
-+ Emacs 30+ has 'use-package' (and some other things) built-in,
-  notably 'treesitter'.
-
-+ Emacs 30+ is required to use 'mode-line-format-right-align' in the
-  modeline configuration below.
-  
-* Emacs 31, lexical binding cookie
-[2026-06-26 Fri 17:10]  Temporary add?
-
   #+BEGIN_SRC emacs-lisp :tangle yes
     ;; -*- lexical-binding: t; -*-; ad
   #+END_SRC
 
+* Notes/preamble
++ Packages are installed separately via NixOS. Versions are fixed by the flake.  
++ This relies on features only present in v31+
+  
 * Security
 
 A file that Emacs visits can contain variable settings that affect the buffer visiting that file; See File Local Variables. Similarly, a directory can specify local variable values common to all files in that directory; see Directory Local Variables. Although Emacs takes some effort to protect against misuse of these variables, a security hole can be created merely by a package setting safe-local-variable too optimistically, a problem that is all too common. To disable this feature for both files and directories, set enable-local-variables to nil. 
@@ -30,7 +22,7 @@ A file that Emacs visits can contain variable settings that affect the buffer vi
   (setq enable-local-variables nil)
 #+END_SRC
 
-Inhibit =Tramp= access to remote filesystem
+Inhibit =Tramp= access to remote filesystems.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (inhibit-remote-files)
@@ -194,6 +186,7 @@ Not used, but left in case of issues with a NixOS package.
 #+END_SRC
 
 ** Modeline
+
 This is a simplified home-brew modeline. Colours are defined to match
 the current =ef-themes= choice. There is a hook to
 =ef-themes-post-load-hook= to ensure that these are updated if the
@@ -217,16 +210,7 @@ well as all :eval and :propertize forms in the value, are ignored."
   ;; use both line & column numbers
   (setq rh-modeline-position (list " L%l C%c"))
 
-  ;; this gets hooked later to update modeline colours when the theme is changed
-  (defun rh-modeline-update ()
-    "Updates the style of modeline faces to match the choice of ef-theme."
-    (ef-themes-with-colors
-      (custom-set-faces
-       `(mode-line ((,c :background ,bg-mode-line 
-                        :foreground ,fg-main :box (:line-width (1 . 6) :color ,bg-mode-line))))
-       `(mode-line-inactive ((,c :background ,bg-alt :box (:line-width (1 . 1) :color ,fg-dim)))))
-      ))
-
+  
   ;; taken from Prot
   (defvar-local prot-modeline-narrow
       '(:eval
@@ -295,29 +279,28 @@ well as all :eval and :propertize forms in the value, are ignored."
 
   (setq-default rh-modeline-format
                 '(
-  		"%e"
-  		mode-line-front-space
-  		rh-modeline-buffer-modified
-  		prot-modeline-narrow
-  		rh-modeline-filepath-if-selected
-  		"/"
-  		rh-modeline-filename
-  		mode-line-format-right-align
-  		;mu4e-modeline-all-read
+                  "%e"
+                  mode-line-front-space
+                  rh-modeline-buffer-modified
+                  prot-modeline-narrow
+                  rh-modeline-filepath-if-selected
+                  "/"
+                  rh-modeline-filename
+                  mode-line-format-right-align
+                  mode-line-misc-info ; this includes the mu4e unread count
                   rh-modeline-separator
                   rh-modeline-major-mode
                   " "
                   (vc-mode vc-mode)
                   rh-modeline-separator
                   rh-modeline-position 
+                  mode-line-end-spaces
                   "  "
                   )
                 )
 
   ;; make the above definition the mode-line
   (setq-default mode-line-format rh-modeline-format)
-  ;; apply the hook to keep modeline colours up to date with current theme
-  (add-hook 'ef-themes-post-load-hook #'rh-modeline-update)
 #+END_SRC
 
 ** Theme
@@ -326,28 +309,22 @@ Fonts: The default font is now set via =fontaine=.
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package ef-themes
     :init
-    ;(ef-themes-take-over-modus-themes-mode 1)
+    ;;(ef-themes-take-over-modus-themes-mode 1)
     :config
     ;; All customisations here.
-    ;(setq modus-themes-mixed-fonts t)
-    ;(setq modus-themes-italic-constructs t)
+    (setq modus-themes-mixed-fonts t)
+    ;;(setq modus-themes-italic-constructs t)
     ;; Finally, load your theme of choice (or a random one with
     ;; `modus-themes-load-random', `modus-themes-load-random-dark',
     ;; `modus-themes-load-random-light').
-    ;;(modus-themes-select 'ef-eagle)
-  )
+    (modus-themes-select 'ef-eagle))
 
-  (use-package kusanagi-theme
-  :ensure t
-  :init
-  ;; slightly brighter modeline when active and inactive
-  (setq kusanagi-theme-palette-overrides
-        '(
-          (bg-mode-line-active  teal-faint)    
-          (bg-mode-line-inactive "#0d1e2e")
+  ;; increase font sizes for Org headings
+  (setq modus-themes-headings
+        '((1 . (variable-pitch 1.3))
+          (2 . (variable-pitch 1.2))
+          (3 . (1.1))
           ))
-  :config
-  (load-theme 'kusanagi t))
 
   ;; indicate point/line
   (pulsar-global-mode)
@@ -360,28 +337,11 @@ Fonts: The default font is now set via =fontaine=.
     :config
     (setq dashboard-display-icons-p t)     ; display icons on both GUI and terminal
     (setq dashboard-icon-type 'nerd-icons) ; use `nerd-icons' package
+    (setq dashboard-startup-banner 'logo)
     (setq dashboard-set-heading-icons t)
     (setq dashboard-set-file-icons t)
+    (setq initial-buffer-choice t)
     (dashboard-setup-startup-hook))
-#+END_SRC
-                       
-** Frame borders/dividers    :inactive:
-
-[2026-06-21 Sun 20:20] : not sure why this is here anymore. I'm leaving it
-untangled and we will see if I notice any difference!
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  ;; Add some space to the frame borders and window dividers
-  (modify-all-frames-parameters
-   '((right-divider-width . 8)
-     (left-fringe . 8)
-     (internal-border-width . 8)))
-  (dolist (face '(window-divider
-                  window-divider-first-pixel
-                  window-divider-last-pixel))
-    (face-spec-reset-face face)
-    (set-face-foreground face (face-attribute 'default :background)))
-  (set-face-background 'fringe (face-attribute 'default :background))
 #+END_SRC
 
 ** Relative line numbers
@@ -537,55 +497,8 @@ Pop-up a description of key combinations after a delay.
 * Completion
 ** Using standard completing-read interface
 
-Trying v31.0.91 default completion with Prot's suggested tweaks, but still with =marginalia=
-https://protesilaos.com/codelog/2026-07-29-emacs-default-minibuffer-completion-overview/
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  ;; emacs v31+ improved completion sytem - applied to minibuffer
-  (use-package minibuffer
-    :ensure nil
-    :config
-    ;; Do not inform me about the default keybindings to select a
-    ;; candidate.
-    (setq completion-show-help nil)
-
-    ;; Do not print messages in the echo area that pertain to
-    ;; completion---those are distracting.
-    (setq completion-show-inline-help nil)
-
-    ;; Show useful annotations in various minibuffer prompts (though the
-    ;; `marginalia' package greatly improves this).
-    (setq completions-detailed t)
-
-    ;; Do not use rows and columns for completions: a single vertical
-    ;; list is easier to follow.
-    (setq completions-format 'one-column)
-
-    ;; Put an upper limit to the Completions window, so that it does not
-    ;; disorient me.
-    (setq completions-max-height 8)
-
-    ;; Rely on previous inputs to surface candidates towards the top of
-    ;; the list (enable the built-in `savehist-mode' to persist
-    ;; history -- see below where this is set).
-    (setq completions-sort 'historical)
-
-    ;; Show the Completions buffer if I hit TAB but there is no unique match yet.
-    (setq completion-auto-help t) 
-
-    ;; Never switch to the Completions buffer when I type TAB, because I
-    ;; want to select candidates while the minibuffer is still in focus,
-    ;; per `minibuffer-visible-completions'.  This has the advantage of
-    ;; auto-updating the completions as I type.
-    (setq completion-auto-select nil
-          minibuffer-visible-completions t)
-
-    ;; Those two are also relevant for the `completion-category-overrides', which I
-    ;; cover elsewhere in this article.
-    (setq completion-eager-display t)
-    (setq completion-eager-update t)
-    (savehist-mode))
-#+END_SRC
+[2026-08-04 Tue 17:59] I tried some of the built-in completion system of
+v31.0.91 but still sticking with the =vertico= stack.
 
 =consult= provides various practical commands based on the Emacs
 completion function 'completing-read', which allows to quickly select
@@ -615,53 +528,34 @@ commands are provided, an asynchronous 'consult-grep',
     (consult-notes-denote-mode))
 #+END_SRC
 
-The =vertico=, =prescient=, =orderless= stack.
+The =vertico=, =marginalia=, =orderless= stack.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package vertico
     :custom
     (vertico-cycle t)
     (vertico-count 8)
-    (vertico-resize t)
+    ;; resize is very annoying!
+    ;(vertico-resize t) 
     :init
     (message "Use-package: vertico")
     (vertico-mode))
-
-  ;; (use-package prescient
-  ;;   :init
-  ;;   (message "Use-package: prescient")
-  ;;   :config
-  ;;   ;; you have to set the completion-style(s) to be used
-  ;;   (setq completion-styles '(substring prescient basic))
-  ;;   ;; retain completion statistics over restart of emacs
-  ;;   (prescient-persist-mode))
-
-  ;; (use-package vertico-prescient
-  ;;   :init
-  ;;   (message "Use-package: vertico-prescient")
-  ;;   :config
-  ;;   (vertico-prescient-mode))
 
   (use-package orderless
     :custom (completion-styles '(orderless)))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp :tangle yes
-      (use-package marginalia
-        :after vertico
-        :custom
-        (marginalia-annotators '(marginalia-annotators-heavy marginalia-annotators-light nil))
-        :init
-        (message "Use-package: marginalia")
-        (marginalia-mode))
+  (use-package marginalia
+    :after vertico
+    :init
+    (message "Use-package: marginalia")
+    (marginalia-mode))
 
-      (use-package cape
-        :init
-        (add-hook 'completion-at-point-functions #'cape-dabbrev)
-        (add-hook 'completion-at-point-functions #'cape-file)
-        ;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
-        ;(advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
-        )
+  (use-package cape
+    :init
+    (add-hook 'completion-at-point-functions #'cape-dabbrev)
+    (add-hook 'completion-at-point-functions #'cape-file))
 #+END_SRC
 
 * Other interaction
@@ -941,6 +835,7 @@ Expand region is in maintenance mode only. Switched to expreg instead.
     "f" #'dired
     "b" #'consult-buffer
     "j" #'jinx-correct
+    "p" #'speedbar
     )
 
   ;; Define how the nested keymaps are labelled in `which-key-mode'.
@@ -953,33 +848,6 @@ Expand region is in maintenance mode only. Switched to expreg instead.
   ;; Bind the prefix key map to a key.  Notice the absence of a quote for
   ;; the map's symbol.
   (keymap-set global-map "C-z" rh-prefix-map)
-#+END_SRC
-
-** Cut and paste :inactive:
-I use Wayland (no X11), and this interacts with =wl-copy=.
-
-In remote sessions you will need to wrap the ssh client in 'waypipe'
-to get access to clipboard content.
-
-March 2026: not sure that this is needed anymore. I'm trying to
-disable it for a while so I can test cut/paste during
-remote Zellij sessions.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  ;; - cut and paste in Wayland environment
-  ;; - this puts selected text into the Wayland clipboard
-  (setq select-enable-clipboard t)
-  (defun rh-txt-cut-function (text &optional push)
-    (with-temp-buffer
-      (insert text)
-      (call-process-region (point-min) (point-max) "wl-copy" ))
-    )
-  (setq interprogram-cut-function 'rh-txt-cut-function)
-  (setq interprogram-paste-function
-                  (lambda ()
-                        (shell-command-to-string "wl-paste -n")
-                        )
-                  )
 #+END_SRC
 
 ** Editorconfig
@@ -1026,7 +894,7 @@ Expand roots to standard text snippets with M-<square closing bracket>.
     (add-hook 'c++-mode-hook 'yas-minor-mode)  
     (add-hook 'latex-mode-hook 'yas-minor-mode)
     (add-hook 'emacs-lisp-mode-hook 'yas-minor-mode)
-    (add-hook 'org-mode-hook 'yas-minor-mode)
+    (add-hook 'org-mode-hook 'yas-minor-mode)    
     ;; remove default keybinding
     (define-key yas-minor-mode-map (kbd "<tab>") nil)
     (define-key yas-minor-mode-map (kbd "TAB") nil)
@@ -1113,6 +981,19 @@ non-tree-sitter folder (in this case it would contain) the single line
   (setq treesit-font-lock-level 4)
 #+END_SRC
 
+** Speedbar
+
+[2026-08-06 Thu 10:25] not convinced yet, its set up to be interactive via C-z 
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package speedbar
+    :ensure nil
+    :config
+    (setq speedbar-prefer-window t)
+    (setq speedbar-use-images nil))
+#+END_SRC
+
+
 ** Eglot
 
 #+BEGIN_SRC emacs-lisp :tangle yes
@@ -1171,22 +1052,12 @@ Overlay Region FUnction).
 
 ** Dev virtual environments
 Under =NixOS= I use =direnv= to set up local configurations for
-writing code and latex. So we can use the =direnv= package to make sure
-that =emacs= is aware of local settings.
-
-#+BEGIN_SRC emacs-lisp :tangle no 
-  (use-package direnv
-    :config
-    (direnv-mode))
-#+END_SRC
-
-Let's try =envrc= instead
+writing code and latex. This is handled in emacs by =envrc= instead.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package envrc
     :hook (after-init . envrc-global-mode))
 #+END_SRC
-
 
 Python code is also sometimes developed via =virtualenv=. This makes
 =emacs= aware of the virtual environment.
@@ -1434,11 +1305,27 @@ colourise bold/italic/underline for use with bitmap fonts.
   (require 'org-capture)
   (setq org-capture-templates
         '(
+          
+          ("r" "Review"
+           entry (file+headline "~/Sync/Org/Todo.org" "Reviewing")
+           (file "~/.emacs.d/capture/review.org")
+           )
+          ("R" "Read"
+           entry (file+headline "~/Sync/Org/Todo.org" "Reading")
+           (file "~/.emacs.d/capture/read.org")
+           )
+          ("m" "Meeting")
+          ("mo" "Online meet"
+           entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+           (file "~/.emacs.d/capture/online_mtg.org")
+           )
+          ("mp" "In-person meet"
+           entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
+           (file "~/.emacs.d/capture/inperson_mtg.org")
+           )  
           ("t" "Todo" entry (file+headline "~/Sync/Org/Todo.org" "Inbox")
            "* TODO %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%a\n")
-          ("z" "Zoom meeting" entry (file+headline "~/Sync/Org/Todo.org" "Meetings")
-           "* TODO Zoom, %?\nSCHEDULED: %(org-insert-time-stamp (org-read-date nil t \"+0d\"))\n%i\n"
-           :empty-lines 1)) )
+          ))
 
   ;; Agenda is constructed from org files in ONE directory
   (setq org-agenda-files '("~/Sync/Org"))
@@ -1609,13 +1496,50 @@ than trying to scribble a handwritten note via other methods.
     :config
     (pdf-tools-install))
 #+END_SRC
- 
+
+* CalDav
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'org-caldav)
+
+  ;; URL of the caldav server
+  ;; org-caldav-url *set in secrets.el*
+
+  ;; one way 'sync' from work Outlook (boo) into Org (yay)
+  (setq org-caldav-sync-direction 'cal->org)
+
+  ;; calendars on Outlook
+  ;;  note that each defines the inbox .org file
+  (setq org-caldav-calendars
+    '((:calendar-id "Calendar" :files (nil)
+       :inbox "/home/hewitt/Sync/Org/caldav.org")
+      (:calendar-id "Calendar/Teaching"
+       :files (nil)
+       :inbox "/home/hewitt/Sync/Org/caldav.org")) )
+
+  (setq org-caldav-uuid-extension ".EML")
+
+  ;; Additional Org files to check for calendar events
+  (setq org-caldav-files nil)
+
+  ;; Usually a good idea to set the timezone manually
+  (setq org-icalendar-timezone "Europe/London")
+#+END_SRC
+
 * Email/mu4e
 We need the =mu= package and also the executable =mbsync= (the package
 that =mbsync= is in, is usually called =isync=). I run =davmail= as an
 intermediary, with IMAP/SMTP.
 
 #+BEGIN_SRC emacs-lisp :tangle yes
+  ;; put mu4e in a new tab
+  (defun rh-mu4e-new-tab ()
+    "Open magit-status in a new tab and make it fill the tab."
+    (interactive)
+    (tab-bar-new-tab)
+    (call-interactively #'mu4e)
+    (delete-other-windows) )
+
   ;; defines mu4e exists, but holds off until needed
   ;;(autoload 'mu4e "mu4e" "Launch mu4e and show the main window" t)
   (require 'mu4e)
@@ -1637,7 +1561,8 @@ email is to be stored.
 Now, we can define the look/feel of how email is read and organised.
 Most of this relates to the =mu4e-headers= configuration.
 
-#+BEGIN_SRC emacs-lisp :tangle yes  
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq mu4e-notification-support t)
   ;; I don't sync Deleted Items & largely do permanent
   ;;  delete via "D" rather than move to trash via "d" 
   (setq mu4e-trash-folder  "/Trash") 
@@ -1673,7 +1598,7 @@ Most of this relates to the =mu4e-headers= configuration.
            ("/BULK"           . ?b)))
   ;; bookmarks
   (setq mu4e-bookmarks
-        ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK AND NOT maildir:/LISTS" :key 117) ; bu
+        ' ((:name "Unread" :query "flag:unread AND NOT flag:trashed AND NOT maildir:/JUNK AND NOT maildir:/LISTS" :key 117 :favorite t) ; bu
            (:name "Lists" :query "flag:unread AND maildir:/LISTS" :key 108)    ; bl
            (:name "Today" :query "date:today..now" :hide-unread t :key 116)    ; bt
            (:name "Week" :query "date:7d..now" :hide-unread t :key 119)        ; bw
@@ -1765,16 +1690,48 @@ standard GPG applications.
     :custom
     (age-program "rage") ; 'rage' is the rust implementation of 'age' that supports pinentry
     ;(age-default-identity *set in secrets.el*)
-    ;(age-default-recipient *set in secrets*)
+    ;(age-default-recipient *set in secrets.el*)
     :config
+    (setq auth-sources '("/home/hewitt/.authinfo.age"))
     (setq age-armor nil) ;; don't convert to ASCII so I can see multiple key headers from the CLI
     (age-file-enable))
 #+END_SRC
 
+Desktop notifications for AGE decryption - this is mostly the example from the
+=org-caldav= README.
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (require 'notifications)
+
+  ;; 5 second notify on decryption
+  (defun rh-age-notify (msg &optional simple)
+    (notifications-notify
+     :title "age.el"
+     :body (format "%s" msg)
+     :timeout 5000))
+
+  (defun rh-age-notify-decrypt (&rest args)
+    (cl-destructuring-bind (context cipher) args
+      (rh-age-notify (format "Decrypting %s" (age-data-file cipher)) t)))
+
+  (defun rh-age-toggle-decrypt-notifications ()
+    (interactive)
+    (cond ((advice-member-p #'rh-age-notify-decrypt #'age-start-decrypt)
+           (advice-remove #'age-start-decrypt #'rh-age-notify-decrypt)
+           (message "Disabled age decrypt notifications."))
+          (t
+           (advice-add #'age-start-decrypt :before #'rh-age-notify-decrypt)
+           (message "Enabled age decrypt notifications."))))
+
+  ;; we only care about decrypt notifications really
+  (rh-age-toggle-decrypt-notifications)
+
+#+END_SRC
 
 * PII 
 
 #+BEGIN_SRC emacs-lisp :tangle yes
+  (message "Including secrets")
   (require 'secrets)
 #+END_SRC
 
