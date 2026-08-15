@@ -1,0 +1,10 @@
+* TODO %\1 - %\2
+:PROPERTIES:
+:JOURNAL: %^{journal}
+:TOPIC: %^{topic}
+:AUTHOR: %^{author}
+:CREATED: %U 
+:END:
+%?
+DEADLINE: %(org-insert-time-stamp (org-read-date nil t "+28d"))
+%a

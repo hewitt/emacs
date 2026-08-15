@@ -1,0 +1,7 @@
+* TODO read %\1 - %\2 
+:PROPERTIES:
+:SOURCE: %^{source}
+:TOPIC: %^{topic}
+:DATE: %U
+:END:
+%a

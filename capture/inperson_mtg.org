@@ -1,0 +1,8 @@
+* TODO Meet with %\2 at %\1 
+:PROPERTIES:
+:VENUE: %^{venue|Office|2.216|HLR|Atrium}
+:WHO: %^{who}
+:CREATED: %U
+:END:
+%a
+SCHEDULED: %(org-insert-time-stamp (org-read-date nil t "+0d"))
